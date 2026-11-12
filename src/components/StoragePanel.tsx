@@ -13,11 +13,15 @@ interface StoragePanelProps {
   onBeginImport: () => string
   onEndImport: () => void
   onConfirm: (document: BoardDocument) => Promise<void>
+  onOverlayChange: () => void
 }
 
 const phaseLabels = { loading: 'Загрузка', dirty: 'Есть изменения', saving: 'Сохранение', saved: 'Сохранено', error: 'Ошибка' }
 
-export function StoragePanel({ state, hasDocument, busy, onExport, onPrevious, onRetry, onBeginImport, onEndImport, onConfirm }: StoragePanelProps) {
+export function StoragePanel({ state, hasDocument, busy, onExport, onPrevious, onRetry, onBeginImport, onEndImport, onConfirm, onOverlayChange }: StoragePanelProps) {
+  const [popoverOpen, setPopoverOpen] = useState(false)
+  const popoverRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
   const [open, setOpen] = useState(false)
   const [candidate, setCandidate] = useState<BoardDocument | null>(null)
   const [reading, setReading] = useState(false)
@@ -39,6 +43,29 @@ export function StoragePanel({ state, hasDocument, busy, onExport, onPrevious, o
     return () => { dialog?.close() }
   }, [open])
 
+  useEffect(() => { onOverlayChange() }, [popoverOpen, onOverlayChange])
+  useEffect(() => {
+    if (!popoverOpen) return
+    const outside = (event: PointerEvent) => {
+      if (event.target instanceof Node && !popoverRef.current?.contains(event.target)
+        && !triggerRef.current?.contains(event.target)) setPopoverOpen(false)
+    }
+    const escape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || dialogRef.current?.open) return
+      event.preventDefault()
+      event.stopPropagation()
+      if (popoverRef.current?.contains(document.activeElement)) triggerRef.current?.focus({ preventScroll: true })
+      setPopoverOpen(false)
+    }
+    document.addEventListener('pointerdown', outside)
+    document.addEventListener('keydown', escape)
+    return () => {
+      document.removeEventListener('pointerdown', outside)
+      document.removeEventListener('keydown', escape)
+    }
+  }, [popoverOpen])
+  const feedback = (message: string) => { setNotice(message); setPopoverOpen(true) }
+
   const close = () => {
     if (confirming || state.importing) return
     lifetime.current.readGeneration++
@@ -50,10 +77,11 @@ export function StoragePanel({ state, hasDocument, busy, onExport, onPrevious, o
   }
   const begin = () => {
     const reason = onBeginImport()
-    if (reason) { setNotice(reason); return }
+    if (reason) { feedback(reason); return }
     setNotice('')
     setError('')
     setCandidate(null)
+    setPopoverOpen(false)
     setOpen(true)
   }
   const readFile = async (file: File) => {
@@ -81,6 +109,7 @@ export function StoragePanel({ state, hasDocument, busy, onExport, onPrevious, o
       setOpen(false)
       setCandidate(null)
       onEndImport()
+      setPopoverOpen(true)
       setNotice('Доска заменена. Прежняя запись сохранена. Кнопка «Копия до замены» проверит возможность скачивания.')
     } catch (error) {
       if (lifetime.current.mounted) setError(messageOf(error))
@@ -93,23 +122,31 @@ export function StoragePanel({ state, hasDocument, busy, onExport, onPrevious, o
     <section className="storage-panel" aria-label="Локальное сохранение и копии">
       <div className="storage-row">
         <span className={`storage-status storage-status-${state.phase}`} role="status" aria-live="polite">
-          {state.readOnly && state.loaded ? 'Только просмотр' : phaseLabels[state.phase]}
+          {state.phase === 'error' ? phaseLabels.error : state.readOnly && state.loaded ? 'Только просмотр' : phaseLabels[state.phase]}
         </span>
         <span className="storage-local">Локально в этом браузере</span>
         <div className="storage-actions">
-          <button type="button" disabled={!hasDocument} onClick={() => setNotice(onExport())}>Скачать копию</button>
+          <button type="button" disabled={!hasDocument} onClick={() => feedback(onExport())}>Скачать копию</button>
           <button type="button" disabled={!state.canImport || busy || state.importing} onClick={begin}>Импорт</button>
-          {state.hasPrevious && <button type="button" title="Скачать JSON-копию до последней замены доски" onClick={() => setNotice(onPrevious())}>Копия до замены</button>}
+          <button ref={triggerRef} type="button" aria-expanded={popoverOpen} aria-controls="storage-popover"
+            onClick={() => setPopoverOpen((value) => !value)}>Хранение</button>
+        </div>
+      </div>
+      {popoverOpen && <div ref={popoverRef} id="storage-popover" className="storage-popover" role="region" aria-labelledby="storage-title">
+        <div className="storage-popover-heading">
+          <h2 id="storage-title">Хранение и копии</h2>
+          <button type="button" onClick={() => { setPopoverOpen(false); triggerRef.current?.focus({ preventScroll: true }) }} aria-label="Закрыть сведения о хранении">Закрыть</button>
+        </div>
+        {state.message && <p className={state.phase === 'error' ? 'storage-error' : undefined}>{state.message}</p>}
+        {notice && <p role="status">{notice}</p>}
+        <div className="storage-recovery">
+          {state.hasPrevious && <button type="button" title="Скачать JSON-копию до последней замены доски" onClick={() => feedback(onPrevious())}>Копия до замены</button>}
           {state.phase === 'error' && state.writable
             ? <button type="button" onClick={onRetry}>Повторить сохранение</button>
             : state.canReconnect && <button type="button" onClick={onRetry}>Повторить подключение</button>}
         </div>
-      </div>
-      {state.message && <p className={state.phase === 'error' ? 'storage-error' : undefined}>{state.message}</p>}
-      {notice && <p role="status">{notice}</p>}
-      <details className="storage-help"><summary>О хранении и копиях</summary>
-        <p>Данные хранятся в этом профиле браузера, без облачной копии. Очистка данных сайта может удалить доску. Регулярно скачивайте JSON-копию. Незавершённый штрих в неё не входит. Скачивание передаёт файл браузеру; проверьте его в загрузках.</p>
-      </details>
+        <p className="storage-help">Данные хранятся в этом профиле браузера, без облачной копии. Очистка данных сайта может удалить доску. Регулярно скачивайте JSON-копию. Незавершённый штрих в неё не входит. Скачивание передаёт файл браузеру; проверьте его в загрузках.</p>
+      </div>}
       <dialog ref={dialogRef} className="storage-dialog" aria-labelledby="import-title"
         onCancel={(event) => { event.preventDefault(); close() }}>
         <h2 id="import-title">Импорт доски</h2>

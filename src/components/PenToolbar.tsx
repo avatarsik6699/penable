@@ -60,12 +60,12 @@ export function PenToolbar({ tool, onToolChange, width, onWidthChange, diagnosti
         </div>
         <div className="zoom-controls" role="group" aria-label="Масштаб доски">
           <button type="button" onClick={onZoomOut} aria-label="Уменьшить масштаб доски"
-            title="Уменьшить вокруг центра листа" disabled={diagnostics.active || diagnostics.zoom <= 0.25}>−</button>
+            title="Уменьшить вокруг центра листа" disabled={historyState.busy || diagnostics.zoom <= 0.25}>−</button>
           <button type="button" className="zoom-reset" onClick={onResetView}
             aria-label={`Масштаб ${Math.round(diagnostics.zoom * 100)} процентов. Вернуть исходный вид`}
-            title="Вернуть 100% и исходное положение" disabled={diagnostics.active}>{Math.round(diagnostics.zoom * 100)}%</button>
+            title="Вернуть 100% и исходное положение" disabled={historyState.busy}>{Math.round(diagnostics.zoom * 100)}%</button>
           <button type="button" onClick={onZoomIn} aria-label="Увеличить масштаб доски"
-            title="Увеличить вокруг центра листа" disabled={diagnostics.active || diagnostics.zoom >= 8}>+</button>
+            title="Увеличить вокруг центра листа" disabled={historyState.busy || diagnostics.zoom >= 8}>+</button>
         </div>
         <div className="background-control">
           <label htmlFor="board-background">Фон</label>
@@ -80,7 +80,7 @@ export function PenToolbar({ tool, onToolChange, width, onWidthChange, diagnosti
       </div>
       <div className="toolbar-notes">
         <p id="prototype-warning">Пишите пером или мышью. Ластик удаляет штрихи целиком.</p>
-        <p className="gesture-help">Колесо — масштаб. Пробел + перетаскивание или средняя кнопка — перемещение.</p>
+        <p className="gesture-help">Колесо — перемещение. Ctrl + колесо — масштаб. Пробел + перетаскивание или средняя кнопка — перемещение.</p>
       </div>
     </header>
   )

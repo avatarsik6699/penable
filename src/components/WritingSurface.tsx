@@ -1,4 +1,5 @@
 import { useEffect, useRef, type RefObject } from 'react'
+import { BoardCursor } from '../drawing/cursor'
 import { validDpr } from '../drawing/coordinates'
 import { EraserInput } from '../drawing/eraser'
 import { PenInput } from '../drawing/input'
@@ -20,6 +21,8 @@ interface WritingSurfaceProps {
   background: BackgroundMode
   initialDocument: BoardDocument
   canWrite: () => boolean
+  modalOpen: boolean
+  uiRevision: number
   interactionsBlocked: () => boolean
   onDocumentChange: (urgent: boolean) => void
   onHistoryState: (state: HistoryState) => void
@@ -28,8 +31,11 @@ interface WritingSurfaceProps {
   controlsRef: RefObject<SurfaceControls | null>
 }
 
-export function WritingSurface({ tool, getTool, width, stabilization, background, initialDocument, canWrite, interactionsBlocked,
+export function WritingSurface({ tool, getTool, width, stabilization, background, initialDocument, canWrite, interactionsBlocked, modalOpen, uiRevision,
   onDocumentChange, onHistoryState, onDiagnostics, onUnavailable, controlsRef }: WritingSurfaceProps) {
+  const cursorRef = useRef<HTMLDivElement>(null)
+  const focusBadgeRef = useRef<HTMLSpanElement>(null)
+  const refreshCursorRef = useRef<(() => void) | null>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const completedRef = useRef<HTMLCanvasElement>(null)
   const backgroundRef = useRef<HTMLDivElement>(null)
@@ -40,6 +46,8 @@ export function WritingSurface({ tool, getTool, width, stabilization, background
   const historyStateRef = useRef<HistoryState | null>(null)
   const viewportRef = useRef(initialViewport())
   const hydratedRef = useRef(false)
+
+  useEffect(() => { refreshCursorRef.current?.() }, [tool, modalOpen, uiRevision])
 
   useEffect(() => { widthRef.current = width }, [width])
   useEffect(() => { stabilizationRef.current = stabilization }, [stabilization])
@@ -170,10 +178,52 @@ export function WritingSurface({ tool, getTool, width, stabilization, background
       }
     }
     let spaceDown = false
-    const updateCursor = () => {
-      canvas.dataset.panReady = String(spaceDown && drawingPointerId() === null)
-      canvas.dataset.panning = String(navigation.pointerId !== null)
+    let focused = true
+    let keyboardEntry = false
+    let cursorFrame: number | null = null
+    let lastCursorEvent: PointerEvent | null = null
+    const cursor = new BoardCursor()
+    const cursorLayer = cursorRef.current
+    const paintCursor = () => {
+      cursorFrame = null
+      if (disposed || !cursorLayer) return
+      const { visible, mode, position } = cursor.presentation
+      cursorLayer.hidden = !visible
+      cursorLayer.dataset.mode = mode
+      if (position) cursorLayer.style.transform = `translate(${position.x}px, ${position.y}px)`
+      canvas.dataset.appCursorReady = String(visible)
     }
+    const updateCursor = () => {
+      const mode = navigation.pointerId !== null ? 'panning'
+        : spaceDown && drawingPointerId() === null ? 'pan-ready' : getTool()
+      const event = lastCursorEvent
+      const overBoard = !event || document.elementFromPoint(event.clientX, event.clientY) === canvas
+      cursor.configure(mode, focused && document.visibilityState !== 'hidden' && !interactionsBlocked() && overBoard)
+      if (cursorFrame === null) cursorFrame = requestAnimationFrame(paintCursor)
+    }
+    const cursorSample = (event: PointerEvent) => {
+      const owner = drawingPointerId() ?? navigation.pointerId
+      if ((event.pointerType !== 'mouse' && event.pointerType !== 'pen') || (owner !== null && owner !== event.pointerId)) return
+      lastCursorEvent = event
+      cursor.move(event, canvas.getBoundingClientRect(), document.elementFromPoint(event.clientX, event.clientY) === canvas)
+      updateCursor()
+    }
+    const refreshCursor = () => {
+      if (lastCursorEvent) cursorSample(lastCursorEvent)
+      else updateCursor()
+    }
+    refreshCursorRef.current = refreshCursor
+    const leave = (event: PointerEvent) => {
+      cursor.leave(event, event.relatedTarget instanceof Element)
+      updateCursor()
+    }
+    const over = (event: PointerEvent) => {
+      if (event.target !== canvas) cursorSample(event)
+    }
+    const focusCanvas = () => {
+      if (focusBadgeRef.current) focusBadgeRef.current.hidden = !keyboardEntry
+    }
+    const blurCanvas = () => { if (focusBadgeRef.current) focusBadgeRef.current.hidden = true }
     const releaseCapture = (pointerId: number | null) => {
       if (pointerId === null) return
       try {
@@ -185,6 +235,7 @@ export function WritingSurface({ tool, getTool, width, stabilization, background
       input.cancel()
       eraser.cancel()
       navigation.endPan()
+      cursor.cancel()
       releaseCapture(pointerId)
       updateCursor()
       observeInput()
@@ -192,8 +243,13 @@ export function WritingSurface({ tool, getTool, width, stabilization, background
     }
     const down = (event: PointerEvent) => {
       if (interactionsBlocked()) return
+      keyboardEntry = false
+      blurCanvas()
+      cursorSample(event)
       if (navigation.startPan(event, spaceDown)
         || (canWrite() && navigation.pointerId === null && !spaceDown && (getTool() === 'eraser' ? eraser : input).down(event))) {
+        navigation.suspendWheel()
+        cursor.begin(event.pointerId)
         event.preventDefault()
         canvas.focus({ preventScroll: true })
         try { canvas.setPointerCapture?.(event.pointerId) } catch { /* Window listeners are the fallback. */ }
@@ -204,11 +260,13 @@ export function WritingSurface({ tool, getTool, width, stabilization, background
       publishHistoryState()
     }
     const move = (event: PointerEvent) => {
+      cursorSample(event)
       if ((!canWrite() && drawingPointerId() !== null) || interactionsBlocked()) { cancel(); return }
       const panPointer = navigation.pointerId
       if (navigation.movePan(event)) {
         event.preventDefault()
         if (navigation.pointerId === null) {
+          cursor.end(panPointer ?? undefined)
           releaseCapture(panPointer)
           publishHistoryState()
         }
@@ -219,6 +277,7 @@ export function WritingSurface({ tool, getTool, width, stabilization, background
       const pointerId = drawingPointerId()
       if (activeInput().move(event)) event.preventDefault()
       if (pointerId !== null && drawingPointerId() === null) {
+        cursor.end(pointerId)
         releaseCapture(pointerId)
         publishHistoryState()
       }
@@ -226,6 +285,8 @@ export function WritingSurface({ tool, getTool, width, stabilization, background
       if (event.target === canvas || event.pointerId === pointerId) observeInput(event)
     }
     const up = (event: PointerEvent) => {
+      cursorSample(event)
+      cursor.end(event.pointerId)
       if ((!canWrite() && drawingPointerId() !== null) || interactionsBlocked()) { cancel(); return }
       if (navigation.endPan(event.pointerId)) {
         event.preventDefault()
@@ -254,6 +315,7 @@ export function WritingSurface({ tool, getTool, width, stabilization, background
       const inkEnded = input.cancel(event.pointerId)
       const eraseEnded = eraser.cancel(event.pointerId)
       if (panEnded || inkEnded || eraseEnded) {
+        cursor.end(event.pointerId)
         updateCursor()
         observeInput(event)
         publishHistoryState()
@@ -265,10 +327,12 @@ export function WritingSurface({ tool, getTool, width, stabilization, background
       event.preventDefault()
       if (interactionsBlocked()) return
       const bounds = canvas.getBoundingClientRect()
-      navigation.wheel(event.deltaY, event.deltaMode,
-        { x: event.clientX - bounds.left, y: event.clientY - bounds.top }, bounds.height)
+      navigation.wheel({ deltaX: event.deltaX, deltaY: event.deltaY, deltaMode: event.deltaMode,
+        ctrlKey: event.ctrlKey, shiftKey: event.shiftKey,
+        anchor: { x: event.clientX - bounds.left, y: event.clientY - bounds.top }, width: bounds.width, height: bounds.height })
     }
     const keyDown = (event: KeyboardEvent) => {
+      if (event.code === 'Tab') keyboardEntry = true
       if (interactionsBlocked()) return
       const target = event.target instanceof HTMLElement ? event.target : null
       const shortcut = historyShortcut(event, {
@@ -292,8 +356,14 @@ export function WritingSurface({ tool, getTool, width, stabilization, background
       updateCursor()
     }
     const blur = () => {
+      focused = false
       spaceDown = false
       cancel()
+    }
+    const focus = () => { focused = true; refreshCursor() }
+    const visibility = () => {
+      if (document.visibilityState === 'hidden') blur()
+      else focus()
     }
     const center = () => {
       const bounds = canvas.getBoundingClientRect()
@@ -335,11 +405,19 @@ export function WritingSurface({ tool, getTool, width, stabilization, background
       }
     }
     const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(resize) : null
+    canvas.addEventListener('pointerenter', cursorSample)
+    canvas.addEventListener('pointerleave', leave)
+    canvas.addEventListener('focus', focusCanvas)
+    canvas.addEventListener('blur', blurCanvas)
     canvas.addEventListener('pointerdown', down)
     canvas.addEventListener('lostpointercapture', lostCapture)
     canvas.addEventListener('contextmenu', contextMenu)
     canvas.addEventListener('wheel', wheel, { passive: false })
     // Window listeners also handle releases outside the sheet when capture is unavailable.
+    window.addEventListener('pointerover', over)
+    window.addEventListener('focus', focus)
+    document.addEventListener('visibilitychange', visibility)
+    document.addEventListener('toggle', refreshCursor, true)
     window.addEventListener('pointermove', move, { passive: false })
     window.addEventListener('pointerup', up, { passive: false })
     window.addEventListener('pointercancel', pointerCancel)
@@ -364,10 +442,19 @@ export function WritingSurface({ tool, getTool, width, stabilization, background
 
     return () => {
       disposed = true
+      refreshCursorRef.current = null
+      canvas.removeEventListener('pointerenter', cursorSample)
+      canvas.removeEventListener('pointerleave', leave)
+      canvas.removeEventListener('focus', focusCanvas)
+      canvas.removeEventListener('blur', blurCanvas)
       canvas.removeEventListener('pointerdown', down)
       canvas.removeEventListener('lostpointercapture', lostCapture)
       canvas.removeEventListener('contextmenu', contextMenu)
       canvas.removeEventListener('wheel', wheel)
+      window.removeEventListener('pointerover', over)
+      window.removeEventListener('focus', focus)
+      document.removeEventListener('visibilitychange', visibility)
+      document.removeEventListener('toggle', refreshCursor, true)
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
       window.removeEventListener('pointercancel', pointerCancel)
@@ -379,6 +466,9 @@ export function WritingSurface({ tool, getTool, width, stabilization, background
       observer?.disconnect()
       dprQuery?.removeEventListener('change', resize)
       cancel()
+      if (cursorFrame !== null) cancelAnimationFrame(cursorFrame)
+      delete canvas.dataset.appCursorReady
+      if (cursorLayer) cursorLayer.hidden = true
       renderer.dispose()
       controlsRef.current = null
       clearTimeout(diagnosticsTimer)
@@ -392,7 +482,14 @@ export function WritingSurface({ tool, getTool, width, stabilization, background
       <canvas ref={canvasRef} className="live-canvas" data-tool={tool} data-layer="live" tabIndex={0} aria-label="Область письма и стирания пером или основной кнопкой мыши" aria-describedby="prototype-warning writing-help">
         Для письма нужен браузер с поддержкой Canvas 2D.
       </canvas>
-      <p id="writing-help" className="visually-hidden">Пишите кончиком пера или левой кнопкой мыши. Ластик удаляет штрихи целиком. Толщина меняется со следующего штриха пера. Колесо меняет масштаб вокруг курсора. Пробел и перетаскивание или средняя кнопка перемещают доску.</p>
+      <div ref={cursorRef} className="board-cursor" hidden aria-hidden="true">
+        <span className="cursor-dot" />
+        <span className="cursor-eraser" />
+        <svg className="cursor-hand cursor-hand-open" viewBox="0 0 24 24"><path d="M8 12V5a1.5 1.5 0 0 1 3 0v6-8a1.5 1.5 0 0 1 3 0v8-6a1.5 1.5 0 0 1 3 0v7-3a1.5 1.5 0 0 1 3 0v6c0 4-3 7-7 7h-1c-2 0-4-1-5-3l-4-6a1.5 1.5 0 0 1 2.4-1.8L8 14Z" /></svg>
+        <svg className="cursor-hand cursor-hand-closed" viewBox="0 0 24 24"><path d="M7 12V9a1.5 1.5 0 0 1 3 0v2-3a1.5 1.5 0 0 1 3 0v3-2a1.5 1.5 0 0 1 3 0v3-1a1.5 1.5 0 0 1 3 0v5c0 4-3 6-6 6h-1c-2 0-4-1-5-3l-3-5a1.5 1.5 0 0 1 2.5-1.6L7 14Z" /></svg>
+      </div>
+      <span ref={focusBadgeRef} className="canvas-focus-badge" hidden>Полотно</span>
+      <p id="writing-help" className="visually-hidden">Пишите кончиком пера или левой кнопкой мыши. Ластик удаляет штрихи целиком. Толщина меняется со следующего штриха пера. Колесо перемещает доску. Ctrl и колесо меняют масштаб вокруг курсора. Пробел и перетаскивание или средняя кнопка перемещают доску.</p>
     </section>
   )
 }

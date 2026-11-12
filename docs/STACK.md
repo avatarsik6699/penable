@@ -1,7 +1,7 @@
 # Stack Guide
 
 > Source of truth for technologies, commands and required tools.
-> Status: CONFIGURED; changes 01–05 accepted, shipped locally and archived.
+> Status: CONFIGURED; changes 01–05 shipped locally; change06 stabilizes cursor/navigation/UI.
 > SPEC approved 2026-11-12. Target device: Wacom One, Windows 11.
 
 ## Stack
@@ -217,3 +217,17 @@ First local ship initialized main from feature/01-pen-input; change 01 is archiv
   undo restores loaded strokes. Empty/cancelled erasure and tool changes preserve redo.
 - Renderer preview/cancel/removal/history invalidate completed scene and queued commits. Keep the
   existing incremental pen path, geometry and two-layer bitmap budget. No document/schema changes.
+
+## Change06 — Board UX Contract
+
+- Cursor is ephemeral DOM presentation, local CSS position and one RAF, never part of ink/snapshot.
+  Dot3px+white1px halo, eraser ring8radius, pan hand; retain pen proximity-leave position, guard
+  active owner and UI/modal/blur. Canvas Tab-focus uses a small badge, global control focus remains.
+- Plain wheel pans2axes; Ctrl/pinch zoom anchors25–800%; Shift maps vertical-only scroll horizontally.
+  Normalize pixel/line16/page-axis units; suppress wheel during pointer input and quarantine any
+  overlapping stream until150ms quiet. No device guessing or per-sample React/timer.
+- Storage uses stable status/export/import/Хранение row with secondary actions/details in a
+  nonmodal out-of-flow panel. Status/error/notice changes cannot resize canvas or steal focus.
+- Busy UI follows immediate history state, guards remain synchronous. Read-only navigation does
+  not persist. Keep schema1 and accepted stroke geometry. Physical Wacom/trackpad checks are
+  reported separately; successful automated gates/review trigger owner-authorized local ship.

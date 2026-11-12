@@ -35,6 +35,8 @@ export default function App() {
   const [storage, setStorage] = useState<StorageState>(INITIAL_STORAGE)
   const [board, setBoard] = useState<{ document: BoardDocument; generation: number } | null>(null)
   const [attempt, setAttempt] = useState(0)
+  const [uiRevision, setUIRevision] = useState(0)
+  const overlayChanged = useCallback(() => setUIRevision((value) => value + 1), [])
   const [dialogOpen, setDialogOpen] = useState(false)
   const dialogBlocked = useRef(false)
   const toolsRef = useRef({ width: 3, stabilization: DEFAULT_STABILIZATION_STRENGTH })
@@ -181,14 +183,14 @@ export default function App() {
         onZoomIn={() => controlsRef.current?.zoomIn()} onZoomOut={() => controlsRef.current?.zoomOut()}
         onResetView={() => controlsRef.current?.reset()} />
       <StoragePanel state={storage} hasDocument={Boolean(board)} busy={historyState.busy} onExport={exportCurrent}
-        onPrevious={exportPrevious} onRetry={retry} onBeginImport={beginImport} onEndImport={endImport} onConfirm={confirmImport} />
+        onOverlayChange={overlayChanged} onPrevious={exportPrevious} onRetry={retry} onBeginImport={beginImport} onEndImport={endImport} onConfirm={confirmImport} />
       {!board ? <div className="load-state" role="status">{storage.phase === 'loading' ? 'Загрузка доски…' : 'Доска не загружена. Повторите подключение или восстановите её из копии.'}</div> : unavailable ? (
         <div className="capability-error" role="alert">
           <h2>Не удалось открыть лист</h2>
           <p>{unavailable} Откройте страницу в актуальной версии Chrome или Edge.</p>
         </div>
       ) : <WritingSurface key={board.generation} initialDocument={board.document} tool={tool} getTool={getTool} width={width} stabilization={stabilization}
-        background={background} canWrite={canWrite} interactionsBlocked={interactionsBlocked} onDocumentChange={documentChanged}
+        background={background} canWrite={canWrite} modalOpen={dialogOpen} uiRevision={uiRevision} interactionsBlocked={interactionsBlocked} onDocumentChange={documentChanged}
         onHistoryState={setHistoryState} controlsRef={controlsRef} onDiagnostics={setDiagnostics} onUnavailable={setUnavailable} />}
     </main>
   )
