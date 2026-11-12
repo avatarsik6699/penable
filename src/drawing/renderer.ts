@@ -80,6 +80,13 @@ export class CanvasRenderer {
     this.schedule()
   }
 
+  sceneChanged() {
+    this.commits = []
+    this.fullDirty = true
+    this.liveDirty = true
+    this.schedule()
+  }
+
   dispose() {
     this.disposed = true
     if (this.frameId !== null) this.frames.cancel(this.frameId)

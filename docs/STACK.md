@@ -1,7 +1,7 @@
 # Stack Guide
 
 > Source of truth for technologies, commands and required tools.
-> Status: CONFIGURED; M1 and change 02 quality/navigation are archived and accepted.
+> Status: CONFIGURED; changes 01/02 are archived and accepted; change 03 adds history/background.
 > SPEC approved 2026-11-12. Target device: Wacom One, Windows 11.
 
 ## Stack
@@ -62,7 +62,7 @@ A focused build is appropriate when establishing/changing build configuration.
 | Frontend unit tests | npm run test:unit | Includes input ownership/cancellation and coordinate transforms |
 | E2E lint / determinism | n/a | No automated E2E runner |
 | E2E suite | n/a | Interactive browser evidence required in Smoke |
-| Smoke | npm run dev | Playwriter: task T2 scenarios; hardware acceptance T3 is separate |
+| Smoke | npm run dev | Playwriter: active change T2 scenarios; user acceptance T3 is separate |
 | SAST | npm run lint | Correctness-focused static analysis; not a dedicated security audit |
 | Secrets scan | npm run scan:secrets | Gitleaks default rules; excludes only generated deps/build, Git internals and local artifacts; scans untracked files too |
 | Dependency audit | npm run audit:deps | npm audit, moderate and above fail; includes development dependencies |
@@ -104,7 +104,7 @@ pressure, driver behavior and the feeling of handwriting. Read README for the ha
 ## Project structure
 
 - src/components/: toolbar, diagnostics and writing surface.
-- src/drawing/: stroke model/input, pure world/viewport transforms, shared curve geometry, layered Canvas renderer.
+- src/drawing/: stroke model/input/history, world/viewport/background transforms, shared curve geometry, layered Canvas renderer.
 - src/App.tsx: owns slow interface state, not high-frequency stroke geometry.
 - vite.config.ts, tsconfig.json, .oxlintrc.json: project configuration.
 - docs/SPEC.md: approved intent and quality contract; docs/changes/: active work; archived changes 01/02: accepted input and ink quality.
@@ -116,7 +116,8 @@ Keep per-sample input out of React state. The controller owns the active pointer
 renderers consume geometry. Use effect cleanup for subscriptions, ResizeObserver, DPR listeners,
 diagnostics timers and any animation frames. Preserve completed strokes on resize and cancel.
 DPR affects the backing bitmap, not stored geometry. No store, router or drawing SDK required.
-Change 02 adds board navigation and quality. Persistence, eraser, undo/redo and grids remain deferred.
+Change 02 provides accepted navigation/quality. Change 03 adds undo/redo and background;
+persistence and eraser remain deferred.
 
 Only repository-defined lint commands may run; no imported formatter. Tests must check
 observable behavior and invariants, without exposing application internals solely for a test.
@@ -165,3 +166,18 @@ First local ship initialized main from feature/01-pen-input; change 01 is archiv
 - The previous silent-DPR-only CDP limitation remains separate from native pinch evidence;
   inspect actual visualViewport.scale and bitmap dimensions before asserting a test passed.
 - Browser automation may refresh current test notes: user explicitly allowed it in this session.
+
+## Change 03 — History and Background Contract
+
+- History owns completed-stroke commit/undo/redo mutations. Redo clears only on a new commit;
+  cancel, viewport/background/tool changes preserve it. Store the same stroke objects/profiles.
+- Input reports a finalized stroke to the surface; history commits it before renderer.commit.
+  Undo/redo invalidate the complete scene and pending commit queue, including before RAF.
+- UI history state updates only on boolean changes. Actual input/pan ownership guards history,
+  independently of throttled diagnostics. Keyboard uses physical KeyZ with Ctrl/Meta and Shift;
+  preserve text/select/editable native undo, ignore Alt/composition/default-prevented events.
+- Background is a CSS pattern behind the existing two canvases, default blank. Base24 world
+  units, doubled until screen spacing>=12px, positive-modulo phase under negative pan.
+  Update CSS variables from viewport callbacks; no third bitmap, history entries or React pan updates.
+- Acceptance includes queue/undo/redo ordering, identity, cancellation, keyboard/busy guards,
+  world anchoring, unchanged ink/allocation, desktop/narrow layout and clean fresh console.

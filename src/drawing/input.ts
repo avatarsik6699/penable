@@ -73,7 +73,6 @@ export class PenInput {
     this.append(event)
     const { scene } = this.options
     const stroke = scene.active
-    if (stroke) scene.strokes.push(stroke)
     scene.active = null
     if (stroke) this.options.onCommit(stroke)
     return true

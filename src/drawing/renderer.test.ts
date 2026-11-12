@@ -4,6 +4,7 @@ import { CanvasRenderer, type FrameScheduler } from './renderer'
 import { INK, type ActiveStroke, type PointerInput, type Scene } from './types'
 import { initialViewport } from './viewport'
 import { BITMAP_PIXEL_BUDGET } from './coordinates'
+import { StrokeHistory } from './history'
 
 function layer() {
   const context = {
@@ -113,8 +114,9 @@ describe('layered frame renderer', () => {
 
   it('retains every rapid tap and the next active stroke before a single RAF', () => {
     const { renderer, scene, completed, live, clock } = setup()
+    const history = new StrokeHistory(scene.strokes)
     const input = new PenInput({ scene, bounds: () => ({ left: 0, top: 0 }), viewport: initialViewport, width: () => 3,
-      onActiveChange: () => renderer.activeChanged(), onCommit: (ink) => renderer.commit(ink) })
+      onActiveChange: () => renderer.activeChanged(), onCommit: (ink) => { history.commit(ink); renderer.commit(ink) } })
     for (let i = 0; i < 3; i++) {
       input.down(pointer({ clientX: i * 10 }))
       input.up(pointer({ clientX: i * 10, buttons: 0, pressure: 0, timeStamp: 2 }))
@@ -126,6 +128,43 @@ describe('layered frame renderer', () => {
     expect(completed.context.fill).toHaveBeenCalledTimes(3)
     expect(completed.context.arc.mock.calls.map((call) => call[0])).toEqual([0, 10, 20])
     expect(live.context.arc).toHaveBeenCalledExactlyOnceWith(99, 40, 1.5, 0, Math.PI * 2)
+  })
+
+  it('removes a queued commit undone before RAF without painting a ghost stroke', () => {
+    const original = stroke()
+    const { renderer, scene, completed, live, clock } = setup({ strokes: [original], active: null })
+    const history = new StrokeHistory(scene.strokes)
+    const added = { ...stroke(), id: 2, points: [{ x: 500, y: 400, pressure: 0.5, time: 1 }] }
+    history.commit(added)
+    renderer.commit(added)
+    history.undo()
+    renderer.sceneChanged()
+    expect(clock.pending.size).toBe(1)
+    clock.run()
+    expect(completed.context.clearRect).toHaveBeenCalledOnce()
+    expect(completed.context.stroke).toHaveBeenCalledOnce()
+    expect(completed.context.arc).not.toHaveBeenCalled()
+    expect(completed.context.moveTo).toHaveBeenCalledExactlyOnceWith(5, 7)
+    expect(live.context.clearRect).toHaveBeenCalledOnce()
+    expect(scene.strokes[0]).toBe(original)
+    expect(history.canRedo).toBe(true)
+  })
+
+  it('coalesces commit→undo→redo before RAF into one canonical redraw without duplicate ink', () => {
+    const { renderer, scene, completed, clock } = setup()
+    const history = new StrokeHistory(scene.strokes)
+    const ink = stroke()
+    history.commit(ink)
+    renderer.commit(ink)
+    history.undo()
+    renderer.sceneChanged()
+    history.redo()
+    renderer.sceneChanged()
+    expect(clock.pending.size).toBe(1)
+    clock.run()
+    expect(completed.context.stroke).toHaveBeenCalledOnce()
+    expect(completed.context.clearRect).toHaveBeenCalledOnce()
+    expect(scene.strokes[0]).toBe(ink)
   })
 
   it('coalesces viewport/resize redraws and avoids drawing queued commits twice', () => {

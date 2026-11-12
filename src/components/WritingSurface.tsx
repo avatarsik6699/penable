@@ -2,23 +2,31 @@ import { useEffect, useRef, type RefObject } from 'react'
 import { validDpr } from '../drawing/coordinates'
 import { PenInput } from '../drawing/input'
 import { CanvasRenderer } from '../drawing/renderer'
-import type { InputDiagnostics, Scene, SurfaceControls } from '../drawing/types'
+import type { HistoryState, InputDiagnostics, Scene, SurfaceControls } from '../drawing/types'
 import { BoardNavigation, initialViewport } from '../drawing/viewport'
+import { StrokeHistory } from '../drawing/history'
+import { historyShortcut, type HistoryAction } from '../drawing/shortcuts'
+import { backgroundLayout, type BackgroundMode } from '../drawing/background'
 
 interface WritingSurfaceProps {
   width: number
   stabilization: number
+  background: BackgroundMode
+  onHistoryState: (state: HistoryState) => void
   onDiagnostics: (value: InputDiagnostics) => void
   onUnavailable: (reason: string) => void
   controlsRef: RefObject<SurfaceControls | null>
 }
 
-export function WritingSurface({ width, stabilization, onDiagnostics, onUnavailable, controlsRef }: WritingSurfaceProps) {
+export function WritingSurface({ width, stabilization, background, onHistoryState, onDiagnostics, onUnavailable, controlsRef }: WritingSurfaceProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const completedRef = useRef<HTMLCanvasElement>(null)
+  const backgroundRef = useRef<HTMLDivElement>(null)
   const widthRef = useRef(width)
   const stabilizationRef = useRef(stabilization)
   const sceneRef = useRef<Scene>({ strokes: [], active: null })
+  const historyRef = useRef<StrokeHistory | null>(null)
+  const historyStateRef = useRef<HistoryState | null>(null)
   const viewportRef = useRef(initialViewport())
 
   useEffect(() => { widthRef.current = width }, [width])
@@ -40,10 +48,22 @@ export function WritingSurface({ width, stabilization, onDiagnostics, onUnavaila
     }
 
     const scene = sceneRef.current
+    const history = historyRef.current ?? new StrokeHistory(scene.strokes)
+    historyRef.current = history
     const visualViewport = window.visualViewport
     const renderer = new CanvasRenderer(
       { canvas: completedCanvas, context: completedContext }, { canvas, context }, scene, viewportRef.current,
     )
+    const updateBackground = () => {
+      const style = backgroundRef.current?.style
+      if (!style) return
+      const layout = backgroundLayout(viewportRef.current)
+      style.setProperty('--background-step', `${layout.screenStep}px`)
+      style.setProperty('--background-x', `${layout.phaseX}px`)
+      style.setProperty('--background-y', `${layout.phaseY}px`)
+      style.setProperty('--background-dot-x', `${layout.phaseX - layout.screenStep / 2}px`)
+      style.setProperty('--background-dot-y', `${layout.phaseY - layout.screenStep / 2}px`)
+    }
     const input = new PenInput({
       scene,
       bounds: () => canvas.getBoundingClientRect(),
@@ -51,7 +71,11 @@ export function WritingSurface({ width, stabilization, onDiagnostics, onUnavaila
       width: () => widthRef.current,
       stabilization: () => stabilizationRef.current,
       onActiveChange: () => renderer.activeChanged(),
-      onCommit: (stroke) => renderer.commit(stroke),
+      onCommit: (stroke) => {
+        history.commit(stroke)
+        renderer.commit(stroke)
+        publishHistoryState()
+      },
     })
     let diagnostics: InputDiagnostics = {
       pointerType: null, pressure: null, active: false,
@@ -86,10 +110,30 @@ export function WritingSurface({ width, stabilization, onDiagnostics, onUnavaila
       onChange: (viewport) => {
         viewportRef.current = viewport
         renderer.setViewport(viewport)
+        updateBackground()
         diagnostics = { ...diagnostics, zoom: viewport.zoom }
         scheduleDiagnostics()
       },
     })
+    let disposed = false
+    const publishHistoryState = () => {
+      if (disposed) return
+      const next = {
+        canUndo: history.canUndo, canRedo: history.canRedo,
+        busy: input.pointerId !== null || navigation.pointerId !== null,
+      }
+      const previous = historyStateRef.current
+      if (previous && previous.canUndo === next.canUndo && previous.canRedo === next.canRedo && previous.busy === next.busy) return
+      historyStateRef.current = next
+      onHistoryState(next)
+    }
+    const applyHistory = (action: HistoryAction) => {
+      if (input.pointerId !== null || navigation.pointerId !== null) return
+      if (action === 'undo' ? history.undo() : history.redo()) {
+        renderer.sceneChanged()
+        publishHistoryState()
+      }
+    }
     let spaceDown = false
     const updateCursor = () => {
       canvas.dataset.panReady = String(spaceDown && input.pointerId === null)
@@ -108,6 +152,7 @@ export function WritingSurface({ width, stabilization, onDiagnostics, onUnavaila
       releaseCapture(pointerId)
       updateCursor()
       observeInput()
+      publishHistoryState()
     }
     const down = (event: PointerEvent) => {
       if (navigation.startPan(event, spaceDown)
@@ -119,19 +164,26 @@ export function WritingSurface({ width, stabilization, onDiagnostics, onUnavaila
       if (event.button === 1) event.preventDefault()
       updateCursor()
       observeInput(event)
+      publishHistoryState()
     }
     const move = (event: PointerEvent) => {
       const panPointer = navigation.pointerId
       if (navigation.movePan(event)) {
         event.preventDefault()
-        if (navigation.pointerId === null) releaseCapture(panPointer)
+        if (navigation.pointerId === null) {
+          releaseCapture(panPointer)
+          publishHistoryState()
+        }
         updateCursor()
         observeInput(event)
         return
       }
       const pointerId = input.pointerId
       if (input.move(event)) event.preventDefault()
-      if (pointerId !== null && input.pointerId === null) releaseCapture(pointerId)
+      if (pointerId !== null && input.pointerId === null) {
+        releaseCapture(pointerId)
+        publishHistoryState()
+      }
       updateCursor()
       if (event.target === canvas || event.pointerId === pointerId) observeInput(event)
     }
@@ -141,6 +193,7 @@ export function WritingSurface({ width, stabilization, onDiagnostics, onUnavaila
         releaseCapture(event.pointerId)
         updateCursor()
         observeInput(event)
+        publishHistoryState()
         return
       }
       const pointerId = input.pointerId
@@ -162,6 +215,7 @@ export function WritingSurface({ width, stabilization, onDiagnostics, onUnavaila
       if (panEnded || inkEnded) {
         updateCursor()
         observeInput(event)
+        publishHistoryState()
       }
     }
     const contextMenu = (event: MouseEvent) => event.preventDefault()
@@ -173,8 +227,17 @@ export function WritingSurface({ width, stabilization, onDiagnostics, onUnavaila
         { x: event.clientX - bounds.left, y: event.clientY - bounds.top }, bounds.height)
     }
     const keyDown = (event: KeyboardEvent) => {
-      if (event.code !== 'Space' || event.ctrlKey || event.metaKey || event.altKey) return
       const target = event.target instanceof HTMLElement ? event.target : null
+      const shortcut = historyShortcut(event, {
+        editable: Boolean(target?.closest('input:not([type="range"]),textarea,select') || target?.isContentEditable),
+        inkPointerId: input.pointerId, panPointerId: navigation.pointerId,
+      })
+      if (shortcut) {
+        event.preventDefault()
+        if (!shortcut.blocked) applyHistory(shortcut.action)
+        return
+      }
+      if (event.code !== 'Space' || event.ctrlKey || event.metaKey || event.altKey) return
       if (target?.closest('input:not([type="range"]),textarea,select,[contenteditable]')) return
       if (!target?.closest('button,summary,input[type="range"]')) event.preventDefault()
       spaceDown = true
@@ -197,6 +260,8 @@ export function WritingSurface({ width, stabilization, onDiagnostics, onUnavaila
       zoomIn: () => { navigation.setZoom(navigation.viewport.zoom * 2, center()) },
       zoomOut: () => { navigation.setZoom(navigation.viewport.zoom / 2, center()) },
       reset: () => { navigation.reset() },
+      undo: () => { applyHistory('undo') },
+      redo: () => { applyHistory('redo') },
     }
 
     let dprQuery: MediaQueryList | undefined
@@ -247,9 +312,12 @@ export function WritingSurface({ width, stabilization, onDiagnostics, onUnavaila
         observer.observe(canvas)
       }
     }
+    updateBackground()
+    publishHistoryState()
     resize()
 
     return () => {
+      disposed = true
       canvas.removeEventListener('pointerdown', down)
       canvas.removeEventListener('lostpointercapture', lostCapture)
       canvas.removeEventListener('contextmenu', contextMenu)
@@ -269,10 +337,11 @@ export function WritingSurface({ width, stabilization, onDiagnostics, onUnavaila
       controlsRef.current = null
       clearTimeout(diagnosticsTimer)
     }
-  }, [onDiagnostics, onUnavailable, controlsRef])
+  }, [onDiagnostics, onUnavailable, onHistoryState, controlsRef])
 
   return (
     <section className="writing-surface" aria-label="Лист для проверки пера">
+      <div ref={backgroundRef} className="board-background" data-background={background} aria-hidden="true" />
       <canvas ref={completedRef} className="completed-canvas" data-layer="completed" aria-hidden="true" />
       <canvas ref={canvasRef} className="live-canvas" data-layer="live" tabIndex={0} aria-label="Область письма пером или основной кнопкой мыши" aria-describedby="prototype-warning writing-help">
         Для письма нужен браузер с поддержкой Canvas 2D.

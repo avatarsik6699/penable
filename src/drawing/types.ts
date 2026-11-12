@@ -75,4 +75,12 @@ export interface SurfaceControls {
   zoomIn: () => void
   zoomOut: () => void
   reset: () => void
+  undo: () => void
+  redo: () => void
+}
+
+export interface HistoryState {
+  canUndo: boolean
+  canRedo: boolean
+  busy: boolean
 }

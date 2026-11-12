@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import { eventSamples, PenInput } from './input'
-import type { PointerInput, Scene, Viewport } from './types'
+import type { PointerInput, Scene, Stroke, Viewport } from './types'
 import { initialViewport } from './viewport'
+import { StrokeHistory } from './history'
 
 function pointer(overrides: Partial<PointerInput> = {}): PointerInput {
   return {
@@ -13,7 +14,8 @@ function pointer(overrides: Partial<PointerInput> = {}): PointerInput {
 function setup() {
   const scene: Scene = { strokes: [], active: null }
   const changed = vi.fn()
-  const committed = vi.fn()
+  const history = new StrokeHistory(scene.strokes)
+  const committed = vi.fn((stroke: Stroke) => history.commit(stroke))
   let width = 3
   let stabilization = 0
   let viewport = initialViewport()
@@ -25,6 +27,18 @@ function setup() {
 }
 
 describe('one-contact pen input', () => {
+  it('emits a finished stroke without independently mutating the completed scene', () => {
+    const scene: Scene = { strokes: [], active: null }
+    const committed = vi.fn()
+    const input = new PenInput({ scene, bounds: () => ({ left: 0, top: 0 }), viewport: initialViewport,
+      width: () => 3, onActiveChange: vi.fn(), onCommit: committed })
+    input.down(pointer())
+    const active = scene.active
+    input.up(pointer({ buttons: 0, pressure: 0, timeStamp: 2 }))
+    expect(committed).toHaveBeenCalledExactlyOnceWith(active)
+    expect(scene.strokes).toEqual([])
+    expect(scene.active).toBeNull()
+  })
   it.each([
     { pointerType: 'touch' }, { pointerType: '' }, { isPrimary: false },
     { button: 2, buttons: 2 }, { buttons: 0 }, { button: 5, buttons: 32 }, { buttons: 3 },
