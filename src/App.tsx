@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { PenToolbar } from './components/PenToolbar'
 import { WritingSurface } from './components/WritingSurface'
 import { validDpr } from './drawing/coordinates'
-import type { HistoryState, InputDiagnostics, SurfaceControls } from './drawing/types'
+import type { DrawingTool, HistoryState, InputDiagnostics, SurfaceControls } from './drawing/types'
 import { DEFAULT_STABILIZATION_STRENGTH, normalizeStrength } from './drawing/stabilization'
 import type { BackgroundMode } from './drawing/background'
 import { StoragePanel } from './components/StoragePanel'
@@ -23,6 +23,8 @@ function downloadJSON(json: string, name: string) {
 }
 
 export default function App() {
+  const [tool, setTool] = useState<DrawingTool>('pen')
+  const toolRef = useRef<DrawingTool>('pen')
   const [width, setWidth] = useState(3)
   const [strengthValue, setStabilization] = useState(DEFAULT_STABILIZATION_STRENGTH)
   const stabilization = normalizeStrength(strengthValue)
@@ -58,6 +60,7 @@ export default function App() {
       tools: { width: toolsRef.current.width, stabilization: toolsRef.current.stabilization } })
   }, [])
   const canWrite = useCallback(() => Boolean(sessionRef.current?.canWrite && controlsRef.current && !dialogBlocked.current), [])
+  const getTool = useCallback(() => toolRef.current, [])
   const interactionsBlocked = useCallback(() => dialogBlocked.current, [])
   const documentChanged = useCallback((urgent: boolean) => { sessionRef.current?.changed(urgent) }, [])
 
@@ -67,7 +70,10 @@ export default function App() {
       snapshot,
       onHydrate: (document) => {
         if (!active || sessionRef.current !== session) return
+        controlsRef.current?.cancelInput()
         controlsRef.current = null
+        toolRef.current = 'pen'
+        setTool('pen')
         latestDocument.current = document
         toolsRef.current = { width: document.tools.width, stabilization: document.tools.stabilization }
         backgroundValue.current = document.background
@@ -78,7 +84,11 @@ export default function App() {
         setHistoryState({ canUndo: false, canRedo: false, busy: false })
         setBoard({ document, generation: ++generation.current })
       },
-      onState: (state) => { if (active && sessionRef.current === session) setStorage(state) },
+      onState: (state) => {
+        if (!active || sessionRef.current !== session) return
+        if (!state.writable) controlsRef.current?.cancelInput()
+        setStorage(state)
+      },
     })
     sessionRef.current = session
     const starting = priorDisposal.current.then(() => { if (active) return session.start() })
@@ -104,6 +114,11 @@ export default function App() {
     }
   }, [])
 
+  const changeTool = (value: DrawingTool) => {
+    if (!canWrite() || controlsRef.current?.isBusy()) return
+    toolRef.current = value
+    setTool(value)
+  }
   const changeWidth = (value: number) => {
     if (!canWrite()) return
     toolsRef.current = { width: value, stabilization: toolsRef.current.stabilization }
@@ -124,7 +139,7 @@ export default function App() {
   }
   const endImport = () => { dialogBlocked.current = false; setDialogOpen(false) }
   const beginImport = () => {
-    if (!sessionRef.current?.canImport || controlsRef.current?.isBusy()) return 'Завершите письмо или перемещение перед импортом.'
+    if (!sessionRef.current?.canImport || controlsRef.current?.isBusy()) return 'Завершите письмо, стирание или перемещение перед импортом.'
     dialogBlocked.current = true
     setDialogOpen(true)
     return ''
@@ -158,7 +173,7 @@ export default function App() {
 
   return (
     <main className="app">
-      <PenToolbar width={width} onWidthChange={changeWidth} diagnostics={diagnostics}
+      <PenToolbar tool={tool} onToolChange={changeTool} width={width} onWidthChange={changeWidth} diagnostics={diagnostics}
         stabilization={stabilization} onStabilizationChange={changeStabilization}
         background={background} onBackgroundChange={changeBackground} historyState={historyState}
         readOnly={!storage.writable || dialogOpen || !board || Boolean(unavailable)}
@@ -172,7 +187,7 @@ export default function App() {
           <h2>Не удалось открыть лист</h2>
           <p>{unavailable} Откройте страницу в актуальной версии Chrome или Edge.</p>
         </div>
-      ) : <WritingSurface key={board.generation} initialDocument={board.document} width={width} stabilization={stabilization}
+      ) : <WritingSurface key={board.generation} initialDocument={board.document} tool={tool} getTool={getTool} width={width} stabilization={stabilization}
         background={background} canWrite={canWrite} interactionsBlocked={interactionsBlocked} onDocumentChange={documentChanged}
         onHistoryState={setHistoryState} controlsRef={controlsRef} onDiagnostics={setDiagnostics} onUnavailable={setUnavailable} />}
     </main>

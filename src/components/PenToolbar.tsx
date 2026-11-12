@@ -1,8 +1,10 @@
-import type { HistoryState, InputDiagnostics } from '../drawing/types'
+import type { DrawingTool, HistoryState, InputDiagnostics } from '../drawing/types'
 import { PointerDiagnostics } from './PointerDiagnostics'
 import type { BackgroundMode } from '../drawing/background'
 
 interface PenToolbarProps {
+  tool: DrawingTool
+  onToolChange: (tool: DrawingTool) => void
   width: number
   onWidthChange: (width: number) => void
   diagnostics: InputDiagnostics
@@ -19,16 +21,22 @@ interface PenToolbarProps {
   onResetView: () => void
 }
 
-export function PenToolbar({ width, onWidthChange, diagnostics, stabilization, onStabilizationChange, background,
+export function PenToolbar({ tool, onToolChange, width, onWidthChange, diagnostics, stabilization, onStabilizationChange, background,
   onBackgroundChange, historyState, onUndo, onRedo, readOnly, onZoomIn, onZoomOut, onResetView }: PenToolbarProps) {
   return (
     <header className="pen-toolbar">
       <div className="toolbar-row">
         <h1>penable<span className="brand-dot" aria-hidden="true" /></h1>
+        <div className="tool-controls" role="group" aria-label="Инструмент">
+          <button type="button" aria-pressed={tool === 'pen'} onClick={() => onToolChange('pen')}
+            disabled={readOnly || historyState.busy}>Перо</button>
+          <button type="button" aria-pressed={tool === 'eraser'} onClick={() => onToolChange('eraser')}
+            title="Удаляет штрих целиком" disabled={readOnly || historyState.busy}>Ластик</button>
+        </div>
         <div className="history-controls" role="group" aria-label="История штрихов">
-          <button type="button" onClick={onUndo} aria-label="Отменить штрих" title="Отменить штрих (Ctrl+Z / ⌘Z)"
+          <button type="button" onClick={onUndo} aria-label="Отменить действие" title="Отменить действие (Ctrl+Z / ⌘Z)"
             disabled={readOnly || historyState.busy || !historyState.canUndo}>↶</button>
-          <button type="button" onClick={onRedo} aria-label="Вернуть штрих" title="Вернуть штрих (Ctrl+Shift+Z / ⌘Shift+Z)"
+          <button type="button" onClick={onRedo} aria-label="Вернуть действие" title="Вернуть действие (Ctrl+Shift+Z / ⌘Shift+Z)"
             disabled={readOnly || historyState.busy || !historyState.canRedo}>↷</button>
         </div>
         <div className="width-control">
@@ -71,7 +79,7 @@ export function PenToolbar({ width, onWidthChange, diagnostics, stabilization, o
         <PointerDiagnostics diagnostics={diagnostics} />
       </div>
       <div className="toolbar-notes">
-        <p id="prototype-warning">Пишите пером или мышью.</p>
+        <p id="prototype-warning">Пишите пером или мышью. Ластик удаляет штрихи целиком.</p>
         <p className="gesture-help">Колесо — масштаб. Пробел + перетаскивание или средняя кнопка — перемещение.</p>
       </div>
     </header>

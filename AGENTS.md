@@ -142,6 +142,11 @@ section exists only for what git can't tell you.
 
 These project conventions take precedence over generic tooling suggestions in the playbooks.
 
+- Delivery preference (owner instruction, 2026-11-12): after implementation passes the automated
+  checks and required reviews, immediately run local `/ship` (Full Gate, commit, merge to main,
+  archive), without waiting for a separate ship command. Report any unverified manual/hardware
+  behavior honestly. This authorizes local delivery; push/deploy still require a separate release
+  instruction. This owner preference overrides the playbook's default manual handoff after work.
 - Consult Context7 before writing or reviewing code using any third-party package; this also
   applies when reviewing existing code. Use the documentation fallbacks above only if Context7
   is unavailable.

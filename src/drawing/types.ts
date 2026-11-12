@@ -14,6 +14,8 @@ export interface Point extends Position {
   time: number
 }
 
+export type DrawingTool = 'pen' | 'eraser'
+
 export type StabilizationMode = 'off' | 'light' | 'strong'
 
 export type StabilizationProfile = {
@@ -79,6 +81,7 @@ export interface SurfaceControls {
   redo: () => void
   snapshot: () => { strokes: Stroke[]; viewport: Viewport }
   isBusy: () => boolean
+  cancelInput: () => void
 }
 
 export interface HistoryState {

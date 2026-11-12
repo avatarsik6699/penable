@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { PenInput } from './input'
+import { EraserInput } from './eraser'
 import { CanvasRenderer, type FrameScheduler } from './renderer'
 import { INK, type ActiveStroke, type PointerInput, type Scene } from './types'
 import { initialViewport } from './viewport'
@@ -255,5 +256,61 @@ describe('layered frame renderer', () => {
     renderer.activeChanged()
     clock.run()
     expect(live.context.stroke).toHaveBeenCalledOnce()
+  })
+})
+
+
+describe('eraser preview rendering', () => {
+  it('drops queued commits hidden before RAF and restores canonical ink on cancellation', () => {
+    const { renderer, scene, completed, clock } = setup()
+    const ink = stroke()
+    scene.strokes.push(ink)
+    renderer.commit(ink)
+    const input = new EraserInput({ scene, bounds: () => ({ left: 0, top: 0 }), viewport: initialViewport,
+      onPreviewChange: () => renderer.setEraserPreview(input.preview), onCommit: vi.fn() })
+    input.down(pointer({ clientX: 5, clientY: 7 }))
+    clock.run()
+    expect(completed.context.clearRect).toHaveBeenCalledOnce()
+    expect(completed.context.stroke).not.toHaveBeenCalled()
+    expect(scene.strokes[0]).toBe(ink)
+    input.cancel()
+    clock.run()
+    expect(completed.context.stroke).toHaveBeenCalledOnce()
+    expect(completed.context.clearRect).toHaveBeenCalledTimes(2)
+  })
+
+  it('coalesces erase, undo and redo with pending ink without ghosts or duplicate paths', () => {
+    const ink = stroke()
+    const { renderer, scene, completed, clock } = setup({ strokes: [ink], active: null })
+    const history = new StrokeHistory(scene.strokes, 1)
+    const added = { ...stroke(), id: 2 }
+    history.commit(added)
+    renderer.commit(added)
+    const input = new EraserInput({ scene, bounds: () => ({ left: 0, top: 0 }), viewport: initialViewport,
+      onPreviewChange: () => renderer.setEraserPreview(input.preview),
+      onCommit: (strokes) => { history.erase(strokes); renderer.sceneChanged() } })
+    input.down(pointer({ clientX: 5, clientY: 7 }))
+    input.up(pointer({ clientX: 5, clientY: 7, buttons: 0 }))
+    history.undo()
+    renderer.sceneChanged()
+    clock.run()
+    expect(completed.context.stroke).toHaveBeenCalledTimes(2)
+    expect(completed.context.clearRect).toHaveBeenCalledOnce()
+    vi.clearAllMocks()
+    history.redo()
+    renderer.sceneChanged()
+    clock.run()
+    expect(completed.context.stroke).not.toHaveBeenCalled()
+    expect(completed.context.clearRect).toHaveBeenCalledOnce()
+    expect(scene.strokes).toEqual([])
+  })
+
+  it('keys preview by object identity when a numeric stroke ID is reused', () => {
+    const hidden = stroke()
+    const replacement = { ...stroke(), points: [{ x: 99, y: 100, pressure: 1, time: 1 }] }
+    const { renderer, completed, clock } = setup({ strokes: [replacement], active: null })
+    renderer.setEraserPreview(new Set([hidden]))
+    clock.run()
+    expect(completed.context.arc).toHaveBeenCalledExactlyOnceWith(99, 100, 1.5, 0, Math.PI * 2)
   })
 })

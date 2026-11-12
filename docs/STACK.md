@@ -1,7 +1,7 @@
 # Stack Guide
 
 > Source of truth for technologies, commands and required tools.
-> Status: CONFIGURED; changes 01–04 are accepted, shipped locally and archived.
+> Status: CONFIGURED; changes 01–04 shipped locally; change05 adds a whole-stroke eraser.
 > SPEC approved 2026-11-12. Target device: Wacom One, Windows 11.
 
 ## Stack
@@ -118,7 +118,7 @@ renderers consume geometry. Use effect cleanup for subscriptions, ResizeObserver
 diagnostics timers and any animation frames. Preserve completed strokes on resize and cancel.
 DPR affects the backing bitmap, not stored geometry. No store, router or drawing SDK required.
 Changes02/03 provide accepted navigation/quality/history/background. Change04 adds persistence;
-eraser remains deferred.
+change05 adds whole-stroke erasure with grouped action history and renderer-only previews.
 
 Only repository-defined lint commands may run; no imported formatter. Tests must check
 observable behavior and invariants, without exposing application internals solely for a test.
@@ -204,3 +204,16 @@ First local ship initialized main from feature/01-pen-input; change 01 is archiv
 - Automated browserstorage tests use OWN `http://127.0.0.1:5173`, isolated from user's localhost origin.
   RealIDB reload/abort/error/import/two-tab lease checks complement injected-adapter unit races.
   Do not clear profiles or user's localhost DB. Captured download payload is not filesystem-save proof.
+
+## Change05 — Eraser Contract
+
+- Separate pen/eraser controllers, common pointer ownership guards in Surface. Selected tool is
+  ephemeral; initial load/import selects Pen. Read-only/import/busy synchronously guard changes.
+- Eraser preview owns a Set of stroke objects; canonical strokes/snapshot remain unchanged until
+  pointerup. Cancel/blur/resize/lost capture/permission loss restore preview without save/history.
+- Hit-test reuses accepted stabilized positions/geometry with swept segments,8CSSpx radius/zoom
+  plus half stroke width. Bound curve approximation error, cover collinear backtracking quadratics.
+- History is add/erase actions with original object/index; loaded writing is baseline, later erase
+  undo restores loaded strokes. Empty/cancelled erasure and tool changes preserve redo.
+- Renderer preview/cancel/removal/history invalidate completed scene and queued commits. Keep the
+  existing incremental pen path, geometry and two-layer bitmap budget. No document/schema changes.

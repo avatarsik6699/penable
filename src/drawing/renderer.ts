@@ -31,6 +31,7 @@ export class CanvasRenderer {
   private resizePending = false
   private commits: Stroke[] = []
   private disposed = false
+  private preview: ReadonlySet<Stroke> = new Set()
 
   constructor(
     private readonly completed: CanvasLayer,
@@ -80,6 +81,11 @@ export class CanvasRenderer {
     this.schedule()
   }
 
+  setEraserPreview(preview: ReadonlySet<Stroke>) {
+    this.preview = preview
+    this.sceneChanged()
+  }
+
   sceneChanged() {
     this.commits = []
     this.fullDirty = true
@@ -117,9 +123,13 @@ export class CanvasRenderer {
     }
     if (this.fullDirty) {
       this.clear(this.completed)
-      for (const stroke of this.scene.strokes) this.drawStroke(this.completed.context, stroke)
+      for (const stroke of this.scene.strokes) {
+        if (!this.preview.has(stroke)) this.drawStroke(this.completed.context, stroke)
+      }
     } else {
-      for (const stroke of this.commits) this.drawStroke(this.completed.context, stroke)
+      for (const stroke of this.commits) {
+        if (!this.preview.has(stroke)) this.drawStroke(this.completed.context, stroke)
+      }
     }
     if (this.fullDirty || this.liveDirty) {
       this.clear(this.live)
