@@ -114,7 +114,7 @@ Git internals и локальные артефакты исключены. Со�
 
 ## Разработка по SDD
 
-[SPEC.md](docs/SPEC.md) — согласованные требования, [change 02](docs/changes/02-ink-quality.md) — текущая итерация качества;
+[SPEC.md](docs/SPEC.md) — согласованные требования, [change 02](docs/changes/archive/02-ink-quality.md) — принятая и завершённая итерация качества;
 [change 01](docs/changes/archive/01-pen-input.md) — завершённая проверка пера. Цикл: `plan → work → ручная проверка → ship`.
 Пользователь подтвердил 2026-11-12 письмо Wacom One на Windows 11, различение pen/mouse
 и изменение давления в диагностике. Толщина линии в M1 намеренно постоянная.

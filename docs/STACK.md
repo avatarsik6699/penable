@@ -1,7 +1,7 @@
 # Stack Guide
 
 > Source of truth for technologies, commands and required tools.
-> Status: CONFIGURED; M1 is archived, change 02 improves rendering quality and viewport navigation.
+> Status: CONFIGURED; M1 and change 02 quality/navigation are archived and accepted.
 > SPEC approved 2026-11-12. Target device: Wacom One, Windows 11.
 
 ## Stack
@@ -107,7 +107,7 @@ pressure, driver behavior and the feeling of handwriting. Read README for the ha
 - src/drawing/: stroke model/input, pure world/viewport transforms, shared curve geometry, layered Canvas renderer.
 - src/App.tsx: owns slow interface state, not high-frequency stroke geometry.
 - vite.config.ts, tsconfig.json, .oxlintrc.json: project configuration.
-- docs/SPEC.md: approved intent and quality contract; docs/changes/02-ink-quality.md: active change; archived change 01: M1 acceptance.
+- docs/SPEC.md: approved intent and quality contract; docs/changes/: active work; archived changes 01/02: accepted input and ink quality.
 - docs/playbooks/, .agents/skills/, .claude/skills/, plugins/sdd-workflow/: installed workflow.
 
 ## Implementation conventions

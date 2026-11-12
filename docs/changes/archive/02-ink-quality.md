@@ -7,7 +7,7 @@
 | Change | 02 |
 | Slug | ink-quality |
 | Title | Качество письма и масштабирования |
-| Status | implementation and user acceptance complete — ready for ship |
+| Status | shipped locally — Full Gate PASS, feature merged into main |
 | Branch | feature/02-ink-quality |
 
 ## Goal
@@ -99,7 +99,7 @@ See docs/SPEC.md §3–§5, especially §5.4, and the Files list above.
 
 ## Gate Checks
 
-Fast/Full/Release Gate: [STACK.md](../STACK.md). This work runs Fast Gate; ship is separate.
+Fast/Full/Release Gate: [STACK.md](../../STACK.md). Work ran Fast Gate; local ship ran Full Gate.
 Quality evidence must distinguish own board zoom, browser page zoom, native pinch and DPR
 emulation. The previous silent-DPR emulation limitation is not proof of native monitor behavior.
 At supported resolutions, live and committed geometry must agree; ordinary edge antialiasing
@@ -224,7 +224,7 @@ Final user acceptance: «Отлично, теперь это то, что нуж
 strength/thickness version on Wacom. Together with earlier explicit zoom/blur acceptance,
 this closes T3. This records the user's writing experience; it does not extend the automated
 coverage of native browser shortcuts or claim measured physical latency. All backlog items
-are complete. Ship/Full Gate, commit, merge and archive have not yet run for change 02.
+are complete. The Full Gate and local ship are recorded below.
 
 - [x] No architect review issues recorded
 
@@ -251,6 +251,7 @@ browser-verified worktree and f10-verification receipt. Existing dev server rema
 | Architect Review Notes | PASS, 0 unresolved |
 
 Overall PASS. Local ship only; no release, push or deployment.
+Feature commit `f0daf93` merged fast-forward into local main; this file is archived by ship.
 
 ## Implementation Notes
 
