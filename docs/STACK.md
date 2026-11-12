@@ -1,7 +1,7 @@
 # Stack Guide
 
 > Source of truth for technologies, commands and required tools.
-> Status: CONFIGURED; changes 01–03 are archived and accepted; storage/backup is next.
+> Status: CONFIGURED; changes 01–03 are accepted/archived; change04 implements local storage/backup.
 > SPEC approved 2026-11-12. Target device: Wacom One, Windows 11.
 
 ## Stack
@@ -11,7 +11,7 @@
 | Frontend | React + TypeScript, Vite SPA, plain CSS, Canvas 2D |
 | Input | Pointer Events, world-coordinate controller outside React's rendering cycle |
 | Backend | n/a — browser only |
-| Storage | M1: tab memory only. IndexedDB deferred to M3 |
+| Storage | Native IndexedDB, versioned one-board document; exclusive origin Web Lock; JSON backup |
 | Package manager | npm, package-lock.json |
 | Lint | Oxlint; native TypeScript/React rules including hooks; .oxlintrc.json |
 | Unit tests | Vitest, node environment; src/**/*.test.ts |
@@ -56,7 +56,7 @@ A focused build is appropriate when establishing/changing build configuration.
 | Check | Command | Preconditions / notes |
 |-------|---------|-----------------------|
 | Infrastructure / bootstrap | npm ci | Requires lockfile |
-| Migrations | n/a | No persistent storage in M1 |
+| Migrations | n/a — no CLI migration | Native IDB upgrade from0→1 on first open; browser smoke covers schema/load |
 | Backend test suite | n/a | No backend |
 | Frontend build | npm run build | TypeScript followed by Vite static build |
 | Frontend unit tests | npm run test:unit | Includes input ownership/cancellation and coordinate transforms |
@@ -86,7 +86,7 @@ A focused build is appropriate when establishing/changing build configuration.
 | Architecture | frontend-architecture | Before structural decisions | Consulted during plan |
 | Frontend design | frontend-design; impeccable for bounded craft review | Preserve SPEC §5.3 | Skills available; no new visual direction required |
 | New API | n/a | No backend | n/a |
-| Hardware acceptance | User with Wacom One / Windows 11 | T3 after browser checks | Cannot be substituted by synthetic pen events |
+| User acceptance | User in Windows Chrome; Wacom when relevant | Active change T3 | Physical writing accepted; storage/backup require their own user check |
 
 ## Testing
 
@@ -105,9 +105,10 @@ pressure, driver behavior and the feeling of handwriting. Read README for the ha
 
 - src/components/: toolbar, diagnostics and writing surface.
 - src/drawing/: stroke model/input/history, world/viewport/background transforms, shared curve geometry, layered Canvas renderer.
-- src/App.tsx: owns slow interface state, not high-frequency stroke geometry.
+- src/document/: versioned codec, native IDB, writer lease and serialized save session.
+- src/App.tsx: owns slow interface/document lifecycle state, not high-frequency stroke geometry.
 - vite.config.ts, tsconfig.json, .oxlintrc.json: project configuration.
-- docs/SPEC.md: approved intent and quality contract; docs/changes/: active work; archived changes 01/02: accepted input and ink quality.
+- docs/SPEC.md: approved intent and quality contract; docs/changes/: active work; archived changes 01–03: accepted input, ink quality, history and backgrounds.
 - docs/playbooks/, .agents/skills/, .claude/skills/, plugins/sdd-workflow/: installed workflow.
 
 ## Implementation conventions
@@ -116,8 +117,8 @@ Keep per-sample input out of React state. The controller owns the active pointer
 renderers consume geometry. Use effect cleanup for subscriptions, ResizeObserver, DPR listeners,
 diagnostics timers and any animation frames. Preserve completed strokes on resize and cancel.
 DPR affects the backing bitmap, not stored geometry. No store, router or drawing SDK required.
-Change 02 provides accepted navigation/quality. Change 03 adds undo/redo and background;
-persistence and eraser remain deferred.
+Changes02/03 provide accepted navigation/quality/history/background. Change04 adds persistence;
+eraser remains deferred.
 
 Only repository-defined lint commands may run; no imported formatter. Tests must check
 observable behavior and invariants, without exposing application internals solely for a test.
@@ -181,3 +182,25 @@ First local ship initialized main from feature/01-pen-input; change 01 is archiv
   Update CSS variables from viewport callbacks; no third bitmap, history entries or React pan updates.
 - Acceptance includes queue/undo/redo ordering, identity, cancellation, keyboard/busy guards,
   world anchoring, unchanged ink/allocation, desktop/narrow layout and clean fresh console.
+
+## Change 04 — Local Document Contract
+
+- NativeIDB database `penable` v1, out-of-line store `documents`, keys `main`/`before-import`.
+  Load distinguishes missing key from present null/undefined/corrupt data. No silent reset/delete.
+  Writes/replacement resolve on transaction.complete; errors/abort/blocked/versionchange are explicit.
+- Document `penable-board`, schemaVersion1: committed rawstrokes/profiles, viewport/background/tools.
+  Strict codec/known-field reconstruction, dense arrays/finite/range/unique IDs and64MiB/20k strokes/
+  1M totalpoints/100k perstroke limits. No pointerIds/active/pixels/session history in backups.
+- Hold exclusive `penable:board:main` WebLock while writing. Secondary is readonly; retry acquires
+  then reloads. No localStorage pseudo-lease or stealing. NoLocks means explicit readonly error.
+- Session boot gate, serialized revision-aware writes, immutable capture atflush,300ms debounce/
+  1500ms maxwait for view/tools, errorpause+retry/export; dedupe status updates, no perpoint persistence.
+  Dispose drains old transactions/closes DB before lease release. StrictMode setup waits prior dispose.
+- App/Surface hydrate by documentgeneration, synchronous guards and currentsettingsrefs; baseline
+  undoFloor protects hydrated strokes. ID allocation must remain valid after supported boundary IDs.
+- Import validates then previews/confirms, freezes mutations/drains writes, atomically backs up current
+  completed memory plus replaces main, and only then applies live scene. JSON-compatible previouscopy
+  remains downloadable afterreload; arbitrary nonJSON corruption stays raw without false file promises.
+- Automated browserstorage tests use OWN `http://127.0.0.1:5173`, isolated from user's localhost origin.
+  RealIDB reload/abort/error/import/two-tab lease checks complement injected-adapter unit races.
+  Do not clear profiles or user's localhost DB. Captured download payload is not filesystem-save proof.

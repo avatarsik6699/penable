@@ -1,0 +1,74 @@
+import type { BoardDocument, DocumentRepository } from './types'
+
+export const DATABASE_NAME = 'penable'
+export const STORE_NAME = 'documents'
+
+export function openRepository(onInvalidated: (message: string) => void, factory: IDBFactory | undefined = globalThis.indexedDB): Promise<DocumentRepository> {
+  if (!factory) return Promise.reject(new Error('IndexedDB недоступен в этом браузере.'))
+  return new Promise((resolve, reject) => {
+    let settled = false
+    const opening = factory.open(DATABASE_NAME, 1)
+    opening.onblocked = () => { settled = true; reject(new Error('Открытие хранилища заблокировано другой страницей. Закройте её и повторите.')) }
+    opening.onerror = () => { settled = true; reject(opening.error ?? new Error('Не удалось открыть IndexedDB.')) }
+    opening.onupgradeneeded = () => {
+      if (settled) { opening.transaction?.abort(); return }
+      if (!opening.result.objectStoreNames.contains(STORE_NAME)) opening.result.createObjectStore(STORE_NAME)
+    }
+    opening.onsuccess = () => {
+      const db = opening.result
+      if (settled) { db.close(); return }
+      settled = true
+      if (!db.objectStoreNames.contains(STORE_NAME)) { db.close(); reject(new Error('Неподдерживаемая структура хранилища.')); return }
+      try {
+        const store = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME)
+        if (store.keyPath !== null || store.autoIncrement) throw new Error('Неподдерживаемая структура documents: данные оставлены без изменений.')
+      } catch (error) { db.close(); reject(error); return }
+      let closed = false
+      const pending = new Set<Promise<unknown>>()
+      const invalidate = (message: string) => { if (closed) return; closed = true; db.close(); onInvalidated(message) }
+      db.onversionchange = () => invalidate('Версия хранилища меняется в другой вкладке. Запись остановлена; повторите подключение.')
+      db.onclose = () => invalidate('Соединение с хранилищем закрыто. Повторите подключение; записи в памяти доступны для экспорта.')
+
+      function transaction<T>(mode: IDBTransactionMode, run: (store: IDBObjectStore, result: (value: T) => void) => void): Promise<T> {
+        if (closed) return Promise.reject(new Error('Соединение с хранилищем закрыто.'))
+        let tx: IDBTransaction
+        try { tx = db.transaction(STORE_NAME, mode) } catch (error) { return Promise.reject(error) }
+        const task = new Promise<T>((done, fail) => {
+          let result: T
+          let failure: unknown
+          tx.oncomplete = () => { if (failure) fail(failure); else done(result) }
+          tx.onabort = () => fail(failure ?? tx.error ?? new Error('Транзакция отменена.'))
+          tx.onerror = () => { failure = tx.error ?? new Error('Ошибка транзакции IndexedDB.') }
+          try { run(tx.objectStore(STORE_NAME), (value) => { result = value }) } catch (error) {
+            failure = error
+            try { tx.abort() } catch { fail(error) }
+          }
+        })
+        pending.add(task)
+        void task.then(() => pending.delete(task), () => pending.delete(task))
+        return task
+      }
+      resolve({
+        read: () => transaction('readonly', (store, result) => {
+          const values = { main: { exists: false, value: undefined as unknown }, beforeImport: { exists: false, value: undefined as unknown } }
+          const main = store.get('main')
+          const mainKey = store.getKey('main')
+          const previous = store.get('before-import')
+          const previousKey = store.getKey('before-import')
+          main.onsuccess = () => { values.main.value = main.result as unknown }
+          mainKey.onsuccess = () => { values.main.exists = mainKey.result !== undefined }
+          previous.onsuccess = () => { values.beforeImport.value = previous.result as unknown }
+          previousKey.onsuccess = () => { values.beforeImport.exists = previousKey.result !== undefined }
+          result(values)
+        }),
+        write: (document: BoardDocument) => transaction<void>('readwrite', (store, result) => { store.put(document, 'main'); result(undefined) }),
+        replace: (previous: unknown, candidate: BoardDocument) => transaction<void>('readwrite', (store, result) => {
+          store.put(previous, 'before-import')
+          store.put(candidate, 'main')
+          result(undefined)
+        }),
+        close: async () => { closed = true; await Promise.allSettled([...pending]); db.close() },
+      })
+    }
+  })
+}

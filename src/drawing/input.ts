@@ -8,6 +8,7 @@ interface InputOptions {
   viewport: () => Viewport
   width: () => number
   stabilization?: () => number
+  allocateId?: () => number
   onActiveChange: () => void
   onCommit: (stroke: Stroke) => void
 }
@@ -49,8 +50,10 @@ export class PenInput {
     if (!point) return false
     const requestedWidth = this.options.width()
     const width = Number.isFinite(requestedWidth) ? Math.min(12, Math.max(0.5, requestedWidth)) : 3
+    const id = this.options.allocateId ? this.options.allocateId() : this.nextId++
+    if (!Number.isSafeInteger(id) || id < 1) return false
     const stroke = {
-      id: this.nextId++, color: INK, width, pointerId: event.pointerId, points: [point],
+      id, color: INK, width, pointerId: event.pointerId, points: [point],
       stabilization: { strength: normalizeStrength(this.options.stabilization?.() ?? 0), captureZoom: viewport.zoom },
     }
     this.options.scene.active = stroke

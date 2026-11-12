@@ -15,6 +15,19 @@ function pointer(overrides: Partial<PointerInput> = {}): PointerInput {
 }
 
 describe('completed stroke history', () => {
+  it('keeps restored strokes below the undo floor and only undoes actions from this session', () => {
+    const restored = stroke(10)
+    const current = stroke(11)
+    const history = new StrokeHistory([restored], 1)
+    expect(history.canUndo).toBe(false)
+    expect(history.undo()).toBe(false)
+    history.commit(current)
+    expect(history.undo()).toBe(true)
+    expect(history.undo()).toBe(false)
+    expect(history.strokes[0]).toBe(restored)
+    expect(history.redo()).toBe(true)
+    expect(history.strokes[1]).toBe(current)
+  })
   it('starts empty and leaves the same completed array unchanged for empty operations', () => {
     const history = new StrokeHistory()
     const completed = history.strokes

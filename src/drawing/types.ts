@@ -77,6 +77,8 @@ export interface SurfaceControls {
   reset: () => void
   undo: () => void
   redo: () => void
+  snapshot: () => { strokes: Stroke[]; viewport: Viewport }
+  isBusy: () => boolean
 }
 
 export interface HistoryState {

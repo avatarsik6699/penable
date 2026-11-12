@@ -7,18 +7,26 @@ import { BoardNavigation, initialViewport } from '../drawing/viewport'
 import { StrokeHistory } from '../drawing/history'
 import { historyShortcut, type HistoryAction } from '../drawing/shortcuts'
 import { backgroundLayout, type BackgroundMode } from '../drawing/background'
+import { cloneDocument } from '../document/codec'
+import type { BoardDocument } from '../document/types'
+import { allocateStrokeId } from '../document/stroke-ids'
 
 interface WritingSurfaceProps {
   width: number
   stabilization: number
   background: BackgroundMode
+  initialDocument: BoardDocument
+  canWrite: () => boolean
+  interactionsBlocked: () => boolean
+  onDocumentChange: (urgent: boolean) => void
   onHistoryState: (state: HistoryState) => void
   onDiagnostics: (value: InputDiagnostics) => void
   onUnavailable: (reason: string) => void
   controlsRef: RefObject<SurfaceControls | null>
 }
 
-export function WritingSurface({ width, stabilization, background, onHistoryState, onDiagnostics, onUnavailable, controlsRef }: WritingSurfaceProps) {
+export function WritingSurface({ width, stabilization, background, initialDocument, canWrite, interactionsBlocked,
+  onDocumentChange, onHistoryState, onDiagnostics, onUnavailable, controlsRef }: WritingSurfaceProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const completedRef = useRef<HTMLCanvasElement>(null)
   const backgroundRef = useRef<HTMLDivElement>(null)
@@ -28,6 +36,7 @@ export function WritingSurface({ width, stabilization, background, onHistoryStat
   const historyRef = useRef<StrokeHistory | null>(null)
   const historyStateRef = useRef<HistoryState | null>(null)
   const viewportRef = useRef(initialViewport())
+  const hydratedRef = useRef(false)
 
   useEffect(() => { widthRef.current = width }, [width])
   useEffect(() => { stabilizationRef.current = stabilization }, [stabilization])
@@ -48,7 +57,13 @@ export function WritingSurface({ width, stabilization, background, onHistoryStat
     }
 
     const scene = sceneRef.current
-    const history = historyRef.current ?? new StrokeHistory(scene.strokes)
+    if (!hydratedRef.current) {
+      const initial = cloneDocument(initialDocument)
+      scene.strokes = initial.strokes
+      viewportRef.current = initial.viewport
+      hydratedRef.current = true
+    }
+    const history = historyRef.current ?? new StrokeHistory(scene.strokes, scene.strokes.length)
     historyRef.current = history
     const visualViewport = window.visualViewport
     const renderer = new CanvasRenderer(
@@ -70,11 +85,14 @@ export function WritingSurface({ width, stabilization, background, onHistoryStat
       viewport: () => viewportRef.current,
       width: () => widthRef.current,
       stabilization: () => stabilizationRef.current,
+      allocateId: () => allocateStrokeId(scene.strokes),
       onActiveChange: () => renderer.activeChanged(),
       onCommit: (stroke) => {
+        if (!canWrite()) { renderer.activeChanged(); return }
         history.commit(stroke)
         renderer.commit(stroke)
         publishHistoryState()
+        onDocumentChange(true)
       },
     })
     let diagnostics: InputDiagnostics = {
@@ -113,6 +131,7 @@ export function WritingSurface({ width, stabilization, background, onHistoryStat
         updateBackground()
         diagnostics = { ...diagnostics, zoom: viewport.zoom }
         scheduleDiagnostics()
+        if (canWrite()) onDocumentChange(false)
       },
     })
     let disposed = false
@@ -128,10 +147,11 @@ export function WritingSurface({ width, stabilization, background, onHistoryStat
       onHistoryState(next)
     }
     const applyHistory = (action: HistoryAction) => {
-      if (input.pointerId !== null || navigation.pointerId !== null) return
+      if (!canWrite() || interactionsBlocked() || input.pointerId !== null || navigation.pointerId !== null) return
       if (action === 'undo' ? history.undo() : history.redo()) {
         renderer.sceneChanged()
         publishHistoryState()
+        onDocumentChange(true)
       }
     }
     let spaceDown = false
@@ -155,8 +175,9 @@ export function WritingSurface({ width, stabilization, background, onHistoryStat
       publishHistoryState()
     }
     const down = (event: PointerEvent) => {
+      if (interactionsBlocked()) return
       if (navigation.startPan(event, spaceDown)
-        || (navigation.pointerId === null && !spaceDown && input.down(event))) {
+        || (canWrite() && navigation.pointerId === null && !spaceDown && input.down(event))) {
         event.preventDefault()
         canvas.focus({ preventScroll: true })
         try { canvas.setPointerCapture?.(event.pointerId) } catch { /* Window listeners are the fallback. */ }
@@ -167,6 +188,7 @@ export function WritingSurface({ width, stabilization, background, onHistoryStat
       publishHistoryState()
     }
     const move = (event: PointerEvent) => {
+      if ((!canWrite() && input.pointerId !== null) || interactionsBlocked()) { cancel(); return }
       const panPointer = navigation.pointerId
       if (navigation.movePan(event)) {
         event.preventDefault()
@@ -188,6 +210,7 @@ export function WritingSurface({ width, stabilization, background, onHistoryStat
       if (event.target === canvas || event.pointerId === pointerId) observeInput(event)
     }
     const up = (event: PointerEvent) => {
+      if ((!canWrite() && input.pointerId !== null) || interactionsBlocked()) { cancel(); return }
       if (navigation.endPan(event.pointerId)) {
         event.preventDefault()
         releaseCapture(event.pointerId)
@@ -222,11 +245,13 @@ export function WritingSurface({ width, stabilization, background, onHistoryStat
     const wheel = (event: WheelEvent) => {
       if (!event.cancelable) return
       event.preventDefault()
+      if (interactionsBlocked()) return
       const bounds = canvas.getBoundingClientRect()
       navigation.wheel(event.deltaY, event.deltaMode,
         { x: event.clientX - bounds.left, y: event.clientY - bounds.top }, bounds.height)
     }
     const keyDown = (event: KeyboardEvent) => {
+      if (interactionsBlocked()) return
       const target = event.target instanceof HTMLElement ? event.target : null
       const shortcut = historyShortcut(event, {
         editable: Boolean(target?.closest('input:not([type="range"]),textarea,select') || target?.isContentEditable),
@@ -257,11 +282,13 @@ export function WritingSurface({ width, stabilization, background, onHistoryStat
       return { x: bounds.width / 2, y: bounds.height / 2 }
     }
     controlsRef.current = {
-      zoomIn: () => { navigation.setZoom(navigation.viewport.zoom * 2, center()) },
-      zoomOut: () => { navigation.setZoom(navigation.viewport.zoom / 2, center()) },
-      reset: () => { navigation.reset() },
+      zoomIn: () => { if (!interactionsBlocked()) navigation.setZoom(navigation.viewport.zoom * 2, center()) },
+      zoomOut: () => { if (!interactionsBlocked()) navigation.setZoom(navigation.viewport.zoom / 2, center()) },
+      reset: () => { if (!interactionsBlocked()) navigation.reset() },
       undo: () => { applyHistory('undo') },
       redo: () => { applyHistory('redo') },
+      snapshot: () => ({ strokes: scene.strokes, viewport: viewportRef.current }),
+      isBusy: () => input.pointerId !== null || navigation.pointerId !== null,
     }
 
     let dprQuery: MediaQueryList | undefined
@@ -337,7 +364,7 @@ export function WritingSurface({ width, stabilization, background, onHistoryStat
       controlsRef.current = null
       clearTimeout(diagnosticsTimer)
     }
-  }, [onDiagnostics, onUnavailable, onHistoryState, controlsRef])
+  }, [onDiagnostics, onUnavailable, onHistoryState, controlsRef, initialDocument, canWrite, interactionsBlocked, onDocumentChange])
 
   return (
     <section className="writing-surface" aria-label="Лист для проверки пера">
