@@ -5,7 +5,7 @@
 
 **Этот прототип не сохраняет записи. После перезагрузки или закрытия вкладки они исчезают.**
 Собственный zoom/pan и качество штриха приняты в change 02. Change 03 добавляет
-undo/redo и фон; IndexedDB и резервные копии запланированы следующим этапом.
+undo/redo и фон (приняты пользователем); IndexedDB и резервные копии — следующий этап.
 
 ## Запуск
 
@@ -122,7 +122,7 @@ Git internals и локальные артефакты исключены. Со�
 
 ## Разработка по SDD
 
-[SPEC.md](docs/SPEC.md) — согласованные требования, [change 03](docs/changes/03-board-history.md) — текущая история/фон;
+[SPEC.md](docs/SPEC.md) — согласованные требования, [change 03](docs/changes/archive/03-board-history.md) — завершённая история/фон;
 [change 02](docs/changes/archive/02-ink-quality.md) — принятая и завершённая итерация качества;
 [change 01](docs/changes/archive/01-pen-input.md) — завершённая проверка пера. Цикл: `plan → work → ручная проверка → ship`.
 Пользователь подтвердил 2026-11-12 письмо Wacom One на Windows 11, различение pen/mouse

@@ -1,7 +1,7 @@
 # Stack Guide
 
 > Source of truth for technologies, commands and required tools.
-> Status: CONFIGURED; changes 01/02 are archived and accepted; change 03 adds history/background.
+> Status: CONFIGURED; changes 01–03 are archived and accepted; storage/backup is next.
 > SPEC approved 2026-11-12. Target device: Wacom One, Windows 11.
 
 ## Stack

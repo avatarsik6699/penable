@@ -7,7 +7,7 @@
 | Change | 03 |
 | Slug | board-history |
 | Title | История штрихов и фон доски |
-| Status | implementation and user acceptance complete — ready for ship |
+| Status | shipped locally — Full Gate PASS, feature merged into main |
 | Branch | feature/03-board-history |
 
 ## Goal
@@ -94,7 +94,7 @@ See SPEC §3.2, §5.3–§5.5 and Files above. Existing renderer memory budget r
 
 ## Gate Checks
 
-Fast/Full/Release Gate: [STACK.md](../STACK.md). This work runs Fast Gate; ship is separate.
+Fast/Full/Release Gate: [STACK.md](../../STACK.md). Work ran Fast Gate; local ship ran Full Gate.
 Use Playwriter first; reuse unchanged accepted ink evidence and distinguish physical acceptance
 from synthetic input checks. Explicitly exercise commit→undo before RAF and text-field native undo.
 
@@ -171,6 +171,7 @@ receipt exactly. Existing dev server kept running; no dependency changes in live
 | Architect Review Notes | PASS,0unresolved |
 
 Overall PASS. Local ship only; no push, release or deployment.
+Feature commit `06e3098` merged fast-forward into local main; this file is archived by ship.
 
 ## Commit Message
 
