@@ -7,7 +7,7 @@
 | Change | 05 |
 | Slug | stroke-eraser |
 | Title | Ластик целых штрихов |
-| Status | user accepted — Full Gate PASS |
+| Status | shipped locally — Full Gate PASS, feature merged into main |
 | Branch | feature/05-stroke-eraser |
 
 ## Goal
@@ -93,7 +93,7 @@ See SPEC §3–§4, §5.3, §5.6–§5.7 and Files above.
 
 ## Gate Checks
 
-[STACK.md](../STACK.md) Fast Gate for work. Full Gate only at ship.
+[STACK.md](../../STACK.md) Fast Gate for work. Full Gate only at ship.
 Test both accepted pen regressions and eraser cancellation against canonical snapshots.
 Use Playwriter first; synthetic input does not prove hardware comfort. Isolate storage test origin
 and never overwrite user localhost notes. Browser does not need to rerun unchanged storage fault suite.
@@ -177,3 +177,6 @@ checks; this preference is recorded in AGENTS.md. Wacom acceptance was already r
 Overall **PASS**. CSS8.73kB; JS271.42kB (gzip85.10kB). Clean gate copy removed; logs/receipt
 and built files saved in ignored `.artifacts/change-05/ship-gate.json` and `shipped-dist/`.
 Existing dev server and user's localhost notes preserved. Local ship only; no release/push/deploy.
+
+Local merge: `feature/05-stroke-eraser` → `main` by fast-forward at `f1c1a63`.
+Change archived after merge; feature branch retained.
