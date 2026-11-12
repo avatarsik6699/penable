@@ -7,7 +7,7 @@
 | Change | 07 |
 | Slug | github-pages |
 | Title | Public repository and GitHub Pages |
-| Status | active |
+| Status | shipped locally; release pending |
 | Branch | feature/07-github-pages |
 
 ## Goal
@@ -68,7 +68,7 @@ See SPEC §3–§4 and §6–§8; STACK gate/release commands. Deploy only built
 
 ## Gate Checks
 
-Full Gate per [STACK.md](../STACK.md). Additionally scan full Git history before public push.
+Full Gate per [STACK.md](../../STACK.md). Additionally scan full Git history before public push.
 Keep root local build and Pages build separate; test actual `/penable/` assets. Deployment on PR
 is prohibited. Public-site smoke uses a clean owned browser origin before writing synthetic notes;
 if prior notes exist, use isolated context. The owner's publication request authorizes release.
