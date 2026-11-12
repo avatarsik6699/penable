@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { eventSamples, PenInput } from './input'
-import type { PointerInput, Scene } from './types'
+import type { PointerInput, Scene, Viewport } from './types'
+import { initialViewport } from './viewport'
 
 function pointer(overrides: Partial<PointerInput> = {}): PointerInput {
   return {
@@ -11,11 +12,16 @@ function pointer(overrides: Partial<PointerInput> = {}): PointerInput {
 
 function setup() {
   const scene: Scene = { strokes: [], active: null }
-  const draw = vi.fn()
-  const redraw = vi.fn()
+  const changed = vi.fn()
+  const committed = vi.fn()
   let width = 3
-  const input = new PenInput({ scene, bounds: () => ({ left: 10, top: 20 }), width: () => width, draw, redraw })
-  return { input, scene, draw, redraw, setWidth: (value: number) => { width = value } }
+  let stabilization = 0
+  let viewport = initialViewport()
+  const input = new PenInput({ scene, bounds: () => ({ left: 10, top: 20 }), viewport: () => viewport,
+    width: () => width, stabilization: () => stabilization, onActiveChange: changed, onCommit: committed })
+  return { input, scene, changed, committed, setWidth: (value: number) => { width = value },
+    setStabilization: (strength: number) => { stabilization = strength },
+    setViewport: (value: Viewport) => { viewport = value } }
 }
 
 describe('one-contact pen input', () => {
@@ -23,10 +29,10 @@ describe('one-contact pen input', () => {
     { pointerType: 'touch' }, { pointerType: '' }, { isPrimary: false },
     { button: 2, buttons: 2 }, { buttons: 0 }, { button: 5, buttons: 32 }, { buttons: 3 },
   ])('ignores unsupported contact %j', (overrides) => {
-    const { input, scene, draw } = setup()
+    const { input, scene, changed } = setup()
     expect(input.down(pointer(overrides))).toBe(false)
     expect(scene.active).toBeNull()
-    expect(draw).not.toHaveBeenCalled()
+    expect(changed).not.toHaveBeenCalled()
   })
 
   it('ignores hover but accepts primary mouse and pointer id zero', () => {
@@ -48,11 +54,11 @@ describe('one-contact pen input', () => {
     expect(input.pointerId).toBe(1)
   })
 
-  it('renders a tap immediately and preserves its final sample at zero pressure', () => {
-    const { input, scene, draw } = setup()
+  it('publishes a tap for rendering and preserves its final sample at zero pressure', () => {
+    const { input, scene, changed, committed } = setup()
     input.down(pointer({ pressure: 0 }))
-    expect(draw).toHaveBeenCalledTimes(1)
-    expect(draw.mock.calls[0]?.[2]).toBeNull()
+    expect(changed).toHaveBeenCalledTimes(1)
+    expect(scene.active?.points).toHaveLength(1)
     input.up(pointer({ buttons: 0, pressure: 0, timeStamp: 2 }))
     expect(scene.strokes).toHaveLength(1)
     expect(scene.strokes[0]?.points).toEqual([
@@ -60,16 +66,18 @@ describe('one-contact pen input', () => {
       { x: 20, y: 20, pressure: 0, time: 2 },
     ])
     expect(input.pointerId).toBeNull()
+    expect(committed).toHaveBeenCalledExactlyOnceWith(scene.strokes[0])
   })
 
   it('renders moves before completion and includes the final up position', () => {
-    const { input, scene, draw } = setup()
+    const { input, scene, changed } = setup()
     input.down(pointer())
     input.move(pointer({ clientX: 45, timeStamp: 2 }))
     expect(scene.strokes).toHaveLength(0)
-    expect(draw).toHaveBeenCalledTimes(2)
-    expect(draw.mock.calls[1]?.[1]).toEqual([{ x: 35, y: 20, pressure: 0.5, time: 2 }])
-    expect(draw.mock.calls[1]?.[2]).toEqual({ x: 20, y: 20, pressure: 0.5, time: 1 })
+    expect(changed).toHaveBeenCalledTimes(2)
+    expect(scene.active?.points).toEqual([
+      { x: 20, y: 20, pressure: 0.5, time: 1 }, { x: 35, y: 20, pressure: 0.5, time: 2 },
+    ])
     input.up(pointer({ clientX: 60, clientY: 80, buttons: 0, pressure: 0, timeStamp: 3 }))
     expect(scene.strokes[0]?.points.at(-1)).toEqual({ x: 50, y: 60, pressure: 0, time: 3 })
   })
@@ -85,15 +93,53 @@ describe('one-contact pen input', () => {
     expect(scene.active?.width).toBe(12)
   })
 
+  it('snapshots numeric strength, fractional width and capture zoom while later settings affect only the next stroke', () => {
+    const { input, scene, setWidth, setStabilization, setViewport } = setup()
+    setWidth(0.7)
+    setStabilization(65)
+    setViewport({ zoom: 4, x: 0, y: 0 })
+    input.down(pointer())
+    setWidth(1.2)
+    setStabilization(72)
+    input.move(pointer({ clientX: 50, timeStamp: 2 }))
+    expect(scene.active?.stabilization).toEqual({ strength: 65, captureZoom: 4 })
+    expect(scene.active?.width).toBe(0.7)
+    input.up(pointer({ clientX: 50, buttons: 0, pressure: 0, timeStamp: 3 }))
+    setViewport({ zoom: 2, x: 0, y: 0 })
+    input.down(pointer({ timeStamp: 4 }))
+    expect(scene.active?.stabilization).toEqual({ strength: 72, captureZoom: 2 })
+    expect(scene.active?.width).toBe(1.2)
+    expect(scene.strokes[0]?.stabilization).toEqual({ strength: 65, captureZoom: 4 })
+    expect(scene.strokes[0]?.width).toBe(0.7)
+    expect(scene.strokes[0]?.points).toEqual([
+      { x: 5, y: 5, pressure: 0.5, time: 1 },
+      { x: 10, y: 5, pressure: 0.5, time: 2 },
+      { x: 10, y: 5, pressure: 0, time: 3 },
+    ])
+  })
+
+  it.each([
+    [0.1, 0.5, -10, 0], [0.5, 0.5, 0, 0], [0.7, 0.7, 65, 65],
+    [12.3, 12, 101, 100], [NaN, 3, NaN, 0], [Infinity, 3, Infinity, 0],
+  ])('normalizes width %s/%s and strength %s/%s at capture', (requestedWidth, expectedWidth, requestedStrength, expectedStrength) => {
+    const { input, scene, setWidth, setStabilization } = setup()
+    setWidth(requestedWidth)
+    setStabilization(requestedStrength)
+    input.down(pointer())
+    expect(scene.active?.width).toBe(expectedWidth)
+    expect(scene.active?.stabilization).toEqual({ strength: expectedStrength, captureZoom: 1 })
+  })
+
   it('discards an interrupted stroke, retains completed strokes and requires a fresh down', () => {
-    const { input, scene, redraw } = setup()
+    const { input, scene, changed } = setup()
     input.down(pointer())
     input.up(pointer({ buttons: 0 }))
     input.down(pointer({ timeStamp: 2 }))
+    changed.mockClear()
     expect(input.cancel()).toBe(true)
     expect(scene.active).toBeNull()
     expect(scene.strokes).toHaveLength(1)
-    expect(redraw).toHaveBeenCalledTimes(1)
+    expect(changed).toHaveBeenCalledTimes(1)
     expect(input.move(pointer({ timeStamp: 3 }))).toBe(false)
     expect(input.up(pointer({ buttons: 0 }))).toBe(false)
     expect(input.cancel()).toBe(false)
@@ -102,12 +148,13 @@ describe('one-contact pen input', () => {
   })
 
   it('cancels if contact is lost without up, preventing stuck drawing', () => {
-    const { input, scene, redraw } = setup()
+    const { input, scene, changed } = setup()
     input.down(pointer())
+    changed.mockClear()
     input.move(pointer({ buttons: 0 }))
     expect(input.pointerId).toBeNull()
     expect(scene.strokes).toHaveLength(0)
-    expect(redraw).toHaveBeenCalledOnce()
+    expect(changed).toHaveBeenCalledOnce()
   })
 
   it('rejects invalid numeric geometry and does not corrupt a valid stroke', () => {

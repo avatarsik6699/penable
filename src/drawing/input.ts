@@ -1,12 +1,15 @@
 import { toScenePoint, type SurfaceBounds } from './coordinates'
-import { INK, type Point, type PointerInput, type PointerSample, type Scene, type Stroke } from './types'
+import { INK, type Point, type PointerInput, type PointerSample, type Scene, type Stroke, type Viewport } from './types'
+import { normalizeStrength } from './stabilization'
 
 interface InputOptions {
   scene: Scene
   bounds: () => SurfaceBounds
+  viewport: () => Viewport
   width: () => number
-  draw: (stroke: Stroke, points: Point[], previous: Point | null) => void
-  redraw: () => void
+  stabilization?: () => number
+  onActiveChange: () => void
+  onCommit: (stroke: Stroke) => void
 }
 
 function sameSample(a: PointerSample, b: PointerSample) {
@@ -30,7 +33,9 @@ export function eventSamples(event: PointerInput): PointerSample[] {
 export class PenInput {
   private nextId = 1
 
-  constructor(private readonly options: InputOptions) {}
+  constructor(private readonly options: InputOptions) {
+    for (const stroke of options.scene.strokes) this.nextId = Math.max(this.nextId, stroke.id + 1)
+  }
 
   get pointerId(): number | null {
     return this.options.scene.active?.pointerId ?? null
@@ -39,15 +44,17 @@ export class PenInput {
   down(event: PointerInput): boolean {
     if (this.pointerId !== null || !event.isPrimary || event.button !== 0 || event.buttons !== 1
       || (event.pointerType !== 'pen' && event.pointerType !== 'mouse')) return false
-    const point = toScenePoint(event, this.options.bounds())
+    const viewport = this.options.viewport()
+    const point = toScenePoint(event, this.options.bounds(), viewport)
     if (!point) return false
     const requestedWidth = this.options.width()
-    const width = Number.isFinite(requestedWidth) ? Math.min(12, Math.max(1, requestedWidth)) : 3
+    const width = Number.isFinite(requestedWidth) ? Math.min(12, Math.max(0.5, requestedWidth)) : 3
     const stroke = {
       id: this.nextId++, color: INK, width, pointerId: event.pointerId, points: [point],
+      stabilization: { strength: normalizeStrength(this.options.stabilization?.() ?? 0), captureZoom: viewport.zoom },
     }
     this.options.scene.active = stroke
-    this.options.draw(stroke, [point], null)
+    this.options.onActiveChange()
     return true
   }
 
@@ -57,7 +64,7 @@ export class PenInput {
       this.cancel(event.pointerId)
       return false
     }
-    this.append(event)
+    if (this.append(event)) this.options.onActiveChange()
     return true
   }
 
@@ -65,35 +72,37 @@ export class PenInput {
     if (event.pointerId !== this.pointerId || event.button !== 0) return false
     this.append(event)
     const { scene } = this.options
-    if (scene.active) scene.strokes.push(scene.active)
+    const stroke = scene.active
+    if (stroke) scene.strokes.push(stroke)
     scene.active = null
+    if (stroke) this.options.onCommit(stroke)
     return true
   }
 
   cancel(pointerId?: number): boolean {
     if (this.pointerId === null || (pointerId !== undefined && pointerId !== this.pointerId)) return false
     this.options.scene.active = null
-    this.options.redraw()
+    this.options.onActiveChange()
     return true
   }
 
-  private append(event: PointerInput) {
+  private append(event: PointerInput): boolean {
     const stroke = this.options.scene.active
-    if (!stroke) return
+    if (!stroke) return false
     const bounds = this.options.bounds()
     const previous = stroke.points.at(-1) ?? null
     const points: Point[] = []
     for (const sample of eventSamples(event)) {
       if (sample.pointerId !== stroke.pointerId) continue
-      const point = toScenePoint(sample, bounds)
+      const point = toScenePoint(sample, bounds, this.options.viewport())
       if (!point) continue
       const last = points.at(-1) ?? previous
       if (last && point.x === last.x && point.y === last.y
         && point.pressure === last.pressure && point.time === last.time) continue
       points.push(point)
     }
-    if (!points.length) return
+    if (!points.length) return false
     stroke.points.push(...points)
-    this.options.draw(stroke, points, previous)
+    return true
   }
 }
