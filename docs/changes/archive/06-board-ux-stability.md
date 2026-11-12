@@ -7,7 +7,7 @@
 | Change | 06 |
 | Slug | board-ux-stability |
 | Title | Стабилизация доски и UI/UX |
-| Status | active |
+| Status | shipped locally |
 | Branch | feature/06-board-ux-stability |
 
 ## Goal
@@ -87,7 +87,7 @@ See SPEC §3–§4, §5.3, §5.6–§5.8 and Files above.
 
 ## Gate Checks
 
-[STACK.md](../STACK.md) Fast Gate for work, Full Gate for ship. User authorized automatic local
+[STACK.md](../../STACK.md) Fast Gate for work, Full Gate for ship. User authorized automatic local
 ship after successful automated checks/review. Hardware acceptance reported independently.
 Interactive tests use owned127.0.0.1origin/isolated context, not user's localhost notes.
 Probe canvas pixels through an offscreen readback context to avoid test-only Chromium warnings.

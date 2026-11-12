@@ -1,7 +1,7 @@
 # Stack Guide
 
 > Source of truth for technologies, commands and required tools.
-> Status: CONFIGURED; changes 01–05 shipped locally; change06 stabilizes cursor/navigation/UI.
+> Status: CONFIGURED; changes 01–06 shipped locally; hardware acceptance for change06 pending.
 > SPEC approved 2026-11-12. Target device: Wacom One, Windows 11.
 
 ## Stack
@@ -108,7 +108,7 @@ pressure, driver behavior and the feeling of handwriting. Read README for the ha
 - src/document/: versioned codec, native IDB, writer lease and serialized save session.
 - src/App.tsx: owns slow interface/document lifecycle state, not high-frequency stroke geometry.
 - vite.config.ts, tsconfig.json, .oxlintrc.json: project configuration.
-- docs/SPEC.md: approved intent and quality contract; docs/changes/: active work; archived changes 01–05: accepted input, ink quality, history/backgrounds, local storage/backup and whole-stroke eraser.
+- docs/SPEC.md: approved intent and quality contract; docs/changes/: active work; archived changes 01–06: input, ink quality, history/backgrounds, local storage/backup, whole-stroke eraser and board UX stability.
 - docs/playbooks/, .agents/skills/, .claude/skills/, plugins/sdd-workflow/: installed workflow.
 
 ## Implementation conventions
