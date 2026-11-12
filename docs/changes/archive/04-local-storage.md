@@ -7,7 +7,7 @@
 | Change | 04 |
 | Slug | local-storage |
 | Title | Локальное сохранение и резервные копии |
-| Status | user accepted — Full Gate PASS |
+| Status | shipped locally — Full Gate PASS, feature merged into main |
 | Branch | feature/04-local-storage |
 
 ## Goal
@@ -99,7 +99,7 @@ See SPEC §3.2, §5.6 and Files above. State/transaction/lease boundaries are re
 
 ## Gate Checks
 
-[STACK.md](../STACK.md) Fast Gate per work, Full Gate only at ship.
+[STACK.md](../../STACK.md) Fast Gate per work, Full Gate only at ship.
 Use injected adapters for queue failures but real browser IndexedDB for transaction/lease/reload.
 Fake storage passing is not browser durability proof. Browser assertions must wait for actual
 saved status/transaction, not a guessed delay. Forced shutdown loss window remains explicit.
@@ -185,3 +185,6 @@ Clean gate copy was removed; logs, source hashes, browser evidence and built out
 under ignored `.artifacts/change-04/` (`ship-gate.json`, `verification.json`, `shipped-dist/`).
 The running server and user's notes were preserved. This is local ship; `--release` was not
 requested, so no push or deployment verification was performed.
+
+Local merge: `feature/04-local-storage` → `main` by fast-forward at `64d9a74`.
+Change archived after the merge; feature branch retained.

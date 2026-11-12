@@ -1,7 +1,7 @@
 # Stack Guide
 
 > Source of truth for technologies, commands and required tools.
-> Status: CONFIGURED; changes 01–03 are accepted/archived; change04 implements local storage/backup.
+> Status: CONFIGURED; changes 01–04 are accepted, shipped locally and archived.
 > SPEC approved 2026-11-12. Target device: Wacom One, Windows 11.
 
 ## Stack
@@ -108,7 +108,7 @@ pressure, driver behavior and the feeling of handwriting. Read README for the ha
 - src/document/: versioned codec, native IDB, writer lease and serialized save session.
 - src/App.tsx: owns slow interface/document lifecycle state, not high-frequency stroke geometry.
 - vite.config.ts, tsconfig.json, .oxlintrc.json: project configuration.
-- docs/SPEC.md: approved intent and quality contract; docs/changes/: active work; archived changes 01–03: accepted input, ink quality, history and backgrounds.
+- docs/SPEC.md: approved intent and quality contract; docs/changes/: active work; archived changes 01–04: accepted input, ink quality, history/backgrounds and local storage/backup.
 - docs/playbooks/, .agents/skills/, .claude/skills/, plugins/sdd-workflow/: installed workflow.
 
 ## Implementation conventions
