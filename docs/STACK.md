@@ -1,7 +1,7 @@
 # Stack Guide
 
 > Source of truth for technologies, commands and required tools.
-> Status: CONFIGURED for M1; application verification is recorded in change 01.
+> Status: CONFIGURED for M1; application verification is recorded in [archived change 01](changes/archive/01-pen-input.md).
 > SPEC approved 2026-11-12. Target device: Wacom One, Windows 11.
 
 ## Stack
@@ -107,7 +107,7 @@ pressure, driver behavior and the feeling of handwriting. Read README for the ha
 - src/drawing/: DOM-independent stroke model/input, logical coordinates, Canvas renderer.
 - src/App.tsx: owns slow interface state, not high-frequency stroke geometry.
 - vite.config.ts, tsconfig.json, .oxlintrc.json: project configuration.
-- docs/SPEC.md: approved contract; docs/changes/01-pen-input.md: active backlog and evidence.
+- docs/SPEC.md: approved contract; docs/changes/archive/01-pen-input.md: completed M1 backlog and evidence.
 - docs/playbooks/, .agents/skills/, .claude/skills/, plugins/sdd-workflow/: installed workflow.
 
 ## Implementation conventions
@@ -129,4 +129,4 @@ Installed revision: 22ad1fdad73744f10ebc9e0b9df9057c699d4734 on 2026-11-12.
 Root and plugin MCP declarations were copied from the bundle; Context7/OpenAI docs tools are
 already exposed in the session. Generic/Claude wrappers are installed locally; copying the
 Codex plugin or hooks.json does not prove native activation. Procedures can run from playbooks.
-Git started without commits; work remains local on feature/01-pen-input. No remote configured.
+First local ship initialized main from feature/01-pen-input; change 01 is archived. No remote configured.

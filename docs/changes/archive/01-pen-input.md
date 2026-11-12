@@ -7,14 +7,16 @@
 | Change | 01 |
 | Slug | pen-input |
 | Title | Проверка письма пером |
-| Status | active — verified; hardware input confirmed; ready for ship |
+| Status | shipped |
+| Shipped | 2026-11-12 — local main |
+| Implementation commit | b612c08fac3ce0d6ceeb6628d8bd1b553232d7f8 |
 | Branch | feature/01-pen-input |
 
 ## Goal
 
 Дать пользователю локальную страницу для проверки письма своим планшетом: линия во время
 движения, настройка толщины, фактические данные ввода. Проверить устройство и качество
-обработки событий до разработки доски и хранения. См. [SPEC.md](../SPEC.md), M1.
+обработки событий до разработки доски и хранения. См. [SPEC.md](../../SPEC.md), M1.
 SPEC утверждена пользователем 2026-11-12. Устройство: Wacom One, Windows 11.
 
 ## Backlog
@@ -106,7 +108,7 @@ See docs/SPEC.md §3–§4, §5.1–§5.3, §7–§8 and the Files list above.
 
 ## Gate Checks
 
-Fast / Full / Release Gate определены в [STACK.md](../STACK.md).
+Fast / Full / Release Gate определены в [STACK.md](../../STACK.md).
 Результаты /work и последующего Full Gate приведены ниже. Пользователь принял прототип
 и явно запросил локальный ship 2026-11-12: «Всё работает, думаю можно закрывать change, делай ship».
 T2 не заменяет T3: искусственный pen подтверждает обработчик, устройство проверяет пользователь.
@@ -182,9 +184,9 @@ Source hashes match the previously browser-verified and user-accepted implementa
 | Performance budget | SKIPPED — n/a | No agreed numeric latency target; physical writing accepted by user |
 | Architect Review Notes | PASS | 0 unresolved |
 
-Release Gate not requested. No remote/push/deploy. First ship bootstraps local main from
-this feature's initial commit because no main commit exists yet; subsequent archive changes
-are committed on main without rewriting history or deleting the feature branch.
+Release Gate not requested. No remote/push/deploy. Local main was initialized from feature/01-pen-input at b612c08 because
+this was the repository's first commit. Archive metadata and links are committed on main
+without rewriting history or deleting the feature branch.
 
 ## Architect Review Notes
 
