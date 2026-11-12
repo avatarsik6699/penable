@@ -1,7 +1,7 @@
 # Stack Guide
 
 > Source of truth for technologies, commands and required tools.
-> Status: CONFIGURED; changes 01–06 shipped locally; hardware acceptance for change06 pending.
+> Status: CONFIGURED; changes 01–06 shipped locally; change06 manually accepted by the owner.
 > SPEC approved 2026-11-12. Target device: Wacom One, Windows 11.
 
 ## Stack

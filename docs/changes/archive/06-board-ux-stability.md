@@ -119,7 +119,7 @@ Gate receipt: `.artifacts/change-06/ship-gate.json`. Temporary bootstrap/build c
 
 - Автоматические проверки:252tests/17files, affected26tests; lint/tsc PASS. LSP0errors/0warnings (1 unchanged informational deprecation), design detector0, independent review0 actionable findings.
 - Браузер: собственный127.0.0.1origin; cursor/keyboard/wheel/inertia/eraser/popover, realIDB abort/retry/export/reload и read-only peer проверены. Снимки desktop/narrow и DPR2 через isolated Chrome DevTools после ограничений Playwriter capture/emulation. Артефакты: `.artifacts/change-06/verification.json`.
-- Аппаратная проба нового курсора Wacom и физических жестов тачпада запрошена; ответ пока не получен, UNVERIFIED. По инструкции владельца это не блокирует автоматический local ship. Существующие записи localhost не затрагивались.
+- После local ship пользователь подтвердил проверку change06: «Отлично, всё работает, можешь делать ship». Ручная приёмка нового курсора и жестов закрыта этим ответом; отдельные измерения задержки и версии драйвера не заявляются. Существующие записи localhost не затрагивались.
 
 ## Commit Message
 
