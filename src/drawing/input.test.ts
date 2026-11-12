@@ -1,0 +1,173 @@
+import { describe, expect, it, vi } from 'vitest'
+import { eventSamples, PenInput } from './input'
+import type { PointerInput, Scene } from './types'
+
+function pointer(overrides: Partial<PointerInput> = {}): PointerInput {
+  return {
+    pointerId: 1, pointerType: 'pen', isPrimary: true, button: 0, buttons: 1,
+    clientX: 30, clientY: 40, pressure: 0.5, timeStamp: 1, ...overrides,
+  }
+}
+
+function setup() {
+  const scene: Scene = { strokes: [], active: null }
+  const draw = vi.fn()
+  const redraw = vi.fn()
+  let width = 3
+  const input = new PenInput({ scene, bounds: () => ({ left: 10, top: 20 }), width: () => width, draw, redraw })
+  return { input, scene, draw, redraw, setWidth: (value: number) => { width = value } }
+}
+
+describe('one-contact pen input', () => {
+  it.each([
+    { pointerType: 'touch' }, { pointerType: '' }, { isPrimary: false },
+    { button: 2, buttons: 2 }, { buttons: 0 }, { button: 5, buttons: 32 }, { buttons: 3 },
+  ])('ignores unsupported contact %j', (overrides) => {
+    const { input, scene, draw } = setup()
+    expect(input.down(pointer(overrides))).toBe(false)
+    expect(scene.active).toBeNull()
+    expect(draw).not.toHaveBeenCalled()
+  })
+
+  it('ignores hover but accepts primary mouse and pointer id zero', () => {
+    const { input, scene } = setup()
+    input.move(pointer({ buttons: 0 }))
+    expect(scene.active).toBeNull()
+    expect(input.down(pointer({ pointerType: 'mouse', pointerId: 0 }))).toBe(true)
+    expect(input.pointerId).toBe(0)
+  })
+
+  it('does not allow a second pointer to replace, extend, end or cancel the stroke', () => {
+    const { input, scene } = setup()
+    input.down(pointer())
+    expect(input.down(pointer({ pointerId: 2 }))).toBe(false)
+    expect(input.move(pointer({ pointerId: 2, clientX: 70 }))).toBe(false)
+    expect(input.up(pointer({ pointerId: 2, buttons: 0 }))).toBe(false)
+    expect(input.cancel(2)).toBe(false)
+    expect(scene.active?.points).toHaveLength(1)
+    expect(input.pointerId).toBe(1)
+  })
+
+  it('renders a tap immediately and preserves its final sample at zero pressure', () => {
+    const { input, scene, draw } = setup()
+    input.down(pointer({ pressure: 0 }))
+    expect(draw).toHaveBeenCalledTimes(1)
+    expect(draw.mock.calls[0]?.[2]).toBeNull()
+    input.up(pointer({ buttons: 0, pressure: 0, timeStamp: 2 }))
+    expect(scene.strokes).toHaveLength(1)
+    expect(scene.strokes[0]?.points).toEqual([
+      { x: 20, y: 20, pressure: 0, time: 1 },
+      { x: 20, y: 20, pressure: 0, time: 2 },
+    ])
+    expect(input.pointerId).toBeNull()
+  })
+
+  it('renders moves before completion and includes the final up position', () => {
+    const { input, scene, draw } = setup()
+    input.down(pointer())
+    input.move(pointer({ clientX: 45, timeStamp: 2 }))
+    expect(scene.strokes).toHaveLength(0)
+    expect(draw).toHaveBeenCalledTimes(2)
+    expect(draw.mock.calls[1]?.[1]).toEqual([{ x: 35, y: 20, pressure: 0.5, time: 2 }])
+    expect(draw.mock.calls[1]?.[2]).toEqual({ x: 20, y: 20, pressure: 0.5, time: 1 })
+    input.up(pointer({ clientX: 60, clientY: 80, buttons: 0, pressure: 0, timeStamp: 3 }))
+    expect(scene.strokes[0]?.points.at(-1)).toEqual({ x: 50, y: 60, pressure: 0, time: 3 })
+  })
+
+  it('snapshots thickness at stroke start; pressure cannot alter it', () => {
+    const { input, scene, setWidth } = setup()
+    input.down(pointer())
+    setWidth(12)
+    input.move(pointer({ pressure: 1, timeStamp: 2 }))
+    input.up(pointer({ buttons: 0, pressure: 0, timeStamp: 3 }))
+    input.down(pointer({ timeStamp: 4 }))
+    expect(scene.strokes[0]?.width).toBe(3)
+    expect(scene.active?.width).toBe(12)
+  })
+
+  it('discards an interrupted stroke, retains completed strokes and requires a fresh down', () => {
+    const { input, scene, redraw } = setup()
+    input.down(pointer())
+    input.up(pointer({ buttons: 0 }))
+    input.down(pointer({ timeStamp: 2 }))
+    expect(input.cancel()).toBe(true)
+    expect(scene.active).toBeNull()
+    expect(scene.strokes).toHaveLength(1)
+    expect(redraw).toHaveBeenCalledTimes(1)
+    expect(input.move(pointer({ timeStamp: 3 }))).toBe(false)
+    expect(input.up(pointer({ buttons: 0 }))).toBe(false)
+    expect(input.cancel()).toBe(false)
+    expect(input.down(pointer())).toBe(true)
+    expect(scene.active?.id).not.toBe(scene.strokes[0]?.id)
+  })
+
+  it('cancels if contact is lost without up, preventing stuck drawing', () => {
+    const { input, scene, redraw } = setup()
+    input.down(pointer())
+    input.move(pointer({ buttons: 0 }))
+    expect(input.pointerId).toBeNull()
+    expect(scene.strokes).toHaveLength(0)
+    expect(redraw).toHaveBeenCalledOnce()
+  })
+
+  it('rejects invalid numeric geometry and does not corrupt a valid stroke', () => {
+    const { input, scene } = setup()
+    expect(input.down(pointer({ clientX: NaN }))).toBe(false)
+    input.down(pointer())
+    input.move(pointer({ clientX: Infinity }))
+    expect(scene.active?.points).toHaveLength(1)
+  })
+})
+
+describe('coalesced samples', () => {
+  it('keeps ordered pressure samples while deduplicating the parent and repeated samples', () => {
+    const { input, scene } = setup()
+    input.down(pointer())
+    const middle = pointer({ clientX: 35, pressure: 0.7, timeStamp: 2 })
+    const last = pointer({ clientX: 40, pressure: 0.9, timeStamp: 3 })
+    input.move({ ...last, getCoalescedEvents: () => [middle, middle, last] })
+    expect(scene.active?.points).toEqual([
+      { x: 20, y: 20, pressure: 0.5, time: 1 },
+      { x: 25, y: 20, pressure: 0.7, time: 2 },
+      { x: 30, y: 20, pressure: 0.9, time: 3 },
+    ])
+  })
+
+  it('excludes a distinct aggregate parent so raw samples cannot draw backwards', () => {
+    const { input, scene } = setup()
+    input.down(pointer({ clientX: 10 }))
+    input.move(pointer({
+      clientX: 25, pressure: 0.8, timeStamp: 4,
+      getCoalescedEvents: () => [
+        pointer({ clientX: 20, pressure: 0.6, timeStamp: 2 }),
+        pointer({ clientX: 30, pressure: 0.7, timeStamp: 3 }),
+      ],
+    }))
+    expect(scene.active?.points.map((point) => point.x)).toEqual([0, 10, 20])
+    expect(scene.active?.points.map((point) => point.time)).toEqual([1, 2, 3])
+    expect(scene.active?.points.map((point) => point.pressure)).toEqual([0.5, 0.6, 0.7])
+    input.up(pointer({ clientX: 40, buttons: 0, pressure: 0, timeStamp: 5 }))
+    expect(scene.strokes[0]?.points.at(-1)).toEqual({ x: 30, y: 20, pressure: 0, time: 5 })
+  })
+
+  it('preserves pressure-only changes in raw samples', () => {
+    const { input, scene } = setup()
+    input.down(pointer())
+    input.move(pointer({
+      getCoalescedEvents: () => [
+        pointer({ pressure: 0.6, timeStamp: 2 }),
+        pointer({ pressure: 0.8, timeStamp: 3 }),
+      ],
+    }))
+    expect(scene.active?.points.map((point) => point.pressure)).toEqual([0.5, 0.6, 0.8])
+  })
+
+  it('falls back to the original event when capability is absent, empty or throws', () => {
+    const event = pointer()
+    expect(eventSamples(event)).toEqual([event])
+    const empty = pointer({ getCoalescedEvents: () => [] })
+    expect(eventSamples(empty)).toEqual([empty])
+    const throwing = pointer({ getCoalescedEvents: () => { throw new Error('unsupported') } })
+    expect(eventSamples(throwing)).toEqual([throwing])
+  })
+})

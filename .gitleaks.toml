@@ -1,0 +1,8 @@
+title = "penable source scan"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Generated dependencies, build outputs, and Git internals"
+paths = ['''(^|/)(node_modules|dist|coverage|\.git|\.artifacts)/''']

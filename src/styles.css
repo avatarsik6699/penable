@@ -1,0 +1,61 @@
+:root {
+  font-family: "Segoe UI", system-ui, sans-serif;
+  color: #182230;
+  background: #ffffff;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  --paper: #ffffff;
+  --panel: #f3f6fa;
+  --ink: #182230;
+  --divider: #d6dee8;
+  --focus: #175cd3;
+  --error: #b42318;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; }
+button, input, summary { font: inherit; }
+.app { display: flex; flex-direction: column; height: 100dvh; min-height: 360px; }
+.pen-toolbar { flex: none; padding: 12px 24px 11px; background: var(--panel); border-bottom: 1px solid var(--divider); }
+.toolbar-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 32px; }
+h1 { display: flex; align-items: baseline; gap: 3px; margin: 0; font-size: 23px; font-weight: 650; letter-spacing: -.02em; }
+.brand-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--focus); }
+.width-control { display: flex; align-items: center; gap: 12px; min-height: 40px; font-size: 14px; }
+.width-control label { cursor: pointer; }
+.width-control input { width: 128px; min-height: 40px; margin: 0; accent-color: var(--focus); cursor: pointer; }
+.width-control output { min-width: 34px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.width-control output span { color: #526176; font-size: 12px; }
+.pen-preview { display: grid; place-items: center; width: 24px; height: 24px; }
+.pen-preview > span { border-radius: 50%; background: var(--ink); }
+#prototype-warning { margin: 7px 0 0; font-size: 13px; line-height: 1.5; color: #526176; }
+.diagnostics { position: relative; margin-left: auto; font-size: 13px; }
+.diagnostics summary { display: flex; align-items: center; gap: 9px; min-height: 40px; padding: 0 10px; border-radius: 5px; cursor: pointer; list-style: none; }
+.diagnostics summary::-webkit-details-marker { display: none; }
+.diagnostics summary::after { content: ''; width: 6px; height: 6px; border-right: 1.5px solid; border-bottom: 1.5px solid; transform: translateY(-2px) rotate(45deg); }
+.diagnostics[open] summary::after { transform: translateY(2px) rotate(225deg); }
+.diagnostics summary:hover { background: #e6ecf4; }
+.diagnostics-panel { position: absolute; top: calc(100% + 6px); right: 0; z-index: 1; width: 290px; padding: 16px; border: 1px solid var(--divider); border-radius: 6px; background: var(--paper); box-shadow: 0 4px 16px #18223012; }
+.diagnostics dl { display: grid; gap: 10px; margin: 0; }
+.diagnostics dl > div { display: flex; justify-content: space-between; gap: 12px; }
+.diagnostics dt { color: #526176; }
+.diagnostics dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.diagnostics-panel p { margin: 15px 0 0; padding-top: 12px; border-top: 1px solid var(--divider); color: #526176; line-height: 1.5; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
+.writing-surface { position: relative; flex: 1; min-height: 0; background: var(--paper); overflow: hidden; }
+.writing-surface canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; touch-action: none; user-select: none; cursor: crosshair; }
+.capability-error { margin: auto; padding: 32px; max-width: 550px; line-height: 1.6; }
+.capability-error h2 { margin: 0 0 12px; color: var(--error); font-size: 20px; }
+.capability-error p { margin: 0; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+@media (max-width: 580px) {
+  .pen-toolbar { padding: 10px 16px 11px; }
+  .toolbar-row { column-gap: 16px; }
+  h1 { font-size: 21px; order: 0; }
+  .diagnostics { order: 1; }
+  .width-control { order: 2; flex-basis: 100%; gap: 12px; }
+  .width-control input { flex: 1; max-width: 220px; }
+  #prototype-warning { margin-top: 6px; max-width: 350px; }
+  .diagnostics-panel { width: min(290px, calc(100vw - 32px)); }
+}
