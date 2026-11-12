@@ -1,7 +1,7 @@
 # Stack Guide
 
 > Source of truth for technologies, commands and required tools.
-> Status: CONFIGURED; changes 01–06 shipped locally; change06 manually accepted by the owner.
+> Status: CONFIGURED; changes 01–06 shipped locally; change07 prepares GitHub Pages release.
 > SPEC approved 2026-11-12. Target device: Wacom One, Windows 11.
 
 ## Stack
@@ -15,8 +15,8 @@
 | Package manager | npm, package-lock.json |
 | Lint | Oxlint; native TypeScript/React rules including hooks; .oxlintrc.json |
 | Unit tests | Vitest, node environment; src/**/*.test.ts |
-| Infra | Loopback Vite in WSL, ordinary Windows Chrome |
-| CI / hosting | Not configured; release blocked |
+| Infra | Loopback Vite in WSL, ordinary Windows Chrome; public HTTPS static hosting |
+| CI / hosting | GitHub Actions; avatarsik6699/penable; https://avatarsik6699.github.io/penable/ |
 
 ## Prerequisites
 
@@ -59,10 +59,11 @@ A focused build is appropriate when establishing/changing build configuration.
 | Migrations | n/a — no CLI migration | Native IDB upgrade from0→1 on first open; browser smoke covers schema/load |
 | Backend test suite | n/a | No backend |
 | Frontend build | npm run build | TypeScript followed by Vite static build |
+| Pages build | npm run build:pages | Separate production build with /penable/ asset base; final dist is Pages artifact |
 | Frontend unit tests | npm run test:unit | Includes input ownership/cancellation and coordinate transforms |
 | E2E lint / determinism | n/a | No automated E2E runner |
 | E2E suite | n/a | Interactive browser evidence required in Smoke |
-| Smoke | npm run dev | Playwriter: active change T2 scenarios; user acceptance T3 is separate |
+| Smoke | npm run dev; npm run preview:pages | Playwriter: active change scenarios; change07 verifies production /penable/ assets/input/storage at port4173; hardware acceptance is separate |
 | SAST | npm run lint | Correctness-focused static analysis; not a dedicated security audit |
 | Secrets scan | npm run scan:secrets | Gitleaks default rules; excludes only generated deps/build, Git internals and local artifacts; scans untracked files too |
 | Dependency audit | npm run audit:deps | npm audit, moderate and above fail; includes development dependencies |
@@ -74,8 +75,20 @@ A focused build is appropriate when establishing/changing build configuration.
 | Check | Command | Preconditions / notes |
 |-------|---------|-----------------------|
 | Container image scan | n/a | No container image |
-| Deploy / health check | Not configured | No hosting or deploy target; release blocked |
-| gh authenticated for this repo | Not verified | No remote; release blocked |
+| History secrets | gitleaks git . --log-opts=--all --redact --no-banner | Before public push; scan all local history |
+| GitHub authentication | gh auth status | Before push; owner avatarsik6699 |
+| Remote / repository | git remote get-url origin; gh api repos/avatarsik6699/penable --jq '{full_name,private,permissions}' | Before push; origin must target owner/penable, admin available |
+| Publish | git push -u origin main | Only ship --release after Full Gate and pre-push Release Gate pass |
+| Configure Pages | gh api --method POST repos/avatarsik6699/penable/pages -f build_type=workflow | One-time bootstrap after repository creation; if already enabled, GET validates workflow source; initial branch may need publishing first |
+| Deploy verification | gh run list -R avatarsik6699/penable --branch main --json databaseId,headSha,status,conclusion,url; gh run watch RUN_ID -R avatarsik6699/penable --exit-status | After push; require successful build and deploy for exact pushed SHA |
+| HTTPS health | curl --fail --silent --show-error https://avatarsik6699.github.io/penable/ | After deployment; verify HTML and referenced JS/CSS, then owned-browser live smoke |
+
+Initial publication is explicitly owner-authorized. Create the empty public repository using
+`gh repo create avatarsik6699/penable --public --source=. --remote=origin` only after checks.
+Enable Pages with build_type=workflow and HTTPS enforcement. Only built dist is deployed.
+Actions use pinned official commit SHAs; build has contents:read, deploy alone has pages/id-token write.
+CI runs lint/typecheck/unit/audit/build:pages. Secrets scanning remains mandatory locally in Full
+and Release Gates. No custom domain, cloud database, analytics or automatic note migration.
 
 ## Required Tooling
 
@@ -131,7 +144,8 @@ Installed revision: 22ad1fdad73744f10ebc9e0b9df9057c699d4734 on 2026-11-12.
 Root and plugin MCP declarations were copied from the bundle; Context7/OpenAI docs tools are
 already exposed in the session. Generic/Claude wrappers are installed locally; copying the
 Codex plugin or hooks.json does not prove native activation. Procedures can run from playbooks.
-First local ship initialized main from feature/01-pen-input; change 01 is archived. No remote configured.
+First local ship initialized main from feature/01-pen-input; change 01 is archived.
+Change07 configures origin as https://github.com/avatarsik6699/penable.git and Actions-based Pages.
 
 
 ## Change 02 — Quality and Viewport Contract
