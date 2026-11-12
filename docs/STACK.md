@@ -1,7 +1,7 @@
 # Stack Guide
 
 > Source of truth for technologies, commands and required tools.
-> Status: CONFIGURED; changes 01–07 shipped locally; GitHub Pages release verification in progress.
+> Status: CONFIGURED; changes 01–07 shipped; GitHub Pages release verified.
 > SPEC approved 2026-11-12. Target device: Wacom One, Windows 11.
 
 ## Stack
@@ -80,12 +80,13 @@ A focused build is appropriate when establishing/changing build configuration.
 | Remote / repository | git remote get-url origin; gh api repos/avatarsik6699/penable --jq '{full_name,private,permissions}' | Before push; origin must target owner/penable, admin available |
 | Publish | git push -u origin main | Only ship --release after Full Gate and pre-push Release Gate pass |
 | Configure Pages | gh api --method POST repos/avatarsik6699/penable/pages -f build_type=workflow | One-time bootstrap after repository creation; if already enabled, GET validates workflow source; initial branch may need publishing first |
-| Deploy verification | gh run list -R avatarsik6699/penable --branch main --json databaseId,headSha,status,conclusion,url; gh run watch RUN_ID -R avatarsik6699/penable --exit-status | After push; require successful build and deploy for exact pushed SHA |
+| Deploy verification | gh run list -R avatarsik6699/penable --json databaseId,headSha,status,conclusion,url; gh run watch RUN_ID -R avatarsik6699/penable --exit-status | After push; require successful build and deploy for exact pushed SHA |
 | HTTPS health | curl --fail --silent --show-error https://avatarsik6699.github.io/penable/ | After deployment; verify HTML and referenced JS/CSS, then owned-browser live smoke |
 
 Initial publication is explicitly owner-authorized. Create the empty public repository using
 `gh repo create avatarsik6699/penable --public --source=. --remote=origin` only after checks.
 Enable Pages with build_type=workflow and HTTPS enforcement. Only built dist is deployed.
+The installed gh run list lacks --branch; match JSON headSha to the pushed commit.
 Actions use pinned official commit SHAs; build has contents:read, deploy alone has pages/id-token write.
 CI runs lint/typecheck/unit/audit/build:pages. Secrets scanning remains mandatory locally in Full
 and Release Gates. No custom domain, cloud database, analytics or automatic note migration.

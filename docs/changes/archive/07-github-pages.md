@@ -7,7 +7,7 @@
 | Change | 07 |
 | Slug | github-pages |
 | Title | Public repository and GitHub Pages |
-| Status | shipped locally; release pending |
+| Status | released |
 | Branch | feature/07-github-pages |
 
 ## Goal
@@ -31,13 +31,13 @@ None — no application behavior or document schema changes.
 - [x] I1 Review publication contents and Git history for secrets/local data; preserve history and existing ignore rules — _Depends on:_ —
 - [x] I2 Add reproducible Pages build/preview for `/penable/`, pinned official Actions workflow, checks on PR/main and main-only deploy with least privilege — _Depends on:_ I1
 - [x] I3 Update README, SPEC and STACK for public use, JSON transfer from localhost and concrete release commands — _Depends on:_ I2
-- [ ] I4 After green gates, create public GitHub repository/origin, enable Actions-based Pages and publish local main through ship --release — _Depends on:_ I2, I3, T1, T2
+- [x] I4 After green gates, create public GitHub repository/origin, enable Actions-based Pages and publish local main through ship --release — _Depends on:_ I2, I3, T1, T2
 
 ### Other
 
 - [x] T1 Run applicable Fast/Full Gates and independent workflow review; record no unresolved findings — _Depends on:_ I2, I3
 - [x] T2 Browser smoke of production build at `/penable/`: assets, writing/save/reload/export and clean console/network on owned test origin — _Depends on:_ I2
-- [ ] T3 Verify remote main, successful Actions deployment and live HTTPS page/assets/browser; clean only owned test data — _Depends on:_ I4
+- [x] T3 Verify remote main, successful Actions deployment and live HTTPS page/assets/browser; clean only owned test data — _Depends on:_ I4
 
 ## Files
 
@@ -90,6 +90,18 @@ if prior notes exist, use isolated context. The owner's publication request auth
 
 Receipts: `.artifacts/change-07/ship-gate.json`, `verification.json`, `local-browser.json`.
 
+### Release Gate — PASS
+
+| Check | Result |
+|-------|--------|
+| Full-history secrets | PASS —0 leaks |
+| Auth / origin / public repo admin | PASS |
+| Pages workflow source / HTTPS | PASS |
+| Push / build / deploy | PASS — [first publication](https://github.com/avatarsik6699/penable/actions/runs/43300653859) |
+| Live HTML / JS / CSS | PASS —HTTP200, gated artifact match |
+| Live browser | PASS —5 checks, clean console |
+| Container image scan | n/a —static SPA |
+
 ## Architect Review Notes
 
 - [x] No architect review issues recorded
@@ -99,7 +111,9 @@ Receipts: `.artifacts/change-07/ship-gate.json`, `verification.json`, `local-bro
 - Fast Gate: lint/typecheck(Pages build)/252unit tests PASS;6 production browser checks PASS. No TypeScript source changed, so changed-file LSP is n/a. Independent workflow review:0 findings.
 - Publication scan:90 tracked files;13 existing commits, no leaks; source/SDD history retained, local artifacts/dependencies/env excluded. No new license granted.
 - GitHub connector lacks create-repository/Pages settings operations; authenticated gh CLI is used for release.
-- Release verification and public URL confirmation remain pending until push/deploy.
+- Repository created and origin configured: https://github.com/avatarsik6699/penable . Pages uses workflow source and enforced HTTPS. First publication run43300653859 passed for bca41fe8ecded231a836d11442a889b2be00f570.
+- Live https://avatarsik6699.github.io/penable/ verified: HTML/JS/CSS HTTP200 and byte-identical to gated artifacts;5 live-browser checks PASS (secure context, Web Locks, canvas, pointer response, console and note preservation). Local production smoke additionally verified writing/save/reload/export. No user notes were migrated or changed.
+- Installed gh run list lacks --branch; use JSON headSha matching instead. No CLI upgrades were needed.
 
 ## Commit Message
 
