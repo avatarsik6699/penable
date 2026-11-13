@@ -20,9 +20,11 @@ import {
 } from "~/entities/board";
 import {
   DocumentSnapshots,
+  LibraryCatalog,
   type DocumentSession,
   type BoardLibrarySession,
   type BoardDocument,
+  type BoardAppearance,
   DocumentErrors,
   DocumentCodec,
 } from "~/features/board-document";
@@ -81,7 +83,7 @@ export class WorkspaceModel {
       navigationMessage: "",
       library: Object.freeze({
         activeId: "main",
-        boards: Object.freeze([{ id: "main", title: "Моя доска" }]),
+        boards: Object.freeze(LibraryCatalog.initial().boards),
         busy: false,
         message: "",
       }),
@@ -243,16 +245,6 @@ export class WorkspaceModel {
     ]).then(() => {});
   }
 
-  readonly showPreviews = (ids: readonly string[]) => {
-    if (this.session && "showPreviews" in this.session)
-      this.session.showPreviews(ids);
-  };
-
-  readonly closePreviews = () => {
-    if (this.session && "closePreviews" in this.session)
-      this.session.closePreviews();
-  };
-
   readonly switchBoard = (id: string) =>
     this.libraryAction((session) => session.switchBoard(id));
 
@@ -261,6 +253,9 @@ export class WorkspaceModel {
 
   readonly renameBoard = (id: string, title: string) =>
     this.libraryAction((session) => session.renameBoard(id, title));
+
+  readonly setBoardAppearance = (id: string, appearance: BoardAppearance) =>
+    this.libraryAction((session) => session.setBoardAppearance(id, appearance));
 
   readonly deleteBoard = (id: string) =>
     this.libraryAction((session) => session.deleteBoard(id), true);

@@ -1,8 +1,4 @@
-function render(
-  blob: Blob,
-  mode: "selection" | "thumbnail",
-  signal: AbortSignal,
-): Promise<Blob> {
+function render(blob: Blob, signal: AbortSignal): Promise<Blob> {
   if (signal.aborted)
     return Promise.reject(new Error("Подготовка изображения отменена."));
 
@@ -40,7 +36,7 @@ function render(
         reject(new Error(data.error ?? "Не удалось подготовить изображение."));
     };
 
-    worker.postMessage({ blob, mode });
+    worker.postMessage({ blob });
   });
 }
 

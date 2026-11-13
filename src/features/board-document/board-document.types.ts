@@ -20,11 +20,34 @@ export type BoardDocument = {
   };
 };
 
+export type BoardColor =
+  "blue" | "teal" | "green" | "amber" | "orange" | "red" | "violet" | "pink";
+
+export type BoardIcon =
+  | "notebook"
+  | "book"
+  | "calculator"
+  | "languages"
+  | "flask"
+  | "atom"
+  | "code"
+  | "briefcase"
+  | "lightbulb"
+  | "music"
+  | "palette"
+  | "globe"
+  | "calendar"
+  | "folder"
+  | "graduation"
+  | "pen";
+
+export type BoardAppearance = Readonly<{ color: BoardColor; icon: BoardIcon }>;
+
 export type BoardCatalog = {
   format: "penable-library";
-  schemaVersion: 1;
+  schemaVersion: 2;
   activeId: string;
-  boards: Array<{ id: string; title: string }>;
+  boards: Array<{ id: string; title: string; appearance: BoardAppearance }>;
 };
 
 export type LibraryRepository = {
@@ -35,6 +58,7 @@ export type LibraryRepository = {
     document: BoardDocument,
     raw: StoredRecord,
   ) => Promise<void>;
+  migrate: (catalog: BoardCatalog, raw: StoredRecord) => Promise<void>;
   update: (
     catalog: BoardCatalog,
     change?: {

@@ -10,7 +10,7 @@ import type {
 } from "~/entities/board";
 
 export type DocumentJobKind =
-  "select" | "validate" | "save" | "overview" | "fragment" | "preview";
+  "select" | "validate" | "save" | "overview" | "fragment";
 
 export type FragmentMetadata =
   Omit<Stroke, "points"> | Omit<ImageItem, "asset">;

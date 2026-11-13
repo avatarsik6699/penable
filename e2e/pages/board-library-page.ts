@@ -120,6 +120,61 @@ export class BoardLibraryPage {
     await this.page.keyboard.press("Escape");
   }
 
+  async expectProtectedDeleteOwnership() {
+    const title = "Проверка удаления";
+
+    await this.create(title);
+
+    const original = await this.catalog();
+
+    for (const dismiss of ["escape", "cancel"] as const) {
+      await this.open();
+
+      await this.page
+        .getByRole("button", { name: `Действия доски: ${title}`, exact: true })
+        .click();
+
+      await this.page
+        .getByRole("menuitem", { name: `Удалить доску: ${title}`, exact: true })
+        .click();
+
+      const dialog = this.page.getByRole("alertdialog", {
+        name: "Удалить доску?",
+        exact: true,
+      });
+
+      await expect(dialog).toBeVisible();
+
+      if (dismiss === "escape") {
+        await this.page.keyboard.press("Escape");
+      } else {
+        await this.page.mouse.click(1000, 700);
+        await expect(dialog).toBeVisible();
+
+        await dialog
+          .getByRole("button", { name: "Отмена", exact: true })
+          .click();
+      }
+
+      await expect(dialog).toBeHidden();
+
+      await expect(
+        this.page.getByRole("button", { name: "Доски", exact: true }),
+      ).toBeEnabled();
+
+      expect(await this.catalog()).toEqual(original);
+    }
+
+    await this.remove(title, true);
+
+    await expect(
+      this.page.getByRole("button", { name: "Доски", exact: true }),
+    ).toBeEnabled();
+
+    await this.board.drawStroke();
+    await this.board.storage.expectStrokeCount(1);
+  }
+
   async expectIndependentBoardsAndDeletion() {
     await this.board.drawStroke();
     await this.board.storage.expectStrokeCount(1);
@@ -242,7 +297,7 @@ export class BoardLibraryPage {
     await this.board.storage.expectScene(restored.items);
   }
 
-  async expectSidebarSearchAndPreviews() {
+  async expectSidebarSearchAndCovers() {
     await this.create("Алгебра");
     await this.create("Геометрия");
     await this.board.drawStroke({ x: 350, y: 300 }, { x: 560, y: 380 });
@@ -294,15 +349,22 @@ export class BoardLibraryPage {
       }),
     });
 
-    await expect(row.locator("img")).toHaveAttribute("src", /^blob:/);
+    const cover = row
+      .getByRole("button", {
+        name: "Открыть доску: Геометрия",
+        exact: true,
+      })
+      .locator("svg");
 
-    await expect
-      .poll(() =>
-        row
-          .locator("img")
-          .evaluate((image) => (image as HTMLImageElement).naturalWidth),
-      )
-      .toBeGreaterThan(0);
+    await expect(cover).toBeVisible();
+    await expect(row.locator("img")).toHaveCount(0);
+
+    const coverBox = await cover.evaluate((icon) =>
+      icon.parentElement!.getBoundingClientRect().toJSON(),
+    );
+
+    expect(coverBox.width).toBe(44);
+    expect(coverBox.height).toBe(44);
 
     await search.fill("совпадений нет");
 

@@ -6,10 +6,10 @@ test("dock and permanent controls keep their rectangles across tools at every br
   await editor.expectInvariantDockGeometry();
 });
 
-test("board sidebar provides search, lazy previews, row actions and stable canvas", async ({
+test("board sidebar provides search, instant covers, row actions and stable canvas", async ({
   library,
 }) => {
-  await library.expectSidebarSearchAndPreviews();
+  await library.expectSidebarSearchAndCovers();
 });
 
 test("board title leads its label and rename focus stays inside the scrollable list", async ({

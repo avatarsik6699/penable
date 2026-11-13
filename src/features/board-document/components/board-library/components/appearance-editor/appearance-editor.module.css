@@ -1,0 +1,119 @@
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex-shrink: 0;
+}
+.editor h2 {
+  font-size: 16px;
+  line-height: 1.5;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.sample {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--control-hover);
+  border-radius: 12px;
+}
+.sample > span:last-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+.editor form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.editor fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.editor legend {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.colors,
+.icons {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(44px, 1fr));
+  gap: 8px;
+}
+.option {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 48px;
+  cursor: pointer;
+}
+.option input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+  z-index: 1;
+}
+.choice {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+}
+.marker {
+  display: none;
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 12px;
+}
+.option input:checked + .choice {
+  border-color: var(--ink);
+}
+.option input:checked + .choice .marker {
+  display: block;
+}
+.option input:focus-visible + .choice {
+  outline: 2px solid var(--ink);
+  outline-offset: 4px;
+}
+.option input:disabled + .choice {
+  opacity: 0.5;
+}
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 4px;
+}
+.actions button {
+  min-height: 40px;
+}
+.error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--error);
+  line-height: 1.5;
+}
+
+.marker svg {
+  width: 12px;
+  height: 12px;
+  margin: 2px;
+}

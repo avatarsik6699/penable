@@ -444,10 +444,20 @@ implementation/local ship without intermediate confirmation; no PWA/release in t
 
 ## Change18 — Editor UX and unified clipboard
 
-SPEC5.17 governs current implementation. Keep React/Canvas/IDB/schema4/catalog1 and dependencies.
+SPEC5.17 governs the Change18 implementation; SPEC5.18 supersedes sidebar previews/catalog1.
 Native clipboard includes a versioned editable fragment plus PNG; no cross-board transfer service.
 Use preview:pages on strict4198 for owned native checks,4185 for E2E and4180 for benchmark pairs.
 Baseline05828ec source/dist snapshots live under.artifacts/change-18. One src writer; parent owns
 E2E/policies/docs/shared checks/browser/Git. Previews are bounded derived memory cache and must not
 change durable schemas or increase the main two-layer bitmap allocation. Existing Fast/Full/LSP,
 native raster and performance commands apply; report actual OS interaction limits independently.
+
+## Change21 — Distinct board covers
+
+SPEC5.18 keeps the current stack/document4/IDB1 and adds catalog2 appearance metadata with an
+atomic first-writer raw catalog1 backup in before-library-v2. Sidebar thumbnails are retired;
+shared native selection-PNG raster still uses thumbnail-worker.ts with exact reviewed Canvas
+owners. No new capabilities or broad exemptions. One source writer; parent owns policies/E2E,
+shared gates/browser/Git/docs. Native Pages4201 and E2E4185 isolate owner data. Test100-board
+cold/warm catalog-only opening, storage read/worker absence and ordinary input, plus migration,
+readonly, errors and short-screen focus. Current native painting algorithm is unchanged.

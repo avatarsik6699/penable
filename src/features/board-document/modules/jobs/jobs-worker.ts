@@ -204,14 +204,6 @@ async function finish(id: number) {
     host.postMessage({
       id,
       ...(selection ? { selection } : {}),
-      ...(job.kind === "preview"
-        ? {
-            fragment: new Blob(
-              [JSON.stringify(DocumentCodec.encodeDocument(document))],
-              { type: "application/json" },
-            ),
-          }
-        : {}),
       ...(job.kind === "fragment"
         ? {
             fragment: new Blob(

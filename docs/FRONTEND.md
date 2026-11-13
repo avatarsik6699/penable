@@ -82,17 +82,19 @@ Do not create all directories or suffix files by template: every one must own ac
   a local BoardSnapshot variable named document is not DOM access.
 - Change18 adds explicit UI-free secondary public entries `features/board-document/worker.ts`
   and the native image cache's `images/worker.ts`. Own/ancestor-barrel and other private-boundary
-  checks still apply. Workers remain React/DOM/clipboard/RAF-free. Only named thumbnail-raster
+  checks still apply. Workers remain React/DOM/clipboard/RAF-free. Only named selection-PNG raster
   and clipboard-image-preflight roots may reach their exact reviewed Canvas owners; a normal
   document worker cannot gain Canvas by importing one of those files.
 - The native clipboard owner negotiates editable fragments and PNG for keyboard/menu operations.
   Feature codec/jobs own strict portable payloads, chunked serialization/reading and embedded
   image preflight; entity selection owns generation-safe capture/removal and ordinary insertion.
   Clipboard/insertion state is a coarse projection; it never exposes raw scene data to React.
-- Feature-owned preview queue selects visible IDs, loads/validates documents in background jobs
-  and owns the bounded derived cache. Workspace injects its small OffscreenCanvas renderer port.
-  Preview worker/URL/bitmap lifetimes are canceled/drained independently from durable board saves;
-  failures remain placeholders and cannot prevent writing or saving.
+- Feature-owned catalog2 holds board appearance, with pure deterministic assignment/validation.
+  Library repository owns the atomic catalog1 backup/upgrade; read-only views derive covers
+  without writes. Sidebar covers are plain Lucide SVG/color presentation, with no document
+  loading, raster workers or URL/cache lifetime. Draft editor state belongs to its child view;
+  only the library session publishes committed metadata after durable completion. Sidebar and
+  its protected dialog share dismissal ownership; unmount releases only its owned modal flag.
 - Ordered BoardItem collections discriminate ink and image; raw points/local masks and immutable assets are separate from affine placement. Wire schema4 uses items plus a deduplicated asset table; runtime strokes collection name remains for native API compatibility. Worker geometry jobs omit image bytes; only durable/explicit asset validation uploads bounded payload chunks. Generation-owned image caches release unreferenced resources and late decodes.
 - Core live geometry provides readonly geometry/stable-prefix boundary; native painter owns
   Path2D prefix/cache and draws one combined path. Keep weak ownership, sealing and O(new samples).

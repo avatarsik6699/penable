@@ -2,10 +2,6 @@
 export const platformOwners = {
   "src/features/board-document/modules/jobs/document-jobs.ts": ["files"],
   "src/features/board-document/modules/jobs/jobs-protocol.ts": ["files"],
-  "src/features/board-document/modules/library/library.types.ts": ["files"],
-  "src/features/board-document/modules/previews/board-previews.types.ts": [
-    "files",
-  ],
   "src/features/board-document/adapters/fragment-reader.ts": [
     "worker",
     "url",
@@ -20,24 +16,10 @@ export const platformOwners = {
     "messaging",
     "files",
   ],
-  "src/features/board-document/adapters/preview-loader.ts": [
-    "worker",
-    "url",
-    "files",
-    "messaging",
-  ],
-  "src/features/board-document/adapters/preview-loader-worker.ts": [
-    "worker-scope",
-    "messaging",
-    "files",
-  ],
-  "src/features/board-document/adapters/preview-visibility.ts": ["dom"],
   "src/widgets/board-workspace/components/writing-surface/native/clipboard/board-clipboard.ts":
     ["dom", "clipboard", "files"],
   "src/widgets/board-workspace/components/writing-surface/native/clipboard/board-clipboard.types.ts":
     ["dom", "files"],
-  "src/widgets/board-workspace/components/writing-surface/native/rendering/thumbnail.ts":
-    ["worker", "url", "files", "messaging"],
   "src/widgets/board-workspace/components/writing-surface/native/rendering/thumbnail-worker.ts":
     ["canvas", "worker-scope", "messaging", "files"],
   "src/widgets/board-workspace/components/writing-surface/native/rendering/raster-job.ts":

@@ -125,22 +125,6 @@ export class DocumentJobs implements DocumentPersistence {
       });
   }
 
-  async previewDocument(
-    document: BoardDocument,
-    signal: AbortSignal,
-  ): Promise<Blob> {
-    const result = await this.transport.execute(
-      "preview",
-      document,
-      undefined,
-      signal,
-    );
-
-    if (!result.fragment) throw new Error("Предпросмотр не подготовлен.");
-
-    return result.fragment;
-  }
-
   async fragment(
     fragment: import("~/entities/board").SelectionClipboard,
     signal: AbortSignal,

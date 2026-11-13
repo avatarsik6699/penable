@@ -1,10 +1,10 @@
+import type { BoardAppearance } from "../../board-document.types";
 import type { LibraryState } from "../../modules/library";
 
 export namespace BoardLibraryTypes {
   export type Props = {
     state: LibraryState;
-    onPreviewVisible: (ids: readonly string[]) => void;
-    onPreviewClose: () => void;
+    onAppearance: (id: string, appearance: BoardAppearance) => Promise<void>;
     readOnly: boolean;
     blocked: boolean;
     open: boolean;

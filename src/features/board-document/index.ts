@@ -19,6 +19,9 @@ export { DocumentSession, DocumentErrors } from "./modules/session";
 export type { SessionOptions } from "./modules/session";
 export type {
   BoardDocument,
+  BoardAppearance,
+  BoardColor,
+  BoardIcon,
   DocumentRepository,
   StoredRecord,
   WriterLease,
@@ -45,4 +48,3 @@ export { BoardLibrary } from "./components/board-library";
 
 export { FragmentCodec } from "./modules/fragments";
 export { FragmentReader } from "./adapters/fragment-reader";
-export type { BoardPreviewsTypes } from "./modules/previews";

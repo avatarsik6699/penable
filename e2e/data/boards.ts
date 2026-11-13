@@ -88,7 +88,7 @@ export const testBoards = {
     };
   },
 
-  catalogWithMissingBoard(): TestBoardTypes.Catalog {
+  catalogWithMissingBoard(): TestBoardTypes.LegacyCatalog {
     return {
       format: "penable-library",
       schemaVersion: 1,

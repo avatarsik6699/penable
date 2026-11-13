@@ -1,11 +1,9 @@
-import { DocumentJobs } from "../jobs";
-import { BoardPreviews } from "../previews";
-import { DocumentSnapshots } from "../codec";
 import { DocumentCodec } from "../codec";
 import { DocumentErrors } from "../session";
 import type { DocumentSession } from "../session";
 import type {
   BoardDocument,
+  BoardAppearance,
   StorageState,
   WriterLease,
 } from "../../board-document.types";
@@ -15,6 +13,7 @@ import type {
   BoardCatalog,
   LibraryState,
 } from "./library.types";
+import { LibraryAppearance } from "./library-appearance";
 import { LibraryCatalog } from "./library-catalog";
 
 export class BoardLibrarySession {
@@ -34,38 +33,9 @@ export class BoardLibrarySession {
     value: undefined,
   };
 
-  private readonly previewJobs = new DocumentJobs();
-  private readonly previews: BoardPreviews | null;
   private operation: Promise<unknown> = Promise.resolve();
 
-  constructor(private readonly options: LibraryOptions) {
-    this.previews = options.preview
-      ? new BoardPreviews({
-          load: async (id, signal) => {
-            if (id === this.catalog.activeId)
-              return this.previewJobs.previewDocument(
-                DocumentSnapshots.fromSnapshot(this.options.snapshot()),
-                signal,
-              );
-
-            if (!options.previewLoad)
-              throw new Error("Предпросмотр недоступен.");
-
-            return options.previewLoad(id, signal);
-          },
-
-          render: options.preview,
-
-          changed: () => {
-            if (!this.disposed) this.publish();
-          },
-        })
-      : null;
-  }
-
-  readonly showPreviews = (ids: readonly string[]) => this.previews?.show(ids);
-
-  readonly closePreviews = () => this.previews?.close();
+  constructor(private readonly options: LibraryOptions) {}
 
   get canWrite() {
     return (
@@ -138,7 +108,6 @@ export class BoardLibrarySession {
 
   private publish() {
     const state: LibraryState = Object.freeze({
-      previews: this.previews?.urls,
       activeId: this.catalog.activeId,
       boards: Object.freeze(
         this.catalog.boards.map((board) => Object.freeze({ ...board })),
@@ -204,6 +173,13 @@ export class BoardLibrarySession {
         await this.options.preflight?.(document, this.validationAbort.signal);
 
         if (this.disposed) return;
+
+        if (
+          this.lease.acquired &&
+          (records.catalog.value as { schemaVersion: number }).schemaVersion ===
+            1
+        )
+          await this.repository.migrate(this.catalog, records.catalog);
       } else {
         const document = records.main.exists
           ? DocumentCodec.decodeDocument(records.main.value)
@@ -354,7 +330,21 @@ export class BoardLibrarySession {
       const catalog = {
         ...this.catalog,
         activeId: id,
-        boards: [...this.catalog.boards, { id, title }],
+        boards: [
+          ...this.catalog.boards,
+          {
+            id,
+            title,
+            appearance: LibraryAppearance.assign(
+              id,
+              new Set(
+                this.catalog.boards.map((board) =>
+                  LibraryAppearance.key(board.appearance),
+                ),
+              ),
+            ),
+          },
+        ],
       };
 
       await this.repository!.update(catalog, {
@@ -389,14 +379,34 @@ export class BoardLibrarySession {
     });
   }
 
+  async setBoardAppearance(id: string, appearance: BoardAppearance) {
+    if (!LibraryAppearance.valid(appearance))
+      throw new Error("Недопустимое оформление доски.");
+
+    const captured = { color: appearance.color, icon: appearance.icon };
+
+    await this.run(async () => {
+      if (!this.catalog.boards.some((board) => board.id === id))
+        throw new Error("Доска не найдена.");
+
+      const catalog = {
+        ...this.catalog,
+        boards: this.catalog.boards.map((board) =>
+          board.id === id ? { ...board, appearance: captured } : board,
+        ),
+      };
+
+      await this.repository!.update(catalog);
+      this.catalog = catalog;
+    });
+  }
+
   async deleteBoard(id: string) {
     if (this.catalog.boards.length <= 1)
       throw new Error("Последнюю доску удалить нельзя.");
 
     if (!this.catalog.boards.some((b) => b.id === id))
       throw new Error("Доска не найдена.");
-
-    this.previews?.invalidate(id);
 
     await this.run(async () => {
       const boards = this.catalog.boards.filter((b) => b.id !== id),
@@ -414,9 +424,6 @@ export class BoardLibrarySession {
   }
 
   changed(urgent = false) {
-    if (urgent && this.canWrite)
-      this.previews?.invalidate(this.catalog.activeId);
-
     if (this.canWrite) this.active?.changed(urgent);
   }
 
@@ -439,8 +446,6 @@ export class BoardLibrarySession {
     if (!this.canImport)
       return Promise.reject(new Error("Замена доски недоступна."));
 
-    this.previews?.invalidate(this.catalog.activeId);
-
     return this.active!.replace(document, isBusy);
   }
 
@@ -453,8 +458,6 @@ export class BoardLibrarySession {
     this.closing = (async () => {
       await this.startup?.catch(() => {});
       await this.operation.catch(() => {});
-      await this.previews?.dispose();
-      await this.previewJobs.close();
       await this.active?.dispose();
       await this.repository?.close();
       await this.lease?.release();

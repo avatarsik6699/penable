@@ -3,6 +3,8 @@ import { BoardTransformPage } from "./pages/board-transform-page";
 import { BoardClipboardPage } from "./pages/board-clipboard-page";
 import { BoardImagePage } from "./pages/board-image-page";
 import { BoardLibraryPage } from "./pages/board-library-page";
+import { BoardAppearancePage } from "./pages/board-appearance-page";
+import { appearanceBoards } from "./data/appearance-boards";
 import { testImageFiles, type TestImageTypes } from "./data/image-files";
 import { BoardNavigationPage } from "./pages/board-navigation-page";
 import { EditorChromePage } from "./pages/editor-chrome-page";
@@ -104,6 +106,56 @@ async function seedLegacy(page: Page, secondVersion = false) {
   });
 }
 
+async function appearanceWriteFault(page: Page, initial = false) {
+  await page.addInitScript((enabled) => {
+    let active = enabled,
+      hits = 0;
+
+    const original = IDBObjectStore.prototype.put;
+
+    Object.defineProperty(window, "__appearanceWriteFault21", {
+      value: (next: boolean) => {
+        active = next;
+      },
+    });
+
+    Object.defineProperty(window, "__appearanceWriteFaultHits21", {
+      get: () => hits,
+    });
+
+    IDBObjectStore.prototype.put = function (value, key) {
+      const request = original.call(this, value, key);
+
+      if (active && this.name === "documents" && key === "library") {
+        hits++;
+        this.transaction.abort();
+      }
+
+      return request;
+    };
+  }, initial);
+
+  const set = (active: boolean) =>
+    page.evaluate((enabled) => {
+      const setter = (
+        window as unknown as {
+          __appearanceWriteFault21: (active: boolean) => void;
+        }
+      ).__appearanceWriteFault21;
+
+      setter(enabled);
+    }, active);
+
+  const hits = () =>
+    page.evaluate(
+      () =>
+        (window as unknown as { __appearanceWriteFaultHits21: number })
+          .__appearanceWriteFaultHits21,
+    );
+
+  return { set, hits };
+}
+
 type Samples = {
   selectionStart: TestBoardTypes.Position;
   selectionEnd: TestBoardTypes.Position;
@@ -123,6 +175,11 @@ type Fixtures = {
   images: TestImageTypes.Files;
   imageBoard: BoardImagePage;
   library: BoardLibraryPage;
+  appearance: BoardAppearancePage;
+  legacyAppearance: BoardAppearancePage;
+  appearanceFailure: BoardAppearancePage;
+  migrationFailureAppearance: BoardAppearancePage;
+  readOnlyAppearance: BoardAppearancePage;
   failedSwitch: { library: BoardLibraryPage; release: () => Promise<void> };
   documents: {
     empty: TestBoardTypes.Document;
@@ -132,7 +189,7 @@ type Fixtures = {
     v2: TestBoardTypes.Document;
     v3: TestBoardTypes.Document;
     corrupt: unknown;
-    missingCatalog: TestBoardTypes.Catalog;
+    missingCatalog: TestBoardTypes.LegacyCatalog;
     distant: TestBoardTypes.Document;
   };
   samples: Samples;
@@ -231,6 +288,112 @@ export const test = base.extend<Fixtures>({
 
   library: async ({ page, board }, use) => {
     await use(new BoardLibraryPage(page, board));
+  },
+
+  appearance: async ({ page, board, library }, use) => {
+    await use(new BoardAppearancePage(page, board, library));
+  },
+
+  legacyAppearance: async ({ page }, use) => {
+    const verify = monitor(page),
+      board = new BoardPage(page, new StoragePage(page));
+
+    try {
+      await seedRecords(page, appearanceBoards.records());
+      await board.open();
+
+      await use(
+        new BoardAppearancePage(page, board, new BoardLibraryPage(page, board)),
+      );
+    } finally {
+      verify();
+    }
+  },
+
+  appearanceFailure: async ({ page }, use) => {
+    const fault = await appearanceWriteFault(page),
+      verify = monitor(page);
+
+    const board = new BoardPage(page, new StoragePage(page));
+
+    try {
+      await board.open();
+
+      await use(
+        new BoardAppearancePage(
+          page,
+          board,
+          new BoardLibraryPage(page, board),
+          fault.set,
+          fault.hits,
+        ),
+      );
+    } finally {
+      verify();
+    }
+  },
+
+  migrationFailureAppearance: async ({ page }, use) => {
+    const verify = monitor(page),
+      board = new BoardPage(page, new StoragePage(page));
+
+    try {
+      await seedRecords(page, appearanceBoards.records());
+
+      const fault = await appearanceWriteFault(page, true);
+
+      await page.goto("/penable/");
+      await board.storage.expectSaveError();
+
+      await use(
+        new BoardAppearancePage(
+          page,
+          board,
+          new BoardLibraryPage(page, board),
+          fault.set,
+          fault.hits,
+        ),
+      );
+    } finally {
+      verify();
+    }
+  },
+
+  readOnlyAppearance: async ({ page, context }, use) => {
+    const locker = await context.newPage(),
+      verify = monitor(page);
+
+    const board = new BoardPage(page, new StoragePage(page));
+
+    try {
+      await seedRecords(locker, appearanceBoards.records());
+
+      await locker.evaluate(() => {
+        void navigator.locks.request("penable:board:main", async () => {
+          (
+            window as unknown as { __appearanceLease21: boolean }
+          ).__appearanceLease21 = true;
+
+          await new Promise<void>(() => {});
+        });
+      });
+
+      await locker.waitForFunction(
+        () =>
+          (window as unknown as { __appearanceLease21: boolean })
+            .__appearanceLease21,
+      );
+
+      await page.goto("/penable/");
+      await board.storage.expectReadOnly();
+
+      await use(
+        new BoardAppearancePage(page, board, new BoardLibraryPage(page, board)),
+      );
+    } finally {
+      await locker.close();
+      verify();
+    }
   },
 
   failedSwitch: async ({ page }, use) => {

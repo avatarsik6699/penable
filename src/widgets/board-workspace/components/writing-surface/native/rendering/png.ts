@@ -86,5 +86,5 @@ export const BoardPNG = {
   selectionPNG,
   downloadPNG,
   fragmentPNG: async (fragment: Promise<Blob>, signal: AbortSignal) =>
-    RasterJob.render(await fragment, "selection", signal),
+    RasterJob.render(await fragment, signal),
 };

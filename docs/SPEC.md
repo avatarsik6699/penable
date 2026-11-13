@@ -875,7 +875,8 @@ does not load every board. Opening the sidebar never resizes/remounts/recenters 
 other main panels replace it. It uses available screen height; narrow layout uses available
 width beneath the dock. Preserve brand/lower navigation and the existing system type/Lucide.
 
-Previews are derived, not persisted: fixed256×160 or smaller raster, only visible rows, one
+The following preview contract is superseded by the color+icon covers in §5.18.
+Previews were derived, not persisted: fixed256×160 or smaller raster, only visible rows, one
 queued job at a time, bounded LRU (up to32previews/8MiB encoded) and placeholder on miss/error.
 Feature owns catalog/document loading/cache lifetime; widget injects a narrow native thumbnail
 render port rather than feature importing a widget. Do not eagerly decode100boards, create
@@ -902,3 +903,48 @@ with a sidebar/thumbnail/image job must avoid attributable>=50ms tasks; explicit
 is separate. Existing engine first3 valid warmed pairs and20% CPU budgets apply. Independent
 source/security and bounded visual finish precede Full Gate and automatic local ship. Native
 OS picker/clipboard and physical pen limits are reported honestly. No release without request.
+
+## 5.18 Recognizable board covers (Change21)
+
+Approved owner choices: color+icon covers replace sidebar thumbnails, assigned automatically
+and manually configurable. Extend the incumbent light Operate editor, not toolbar or canvas.
+
+**Covers.** Every board immediately displays a44×44 tonal cover with a22px Lucide icon,
+8 colors (blue/teal/green/amber/orange/red/violet/pink) and16 symbols (notebook/book/calculator/
+languages/flask/atom/code/briefcase/lightbulb/music/palette/globe/calendar/folder/graduation/pen).
+Use stable allowlisted identifiers; no user HTML/CSS/icon names, uploaded art, emojis or new
+package. Automatic assignment is deterministic from board identity and chooses an unused pair
+among128 combinations for up to100boards. Persist explicit appearance; changing title/content
+never reassigns it. Manual duplicates are allowed. Retain the named active-board treatment.
+
+**Editor.** Row menu «Оформление» replaces sidebar list/search/create with an editor in the same
+out-of-flow panel: board-specific heading/cover sample, color and icon radio groups, Save and
+Cancel. Preview is draft-only. «Сохранить» commits then returns to the list; «Отмена» returns
+without changes. Restore focus to that row's action button. Escape/close/outside dismisses the
+sidebar and cancels unsaved draft, returning keyboard focus to the main trigger as applicable.
+Errors stay inline with draft intact and retry available; busy/readonly guards remain immediate.
+Use40px targets, visible focus, accessible Russian option names and selected markers in addition
+to color. On narrow/short screens all choices/final actions remain reachable by scrolling; canvas
+identity, bounds, viewport and history never change from editing appearance.
+
+**Persistence.** BoardAppearance={color,icon} is board-library metadata; catalog schema2 carries
+{id,title,appearance}. Read catalog1 compatibly, assigning stable unused covers. After validating
+the selected board, the exclusive writer atomically preserves the exact original catalog in
+before-library-v2 (never overwrite an existing backup) and writes catalog2. Readonly views derive
+the same covers without any write. A failed migration leaves catalog/boards untouched. Unknown
+or malformed appearance alone falls back to automatic without blocking access to writing;
+structural catalog/id/title/version checks remain strict. Update appearance by board id through
+the library owner and repository transaction; publish committed state only after success. Keep
+IDB structure1, document schema4 and content JSON/clipboard formats unchanged; appearance is not
+stroke undo history or part of content-only JSON import/export.
+
+**Retire thumbnails.** Sidebar rendering uses catalog only and must not read every board,
+launch loader/raster workers or allocate image/object URLs. Remove exclusively sidebar-owned
+preview queues/cache/visibility/ports and obsolete jobs. Preserve shared PNG clipboard/export
+and minimap rendering and their exact worker execution boundaries.
+
+**Acceptance.** Test catalog1 migration/backup/abort/read-only,100 distinct automatic pairs,
+manual duplicate/fallback, stable rename/reload and save/cancel/failure guards. Cover keyboard,
+long names/short phone, no canvas/dock mutation and no thumbnail requests on100-board opening.
+Native Chrome cold/warm sidebar and ordinary input must avoid attributable>=50ms main tasks.
+Run Full Gate and local ship; release remains separate and owner hardware acceptance explicit.

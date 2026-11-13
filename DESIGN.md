@@ -15,6 +15,22 @@ colors:
   saved: "#36724c"
   pending: "#b77916"
   idle: "#7a8798"
+  cover-blue: "#e3edfc"
+  cover-blue-ink: "#245392"
+  cover-teal: "#dcefeb"
+  cover-teal-ink: "#1d615b"
+  cover-green: "#e5efd9"
+  cover-green-ink: "#46652a"
+  cover-amber: "#fff0cf"
+  cover-amber-ink: "#805711"
+  cover-orange: "#ffeadb"
+  cover-orange-ink: "#944a23"
+  cover-red: "#fbe3e3"
+  cover-red-ink: "#9b383e"
+  cover-violet: "#ece5fc"
+  cover-violet-ink: "#68449c"
+  cover-pink: "#f8e2ef"
+  cover-pink-ink: "#953f71"
 typography:
   brand:
     fontFamily: "Segoe UI, system-ui, sans-serif"
@@ -37,6 +53,11 @@ typography:
   helper:
     fontFamily: "Segoe UI, system-ui, sans-serif"
     fontSize: "11px"
+  appearance-title:
+    fontFamily: "Segoe UI, system-ui, sans-serif"
+    fontSize: "16px"
+    fontWeight: 700
+    lineHeight: 1.5
 rounded:
   control: "8px"
   chrome: "12px"
@@ -44,7 +65,7 @@ rounded:
   delete-dialog: "14px"
   insertion-notice: "10px"
   library-sidebar: "16px"
-  library-preview: "5px"
+  board-cover: "10px"
 spacing:
   xs: "4px"
   sm: "8px"
@@ -114,7 +135,7 @@ truncates only when space requires it. Context and status/settings stay in their
 Panels constrain width to the viewport and scroll internally with contained overscroll, using the
 space available below the dock so a tall selection menu remains reachable on short screens. The
 board library is a left sidebar up to 360px wide, with a heading and close control, name search,
-scrollable preview/name rows with per-row actions, and a creation form below the list. At narrow
+scrollable cover/name rows with per-row actions, and a creation form below the list. At narrow
 widths it uses the available width beneath the dock. No separate mobile drawing behavior is introduced.
 
 ## Elevation & Depth
@@ -134,7 +155,8 @@ handles expose direct manipulation rather than decoration.
 ## Components
 
 **Tool dock.** Pen, whole-stroke eraser, selection and history share one group. Width stays inline for Pen; clicking the selected Pen again opens stabilization. Selected state uses both shape/background and blue color.
-**Board library.** The current-board chooser stacks an 11px muted «Доски» label above the 14px semibold current-board name inside its 40px button. Long names truncate within the reserved slot; the full name remains in the button tooltip. The chooser sits at the leading edge of the dock and opens a left sidebar up to 360px wide, with 16px corners. It has a heading and close control, name search, independently scrolling preview/name rows with 5px preview corners, per-row rename/delete actions, and a creation form below the list. The active row uses the existing selected treatment. Deletion uses a protected confirmation dialog that names the board and warns that local copies will be removed. The dialog has 14px corners and its heading is 18px, a deliberate dialog-specific hierarchy role alongside the 14px contextual-panel title.
+**Board library.** The current-board chooser stacks an 11px muted «Доски» label above the 14px semibold current-board name inside its 40px button. Long names truncate within the reserved slot; the full name remains in the button tooltip. The chooser sits at the leading edge of the dock and opens a left sidebar up to 360px wide, with 16px corners. It has a heading and close control, name search, independently scrolling rows with 44×44 color/icon covers and 10px corners, per-row appearance/rename/delete actions, and a creation form below the list. The active row uses the existing selected treatment. Deletion uses a protected confirmation dialog that names the board and warns that local copies will be removed. The dialog has 14px corners and its heading is 18px, a deliberate dialog-specific hierarchy role alongside the 14px contextual-panel title.
+**Board appearance.** Eight tonal color pairs and sixteen 22px Lucide symbols identify boards independently of their content. Cover/icon contrast is 5.30–6.52; the active row keeps its separate selected treatment. «Оформление» replaces the sidebar list with a draft editor: sample, four-column color/icon radio grids and save/cancel actions. Selected radios have a dark outline plus Lucide check badge; keyboard focus has a distinct outer outline. Options have 48px hit areas; the panel scrolls on short screens. The editor uses a 16px bold heading, 13px field labels and the existing system type. Saving commits before returning focus to the row action; cancellation preserves the stored cover.
 **Contextual panels.** One workspace-owned main panel opens at a time: board, save, pen, selection or Help. Outside interaction dismisses; Escape closes and returns focus to the persistent trigger. Opening a nonmodal panel preserves pending selection validation.
 **Pinned diagnostics.** Help can open diagnostics as a separate pinned region. Writing leaves it visible; opening another main panel replaces it. Explicit close or Escape returns focus to Help; Actions and diagnostics retain their required Escape input-cancellation behavior.
 **Document controls.** Brand is static. Settings gear in the dock opens one panel: View contains background mode, contrast and spacing; Files and copies contains unique import/export/recovery/retry controls. The adjacent status dot opens Files. Green means saved, amber pending, gray loading/read-only, red error; hover and accessible descriptions name every status, and errors also retain visible text. Import remains a true modal dialog with protected focus.

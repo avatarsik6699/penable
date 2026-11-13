@@ -178,6 +178,18 @@ function open(
             store.put(catalog, "library");
             result(undefined);
           }),
+        migrate: (catalog, raw) =>
+          transaction<void>("readwrite", (store, result) => {
+            const existing = store.getKey("before-library-v2");
+
+            existing.onsuccess = () => {
+              if (existing.result === undefined)
+                store.put(raw.value, "before-library-v2");
+            };
+
+            store.put(catalog, "library");
+            result(undefined);
+          }),
         update: (catalog, change) =>
           transaction<void>("readwrite", (store, result) => {
             if (change?.create)

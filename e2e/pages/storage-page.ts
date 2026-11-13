@@ -30,6 +30,11 @@ export class StoragePage {
 
             const store = tx.objectStore("documents");
             const catalog = store.get("library");
+            const originalCatalog = store.get("before-library-v2");
+
+            originalCatalog.onsuccess = () => {
+              result.beforeCatalog2 = originalCatalog.result;
+            };
 
             catalog.onsuccess = () => {
               result.catalog = catalog.result;

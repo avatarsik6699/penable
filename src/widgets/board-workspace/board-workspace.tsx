@@ -36,8 +36,7 @@ export const BoardWorkspace: React.FC<BoardWorkspaceTypes.Props> = () => {
         leadingControls={
           <BoardLibrary
             state={workspace.ui.library}
-            onPreviewVisible={workspace.model.showPreviews}
-            onPreviewClose={workspace.model.closePreviews}
+            onAppearance={workspace.model.setBoardAppearance}
             readOnly={readOnly}
             blocked={unavailable || workspace.ui.history.busy}
             open={workspace.panel === "library"}

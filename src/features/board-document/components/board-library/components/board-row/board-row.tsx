@@ -1,4 +1,5 @@
 import type React from "react";
+import { BoardCover } from "../board-cover";
 import { usePanelDismiss } from "~/shared/ui/panel-dismiss";
 import { useState } from "react";
 import { Button } from "~/shared/ui/button";
@@ -66,13 +67,7 @@ export const BoardRow: React.FC<BoardRowTypes.Props> = (props) => {
             disabled={props.disabled || props.active}
             onClick={props.onSwitch}
           >
-            <span className={styles.preview}>
-              {props.preview ? (
-                <img src={props.preview} alt="" width="80" height="50" />
-              ) : (
-                <EditorIcon name="image" />
-              )}
-            </span>
+            <BoardCover appearance={props.appearance} />
             <span className={styles.name}>
               {props.title}
               {props.active && <small>Открыта</small>}
@@ -80,6 +75,7 @@ export const BoardRow: React.FC<BoardRowTypes.Props> = (props) => {
           </Button>
           <div className={styles.actions} ref={(node) => menu.bindRoot(node)}>
             <Button
+              autoFocus={props.restoreFocus}
               ref={(node) => menu.bindTrigger(node)}
               aria-label={`Действия доски: ${props.title}`}
               aria-expanded={menuOpen}
@@ -95,6 +91,18 @@ export const BoardRow: React.FC<BoardRowTypes.Props> = (props) => {
                 role="menu"
                 aria-label={`Действия доски: ${props.title}`}
               >
+                <Button
+                  role="menuitem"
+                  aria-label={`Оформление доски: ${props.title}`}
+                  onClick={() => {
+                    if (props.disabled) return;
+
+                    setMenuOpen(false);
+                    props.onAppearance();
+                  }}
+                >
+                  Оформление
+                </Button>
                 <Button
                   role="menuitem"
                   aria-label={`Переименовать доску: ${props.title}`}

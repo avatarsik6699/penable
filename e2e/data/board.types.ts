@@ -59,11 +59,18 @@ export namespace TestBoardTypes {
     assets: Asset[];
   };
 
-  export type Catalog = {
+  export type LegacyCatalog = {
     format: "penable-library";
     schemaVersion: 1;
     activeId: string;
     boards: Array<{ id: string; title: string }>;
+  };
+
+  export type Appearance = { color: string; icon: string };
+
+  export type Catalog = Omit<LegacyCatalog, "schemaVersion" | "boards"> & {
+    schemaVersion: 2;
+    boards: Array<{ id: string; title: string; appearance: Appearance }>;
   };
 
   export type Records = {
@@ -73,7 +80,8 @@ export namespace TestBoardTypes {
     upgrade3?: Document;
     upgrade4?: Document;
     beforeLibrary?: Document;
-    catalog?: Catalog;
+    catalog?: Catalog | LegacyCatalog;
+    beforeCatalog2?: LegacyCatalog;
   };
 
   export type Position = { x: number; y: number };

@@ -1,3 +1,4 @@
+import { LibraryAppearance } from "./library-appearance";
 import type { BoardCatalog } from "./library.types";
 
 function title(value: string): string {
@@ -17,7 +18,7 @@ function decode(value: unknown): BoardCatalog {
 
   if (
     raw.format !== "penable-library" ||
-    raw.schemaVersion !== 1 ||
+    (raw.schemaVersion !== 1 && raw.schemaVersion !== 2) ||
     !Array.isArray(raw.boards) ||
     !raw.boards.length ||
     raw.boards.length > 100 ||
@@ -27,7 +28,20 @@ function decode(value: unknown): BoardCatalog {
 
   const ids = new Set<string>();
 
-  const boards = raw.boards.map((entry) => {
+  const used = new Set<string>();
+
+  if (raw.schemaVersion === 2) {
+    for (const entry of raw.boards) {
+      if (
+        entry &&
+        typeof entry === "object" &&
+        LibraryAppearance.valid(entry.appearance)
+      )
+        used.add(LibraryAppearance.key(entry.appearance));
+    }
+  }
+
+  const boards = Array.from(raw.boards, (entry) => {
     if (!entry || typeof entry !== "object" || Array.isArray(entry))
       throw new Error("Повреждена запись каталога досок.");
 
@@ -44,7 +58,14 @@ function decode(value: unknown): BoardCatalog {
 
     ids.add(board.id);
 
-    return { id: board.id, title: board.title };
+    const appearance =
+      raw.schemaVersion === 2 && LibraryAppearance.valid(board.appearance)
+        ? { color: board.appearance.color, icon: board.appearance.icon }
+        : LibraryAppearance.assign(board.id, used);
+
+    used.add(LibraryAppearance.key(appearance));
+
+    return { id: board.id, title: board.title, appearance };
   });
 
   if (!ids.has(raw.activeId))
@@ -52,7 +73,7 @@ function decode(value: unknown): BoardCatalog {
 
   return {
     format: "penable-library",
-    schemaVersion: 1,
+    schemaVersion: 2,
     activeId: raw.activeId,
     boards,
   };
@@ -61,9 +82,15 @@ function decode(value: unknown): BoardCatalog {
 function initial(): BoardCatalog {
   return {
     format: "penable-library",
-    schemaVersion: 1,
+    schemaVersion: 2,
     activeId: "main",
-    boards: [{ id: "main", title: "Моя доска" }],
+    boards: [
+      {
+        id: "main",
+        title: "Моя доска",
+        appearance: LibraryAppearance.assign("main", new Set()),
+      },
+    ],
   };
 }
 
