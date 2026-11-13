@@ -6,7 +6,7 @@
 |---|---|
 | Change |16|
 | Slug |board-settings-navigation|
-| Status |active|
+| Status |shipped locally|
 | Branch |feature/16-board-settings-navigation|
 
 ## Goal
@@ -132,3 +132,5 @@ remain available alongside the final warmed protocol. No owner data at localhost
 | Architect Review Notes |0 unresolved |
 | Production bytes |4/4 exact against tested Pages artifact |
 | Release / push / deploy | Not requested; local ship only |
+
+Local ship: implementation e32ccd3, fast-forward merged into main. No push/deploy performed.
