@@ -1,0 +1,1 @@
+export { StrokeHistory } from "./history";

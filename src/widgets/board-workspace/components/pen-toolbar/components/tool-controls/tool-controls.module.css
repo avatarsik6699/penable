@@ -1,0 +1,37 @@
+.tool-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.tool-controls button {
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  color: var(--ink);
+  background: transparent;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.tool-controls button[aria-pressed="true"] {
+  border-color: var(--control-selected-border);
+  background: var(--control-selected-bg);
+  color: var(--control-selected-text);
+}
+
+.tool-controls button:hover:enabled {
+  background: var(--control-hover);
+}
+
+.tool-controls button:disabled {
+  color: var(--control-disabled);
+  cursor: default;
+}
+
+@media (max-width: 580px) {
+  .tool-controls {
+    order: 5;
+  }
+}

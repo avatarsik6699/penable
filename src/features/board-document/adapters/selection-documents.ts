@@ -4,8 +4,8 @@ import {
   type RegionInput,
   type Stroke,
 } from "~/entities/board";
-import { DocumentCodec, DocumentSnapshots } from "../model/codec";
-import { DocumentJobs, DocumentWorkload } from "./jobs";
+import { DocumentCodec, DocumentSnapshots } from "../modules/codec";
+import { DocumentJobs, DocumentWorkload } from "../modules/jobs";
 
 // Editor-generation jobs are separate from the session-owned durable writer.
 export class SelectionDocuments {

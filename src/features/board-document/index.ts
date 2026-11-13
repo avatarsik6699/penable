@@ -1,6 +1,6 @@
 export { DocumentDownloads } from "./adapters/download-json";
 export { DocumentRepositoryAdapter } from "./adapters/indexeddb";
-export { DocumentProtocol } from "./adapters/jobs-protocol";
+export { DocumentProtocol } from "./modules/jobs";
 export type {
   DocumentJobKind,
   StrokeMetadata,
@@ -8,15 +8,15 @@ export type {
   SelectionResult,
   JobRequest,
   JobResponse,
-} from "./adapters/jobs-protocol";
-export { DocumentJobs, DocumentWorkload } from "./adapters/jobs";
-export type { JobWorker } from "./adapters/jobs";
+} from "./modules/jobs";
+export { DocumentJobs, DocumentWorkload } from "./modules/jobs";
+export type { JobWorker } from "./modules/jobs";
 export { DocumentBindings } from "./adapters/session-bindings";
 export { DocumentSessions } from "./adapters/session-factory";
 export { DocumentWriterLease } from "./adapters/writer-lock";
-export { DocumentSnapshots, DocumentCodec } from "./model/codec";
-export { DocumentSession, DocumentErrors } from "./model/session";
-export type { SessionOptions } from "./model/session";
+export { DocumentSnapshots, DocumentCodec } from "./modules/codec";
+export { DocumentSession, DocumentErrors } from "./modules/session";
+export type { SessionOptions } from "./modules/session";
 export type {
   BoardDocument,
   DocumentRepository,
@@ -25,6 +25,6 @@ export type {
   SavePhase,
   StorageState,
   DocumentPersistence,
-} from "./model/types";
-export { StoragePanel } from "./ui/storage-panel";
+} from "./board-document.types";
+export { StoragePanel } from "./components/storage-panel";
 export { SelectionDocuments } from "./adapters/selection-documents";

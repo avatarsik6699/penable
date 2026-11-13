@@ -1,8 +1,12 @@
 import type {
+  WorkspaceState,
+  WorkspaceDependencies,
+} from "./workspace-model.types";
+import type {
   InputDiagnostics,
   SelectionState,
   SurfaceControls,
-} from "./types";
+} from "./workspace-model.types";
 import {
   type BoardSnapshot,
   type BackgroundMode,
@@ -16,37 +20,9 @@ import {
   DocumentSnapshots,
   DocumentSession,
   type BoardDocument,
-  type StorageState,
   DocumentErrors,
   DocumentCodec,
 } from "~/features/board-document";
-
-type WorkspaceState = Readonly<{
-  selectionShape: SelectionShape;
-  selection: Readonly<SelectionState>;
-  tool: DrawingTool;
-  width: number;
-  stabilization: number;
-  background: BackgroundMode;
-  history: Readonly<HistoryState>;
-  storage: Readonly<StorageState>;
-  diagnostics: Readonly<InputDiagnostics>;
-  generation: number;
-  hasBoard: boolean;
-  unavailable: string;
-  dialogOpen: boolean;
-  uiRevision: number;
-}>;
-
-export type WorkspaceDependencies = {
-  diagnostics: InputDiagnostics;
-  session: (options: {
-    snapshot: () => BoardSnapshot;
-    onHydrate: (board: BoardSnapshot) => void;
-    onState: (state: StorageState) => void;
-  }) => DocumentSession;
-  download: (json: string, name: string) => void;
-};
 
 // One tab owns the durable session, clipboard and coarse UI projection. Editor
 // generations own their scene/renderer and may be replaced without releasing either.
@@ -366,3 +342,5 @@ export class WorkspaceModel {
     }
   };
 }
+
+export type { WorkspaceDependencies } from "./workspace-model.types";

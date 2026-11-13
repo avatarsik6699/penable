@@ -7,7 +7,7 @@ import {
   type DocumentPersistence,
 } from "~/features/board-document";
 import { WorkspaceModel, type WorkspaceDependencies } from "./workspace-model";
-import type { SurfaceControls } from "./types";
+import type { SurfaceControls } from "./workspace-model.types";
 
 const diagnostics: WorkspaceDependencies["diagnostics"] = {
   pointerType: null,

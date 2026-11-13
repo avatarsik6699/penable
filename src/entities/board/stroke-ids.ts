@@ -1,4 +1,4 @@
-import type { Stroke } from "./types";
+import type { Stroke } from "./board.types";
 import { BoardLimits } from "./scene-limits";
 
 // A batch reserves IDs incrementally; source fragments must never rescan the scene

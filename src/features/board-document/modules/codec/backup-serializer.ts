@@ -1,0 +1,66 @@
+function serializeRawBackup(value: unknown): string {
+  const seen = new Set<object>();
+
+  const compatible = (entry: unknown): boolean => {
+    if (
+      entry === null ||
+      typeof entry === "string" ||
+      typeof entry === "boolean"
+    )
+      return true;
+
+    if (typeof entry === "number") return Number.isFinite(entry);
+
+    if (typeof entry !== "object" || seen.has(entry)) return false;
+
+    seen.add(entry);
+
+    const array = Array.isArray(entry);
+    const prototype = Object.getPrototypeOf(entry);
+
+    if (
+      array
+        ? prototype !== Array.prototype
+        : prototype !== Object.prototype && prototype !== null
+    )
+      return false;
+
+    const keys = Reflect.ownKeys(entry);
+
+    if (array) {
+      if (keys.length !== entry.length + 1) return false;
+
+      for (let index = 0; index < entry.length; index++)
+        if (!Object.hasOwn(entry, index)) return false;
+    }
+
+    for (const key of keys) {
+      if (array && key === "length") continue;
+
+      if (typeof key !== "string") return false;
+
+      const descriptor = Object.getOwnPropertyDescriptor(entry, key);
+
+      if (
+        !descriptor?.enumerable ||
+        !Object.hasOwn(descriptor, "value") ||
+        !compatible(descriptor.value)
+      )
+        return false;
+    }
+
+    return true;
+  };
+
+  try {
+    if (!compatible(value)) throw new Error("unsupported");
+
+    return JSON.stringify(value);
+  } catch {
+    throw new Error(
+      "Исходная запись не представима в JSON без потери данных. Она сохранена в IndexedDB без изменений; JSON-копия не создана.",
+    );
+  }
+}
+
+export const BackupSerializer = { serializeRawBackup };

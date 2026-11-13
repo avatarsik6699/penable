@@ -2,6 +2,7 @@ import path from "node:path";
 import ts from "typescript";
 import { hasJsx, visit } from "./ast.mjs";
 import { isTest } from "./policy.mjs";
+import { hookFilename, isComponentLocation, isLegacyUi } from "./modules.mjs";
 
 const exported = (node) =>
   node.modifiers?.some(
@@ -21,6 +22,35 @@ const isFunction = (node) =>
   ts.isArrowFunction(node);
 
 const isComponentName = (name) => /^[A-Z][A-Za-z0-9]*$/.test(name);
+
+const unwrap = (expression) => {
+  while (
+    ts.isParenthesizedExpression(expression) ||
+    ts.isAsExpression(expression) ||
+    ts.isTypeAssertionExpression(expression) ||
+    ts.isNonNullExpression(expression) ||
+    ts.isSatisfiesExpression(expression)
+  )
+    expression = expression.expression;
+
+  return expression;
+};
+
+const declarationName = (node) => {
+  const name = node.name;
+
+  if (!name) return undefined;
+
+  if (ts.isIdentifier(name) || ts.isStringLiteralLike(name)) return name.text;
+
+  if (
+    ts.isComputedPropertyName(name) &&
+    ts.isStringLiteralLike(name.expression)
+  )
+    return name.expression.text;
+
+  return undefined;
+};
 
 function componentType(file, declaration, source, files, report) {
   const type = declaration.type;
@@ -152,6 +182,22 @@ export function checkShape(context, files, report) {
 
     const components = [];
 
+    if (isLegacyUi(file))
+      report(
+        file,
+        source,
+        "legacy-ui",
+        "Use module component roots and recursive components/ instead of a flat ui/ collection.",
+      );
+
+    if (/\/(?:types|utils|config)\.[cm]?[jt]sx?$/.test(file))
+      report(
+        file,
+        source,
+        "scoped-file",
+        "Types, utilities and configuration need an owner-qualified filename.",
+      );
+
     visit(source, (node) => {
       if (ts.isInterfaceDeclaration(node))
         report(
@@ -165,16 +211,13 @@ export function checkShape(context, files, report) {
         (ts.isJsxElement(node) ||
           ts.isJsxSelfClosingElement(node) ||
           ts.isJsxFragment(node)) &&
-        (!file.endsWith(".tsx") ||
-          (!file.includes("/ui/") &&
-            !file.startsWith("src/app/") &&
-            file !== "src/main.tsx"))
+        (!file.endsWith(".tsx") || !isComponentLocation(file, files))
       )
         report(
           file,
           node,
           "jsx-file",
-          "JSX belongs in .tsx views or app composition.",
+          "JSX belongs in explicit component roots, recursive components/ or app composition.",
         );
 
       if (ts.isVariableDeclaration(node) && node.initializer) {
@@ -198,7 +241,7 @@ export function checkShape(context, files, report) {
             );
         }
 
-        if (!isFunction(node.initializer) && hasJsx(node.initializer))
+        if (!isFunction(unwrap(node.initializer)) && hasJsx(node.initializer))
           report(
             file,
             node,
@@ -208,15 +251,36 @@ export function checkShape(context, files, report) {
       }
 
       if (isFunction(node) && node.body) {
-        const declaration =
+        let declaration =
           ts.isArrowFunction(node) || ts.isFunctionExpression(node)
             ? node.parent
             : node;
 
-        const name =
-          declaration.name && ts.isIdentifier(declaration.name)
-            ? declaration.name.text
-            : undefined;
+        while (
+          ts.isParenthesizedExpression(declaration) ||
+          ts.isAsExpression(declaration) ||
+          ts.isTypeAssertionExpression(declaration) ||
+          ts.isNonNullExpression(declaration) ||
+          ts.isSatisfiesExpression(declaration)
+        )
+          declaration = declaration.parent;
+
+        const name = declarationName(declaration);
+
+        const functionName =
+          node.name && ts.isIdentifier(node.name) ? node.name.text : name;
+
+        if (
+          functionName &&
+          /^use[A-Z]/.test(functionName) &&
+          !file.endsWith(`/hooks/${hookFilename(functionName)}.ts`)
+        )
+          report(
+            file,
+            node,
+            "hook-location",
+            `Hook ${functionName} belongs in hooks/${hookFilename(functionName)}.ts.`,
+          );
 
         if (
           name &&
@@ -321,6 +385,20 @@ export function checkShape(context, files, report) {
             "Render cohesive components instead of JSX-valued helper functions.",
           );
       }
+
+      if (
+        ts.isMethodDeclaration(node) &&
+        node.body &&
+        declarationName(node) &&
+        /^use[A-Z]/.test(declarationName(node)) &&
+        !file.endsWith(`/hooks/${hookFilename(declarationName(node))}.ts`)
+      )
+        report(
+          file,
+          node,
+          "hook-location",
+          `Hook ${declarationName(node)} belongs in hooks/${hookFilename(declarationName(node))}.ts.`,
+        );
 
       if (
         ts.isCallExpression(node) &&

@@ -24,6 +24,40 @@ The reference checkout is read-only. Existing visual direction and schema1/2 beh
   execution boundary with local feature imports; React/UI/native canvas cannot enter its graph.
 - Do not create empty routes/pages, generic DI containers, repositories, stores or drawing SDKs.
 
+## Recursive modules and decomposition
+
+The owner explicitly chooses a pragmatic FSD outer graph with fractal internals. A slice/module
+owns a root implementation, explicit index.ts API and local root-qualified *.types.ts. It may
+contain components/, hooks/, modules/ (cohesive non-UI capabilities) and platform adapters/native
+code according to responsibility. Child components/modules may repeat this same structure.
+Remove the generic flat ui/ collection; component roots live at their module root or in components/.
+Do not create all directories or suffix files by template: every one must own actual code.
+
+- components/name/ owns name.tsx, name.types.ts, name.module.css and an explicit index.ts; complex
+  children own local components/ and hooks/. Parent composition forwards only required contracts.
+- hooks/use-name.ts owns real React synchronization/state logic. Hooks may have local .types,
+  .utils and .config peers if needed. Do not move the native high-frequency engine into React hooks.
+- name.types.ts owns module contracts; name.config.ts owns stable policy/defaults/labels;
+  name.utils.ts owns scoped pure transformations. No generic types.ts/utils.ts/config.ts, catch-all
+  dumping grounds or runtime state hidden in config. Stateful algorithms stay explicit classes/factories.
+- A child public boundary is any nested directory with index.ts, including components/ and
+  modules/ descendants (recursively) and named domain capability roots. Consumers outside a child use its index.ts; child internals never import
+  their own/ancestor barrel. Relative imports compose children within the same outer slice; independent
+  top-level slices still obey the outer FSD rules. Sibling child modules may depend on explicit public
+  APIs when acyclic; orchestration composes their lifetimes. No deep private sibling imports or exports
+  that re-expose private child files. Root-owned foundational contracts may be imported inward directly.
+- Extract by responsibility/state owner: tool controls, import dialog/recovery/status, cursor visuals,
+  document validation/snapshot conversion, worker transport/upload, selection contacts/transactions,
+  region normalization/bounds/intersection/grouping. Splitting one function into arbitrary fragments
+  or forwarding every method to a new bag of the same state does not satisfy decomposition.
+- Keep one authoritative mutable owner per interaction/session; helpers receive narrow ports/context,
+  never a new global store. Preserve weak geometry-cache ownership, cancellation generations, writer
+  drain-before-lease-release and cached UI snapshots. React component extraction adds no DOM wrappers
+  unless the existing layout requires them.
+- File size is a review signal. Review production files above300lines for mixed responsibilities;
+  do not split a cohesive algorithm or state machine merely to satisfy a line limit. Tests retain
+  behavior assertions and colocate with the module they exercise; fixtures may have separate owners.
+
 ## Types, code shape and composition
 
 - Source files/directories use kebab-case; component exports PascalCase, one component per file.

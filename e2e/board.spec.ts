@@ -129,3 +129,9 @@ test("large selection crosses editor and durable worker boundaries", async ({
   await board.reopenSavedBoard();
   await board.storage.expectFingerprint(moved);
 });
+
+test("cursor shapes, pan and import dialog preserve input ownership", async ({
+  board,
+}) => {
+  await board.expectCursorAndNavigationOwnership();
+});

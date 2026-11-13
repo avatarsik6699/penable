@@ -110,7 +110,7 @@ and Release Gates. No custom domain, cloud database, analytics or automatic note
 
 ```bash
 npm run test:unit
-npm run test:unit -- src/entities/board/input.test.ts
+npm run test:unit -- src/entities/board/input/input.test.ts
 npm run lint
 npm run typecheck
 ```
@@ -124,9 +124,9 @@ pressure, driver behavior and the feeling of handwriting. Read README for the ha
 Binding composition and style rules: [FRONTEND.md](FRONTEND.md).
 
 - src/app/: bootstrap/composition, reset/theme/tokens.
-- src/widgets/board-workspace/: workspace model, React views, native renderer/paths and surface bindings/presenters.
-- src/features/board-document/: document DTO/codec/session, selection validation, IDB/lease/worker/file adapters and storage UI.
-- src/entities/board/: browser-free geometry, input, regions, viewport, selection and history; internal BoardSnapshot.
+- src/widgets/board-workspace/: root composition/hooks/workspace model and recursive components; writing-surface owns editor native modules.
+- src/features/board-document/: root DTO contracts, codec/session/jobs modules, platform adapters and recursive storage/import components/hooks.
+- src/entities/board/: browser-free geometry/input/regions/viewport/selection/history modules, scoped types/config/utils and internal BoardSnapshot.
 - src/shared/: narrowly owned platform services and reused controls.
 - e2e/: fixture-owned contexts/data, Page Objects owning actions/assertions, domain-only specs.
 - scripts/architecture/: TypeScript AST dependency/platform/code-shape/E2E policies and positive/negative self-tests.
@@ -368,3 +368,23 @@ ownership and literal contents. CSS rule spacing is preserved by Prettier and so
 `npm run lint:spacing` checks JS/TS structural spacing; `npm run test:spacing` tests preservation,
 comments, overloads and idempotence. Both are included in npm run lint; npm run format:check also
 checks spacing. No extra dependency or application runtime change.
+
+
+## Change13 — Fractal modules
+
+SPEC5.13 and FRONTEND Recursive modules govern source decomposition. FSD outer slices retain their
+public roots and downward dependencies; local modules/components recurse through explicit index.ts
+boundaries. Root/component implementations own colocated .types/CSS; actual React hooks live in
+hooks/use-*.ts, native per-sample work remains outside hooks. Pure helpers/static policy use scoped
+.utils/.config files. There are no empty mandatory folders or generic types/utils/config dumps.
+
+Architecture checks reject private child imports/type reexports, own/ancestor barrels, misplaced
+hooks, root components with mismatched locations and native APIs in components/hooks. Exact-file
+capabilities own concrete native adapters; worker graphs remain UI/React/native-free. File size is
+review evidence rather than an arbitrary hard limit; ownership and independent acceptance decide
+whether a coordinator/algorithm is cohesive.
+
+`npm run format:e2e` formats only parent-owned browser tests during concurrent source/policy work.
+Source writer uses format:source; policy writer uses format:architecture. Final format:check covers
+all code. Preserve416 pre-existing behavioral cases,672 raster cases and the original9 browser
+scenarios; add cursor/native pan/modal/slider regression to exercise decomposed UI/bindings.

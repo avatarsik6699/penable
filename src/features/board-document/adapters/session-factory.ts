@@ -1,7 +1,7 @@
-import { DocumentSession, type SessionOptions } from "../model/session";
+import { DocumentSession, type SessionOptions } from "../modules/session";
 import { DocumentRepositoryAdapter } from "./indexeddb";
 import { DocumentWriterLease } from "./writer-lock";
-import { DocumentJobs } from "./jobs";
+import { DocumentJobs } from "../modules/jobs";
 
 function create(
   options: Omit<SessionOptions, "persistence" | "acquire" | "open">,

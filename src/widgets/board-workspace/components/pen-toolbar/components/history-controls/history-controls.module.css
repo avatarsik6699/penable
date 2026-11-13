@@ -1,0 +1,34 @@
+.history-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.history-controls button {
+  display: grid;
+  place-items: center;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.history-controls button:hover:enabled {
+  background: var(--control-hover);
+}
+
+.history-controls button:disabled {
+  color: var(--control-disabled);
+  cursor: default;
+}
+
+@media (max-width: 580px) {
+  .history-controls {
+    order: 5;
+  }
+}

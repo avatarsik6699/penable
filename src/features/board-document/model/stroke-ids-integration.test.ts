@@ -10,7 +10,7 @@ import {
   BoardConstants,
   BoardViewport,
 } from "~/entities/board";
-import { DocumentCodec } from "./codec";
+import { DocumentCodec } from "../modules/codec";
 
 function stroke(id: number): Stroke {
   return {

@@ -256,7 +256,11 @@ export function checkPlatform(
           "entity-platform",
           `Entities must be browser-free: ${name}.`,
         );
-      else if (file.includes("/ui/") || !allowed.has(required))
+      else if (
+        (file.endsWith(".tsx") && file !== "src/main.tsx") ||
+        file.includes("/hooks/") ||
+        !allowed.has(required)
+      )
         report(
           file,
           node,

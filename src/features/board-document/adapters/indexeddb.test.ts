@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { DocumentRepositoryAdapter } from "./indexeddb";
-import { DocumentCodec } from "../model/codec";
+import { DocumentCodec } from "../modules/codec";
 
 function request() {
   return {

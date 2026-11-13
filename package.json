@@ -34,7 +34,8 @@
     "format:architecture": "prettier scripts/architecture --write && node scripts/formatting/spacing.mjs --write scripts/architecture && prettier scripts/architecture --write",
     "lint:spacing": "node scripts/formatting/spacing.mjs",
     "test:spacing": "node --test scripts/formatting/*.test.mjs",
-    "format:spacing": "node scripts/formatting/spacing.mjs --write"
+    "format:spacing": "node scripts/formatting/spacing.mjs --write",
+    "format:e2e": "prettier e2e --write && node scripts/formatting/spacing.mjs --write e2e && prettier e2e --write"
   },
   "dependencies": {
     "polygon-clipping": "0.15.7",

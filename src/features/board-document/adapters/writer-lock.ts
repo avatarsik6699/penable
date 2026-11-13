@@ -1,4 +1,4 @@
-import type { WriterLease } from "../model/types";
+import type { WriterLease } from "../board-document.types";
 
 const WRITER_LOCK = "penable:board:main";
 

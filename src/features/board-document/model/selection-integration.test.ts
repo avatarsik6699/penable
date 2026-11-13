@@ -11,7 +11,7 @@ import {
   BoardConstants,
   BoardRegions,
 } from "~/entities/board";
-import { DocumentCodec } from "./codec";
+import { DocumentCodec } from "../modules/codec";
 
 const ink = (id = 1): Stroke => ({
   id,

@@ -244,6 +244,95 @@ export class BoardPage {
     }
   }
 
+  private async expectCursorMode(mode: string) {
+    const cursor = this.page.getByTestId("board-cursor");
+
+    await expect(cursor).toHaveAttribute("data-mode", mode);
+
+    await expect
+      .poll(() =>
+        cursor.evaluate((element) => ({
+          hidden: (element as HTMLElement).hidden,
+          visibleShape: [...element.children].some((child) => {
+            const style = getComputedStyle(child);
+
+            return (
+              style.display !== "none" &&
+              parseFloat(style.width) > 0 &&
+              parseFloat(style.height) > 0
+            );
+          }),
+        })),
+      )
+      .toEqual({ hidden: false, visibleShape: true });
+  }
+
+  async expectCursorAndNavigationOwnership() {
+    await this.page.getByRole("button", { name: "Перо", exact: true }).click();
+    await this.move({ x: 500, y: 200 });
+    await this.expectCursorMode("pen");
+    await this.surface.focus();
+    await this.page.keyboard.down("Space");
+    await this.expectCursorMode("pan-ready");
+    await this.page.mouse.down();
+    await this.expectCursorMode("panning");
+    await this.move({ x: 550, y: 240 }, 8);
+    await this.page.mouse.up();
+    await this.page.keyboard.up("Space");
+    await this.expectCursorMode("pen");
+    await this.storage.expectStrokeCount(0);
+
+    await this.page
+      .getByRole("button", { name: "Ластик", exact: true })
+      .click();
+
+    await this.move({ x: 500, y: 200 });
+    await this.expectCursorMode("eraser");
+
+    await this.page
+      .getByRole("button", { name: "Импорт", exact: true })
+      .click();
+
+    await expect(this.page.getByRole("dialog")).toBeVisible();
+
+    await expect
+      .poll(() =>
+        this.page
+          .getByTestId("board-cursor")
+          .evaluate((element) => (element as HTMLElement).hidden),
+      )
+      .toBe(true);
+
+    await this.page.keyboard.press("Escape");
+    await expect(this.page.getByRole("dialog")).toBeHidden();
+
+    const width = this.page.getByRole("slider", {
+      name: "Толщина",
+      exact: true,
+    });
+
+    await width.focus();
+    await this.page.keyboard.press("ArrowRight");
+    await expect(width).toHaveValue("3.1");
+
+    const stabilization = this.page.getByRole("slider", {
+      name: "Стабилизация",
+      exact: true,
+    });
+
+    await stabilization.focus();
+    await this.page.keyboard.press("ArrowRight");
+    await expect(stabilization).toHaveValue("66");
+    await this.drawStroke();
+    await this.storage.expectStrokeCount(1);
+
+    const saved = (await this.storage.records()).main!;
+
+    expect(saved.tools).toEqual({ width: 3.1, stabilization: 66 });
+    expect(saved.strokes[0]!.width).toBe(3.1);
+    expect(saved.strokes[0]!.stabilization?.strength).toBe(66);
+  }
+
   async expectNarrowLayout() {
     await this.page.setViewportSize({ width: 390, height: 844 });
 

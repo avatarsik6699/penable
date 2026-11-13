@@ -259,13 +259,14 @@ test("transitive worker graphs reject DOM, native Canvas and React even when fil
 });
 
 const props = {
-  "src/widgets/example/ui/example.types.ts":
+  "src/widgets/example/example.types.ts":
     "export namespace ExampleTypes { export type Props = { title: string }; }",
 };
 
 const view = (body) => ({
+  "src/widgets/example/index.ts": "export { Example } from './example';",
   ...props,
-  "src/widgets/example/ui/example.tsx": `import type React from 'react'; import type { ExampleTypes } from './example.types'; ${body}`,
+  "src/widgets/example/example.tsx": `import type React from 'react'; import type { ExampleTypes } from './example.types'; ${body}`,
 });
 
 test("root-qualified props, arrow FC and named effects pass", () => {
@@ -307,7 +308,7 @@ test("component syntax, root props, nesting and one component per file are check
 
   rejects(
     {
-      "src/widgets/example/ui/example.tsx":
+      "src/widgets/example/example.tsx":
         'import type React from "react"; export const Example: React.FC<ExampleTypes.Props> = () => <b />;',
     },
     "component-types-file",
@@ -401,7 +402,7 @@ test("shared helpers expose namespace objects; stateful domain classes remain cl
 });
 
 test("views cannot acquire browser ownership by allowlisting themselves", () => {
-  const file = "src/widgets/example/ui/example.tsx";
+  const file = "src/widgets/example/example.tsx";
 
   rejects(
     { [file]: "export const read = () => window.innerWidth;" },

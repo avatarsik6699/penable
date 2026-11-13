@@ -579,6 +579,18 @@ fixtures без attributable >=50ms tasks. Dedicated isolated Playwright smoke c
 artifact on4185; interactive checks retain Playwriter. Local automatic ship after Full Gate/review;
 new product features and separate release are outside this change.
 
+### 5.13 Фрактальная декомпозиция — change13
+
+Уточнение владельца2026-11-13: внешний граф слоёв сохраняется, но внутренности модулей имеют
+рекурсивную структуру с локальными components/, настоящими hooks/, подмодулями и файлами
+*.types.ts, *.utils.ts, *.config.ts по обязанностям. Binding convention — FRONTEND. Требуется
+содержательная декомпозиция крупных компонентов, native orchestration, selection/regions и
+жизненного цикла документов, а не только перенос файлов. Public API подмодуля скрывает детали;
+внутренние зависимости ацикличны. Текущие UI, схемы/резервные копии и качество пера сохраняются.
+Baseline4345ce1; все416unit cases,672raster cases и9browser scenarios сохраняют смысл. Native
+изменения проверяются тем же бюджетом CPU/RAF из5.12; аппаратная задержка отдельно. Локальный
+ship после проверок и независимого review; release остаётся отдельной командой.
+
 ## 6. Auth & Access Model
 
 Авторизации нет. Доступ соответствует доступу к компьютеру и профилю браузера.

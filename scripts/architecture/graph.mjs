@@ -1,6 +1,8 @@
 import ts from "typescript";
+import path from "node:path";
 import { imports, resolveImport, visit } from "./ast.mjs";
 import { isolatedLayers, isTest, layers } from "./policy.mjs";
+import { checkModuleImport, isUiExecution, moduleRoots } from "./modules.mjs";
 
 export function owner(file) {
   const parts = file.split("/");
@@ -19,6 +21,7 @@ export function owner(file) {
 export function checkGraph(context, files, root, report) {
   const graph = new Map(Object.keys(files).map((file) => [file, []]));
   const workerRoots = [];
+  const roots = moduleRoots(files);
 
   for (const [file, source] of context.sources) {
     visit(source, (node) => {
@@ -121,7 +124,19 @@ export function checkGraph(context, files, root, report) {
           "Use relative internal imports or ~/ public roots.",
         );
 
-      if (/\.css$/.test(specifier)) continue;
+      if (/\.css$/.test(specifier)) {
+        if (specifier.startsWith(".") || specifier.startsWith("~/")) {
+          const target = specifier.startsWith("~/")
+            ? `src/${specifier.slice(2)}`
+            : path.posix.normalize(
+                path.posix.join(path.posix.dirname(file), specifier),
+              );
+
+          checkModuleImport(file, target, entry.node, roots, report);
+        }
+
+        continue;
+      }
 
       if (ts.isExportDeclaration(entry.node) && !entry.node.exportClause)
         report(
@@ -167,6 +182,7 @@ export function checkGraph(context, files, root, report) {
       }
 
       graph.get(file).push({ target, node: entry.node });
+      checkModuleImport(file, target, entry.node, roots, report);
 
       const fromOwner = owner(file);
       const toOwner = owner(target);
@@ -185,7 +201,7 @@ export function checkGraph(context, files, root, report) {
         );
 
       if (fromOwner === toOwner) {
-        if (target === `${fromOwner}/index.ts`)
+        if (target === `${fromOwner}/index.ts` && !roots.includes(fromOwner))
           report(
             file,
             entry.node,
@@ -264,12 +280,12 @@ export function checkGraph(context, files, root, report) {
       reachable.add(file);
       workerFiles.add(file);
 
-      if (/(?:\/ui\/|\/native\/)/.test(file) || file.endsWith(".tsx"))
+      if (isUiExecution(file))
         report(
           worker.file,
           worker.node,
           "worker-ui",
-          `Worker graph contains UI/native source ${file}.`,
+          `Worker graph contains rendered components, hooks or native source ${file}.`,
         );
 
       const source = context.sources.get(file);
@@ -305,7 +321,7 @@ export function checkGraph(context, files, root, report) {
 
     const source = context.sources.get(file);
 
-    if (/(?:\/ui\/|\/native\/)/.test(file) || file.endsWith(".tsx"))
+    if (isUiExecution(file))
       report(
         file,
         source,

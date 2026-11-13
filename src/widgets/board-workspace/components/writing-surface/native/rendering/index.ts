@@ -1,0 +1,11 @@
+export { CanvasRenderer } from "./renderer";
+export type { CanvasLayer, FrameScheduler } from "./renderer.types";
+export { BoardPaint } from "./paint";
+export type { StrokePaintState } from "./paint";
+export { BoardPaths } from "./path-cache";
+export { BoardPNG } from "./png";
+export { BoardCursor } from "./cursor";
+export type { CursorMode, CursorBounds, CursorPresentation } from "./cursor";
+export { SurfaceResolution } from "./surface-resolution";
+export { SurfacePresenters } from "./surface-presenters";
+export { SurfaceDiagnostics } from "./surface-diagnostics";

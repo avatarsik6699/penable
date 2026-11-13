@@ -1,4 +1,7 @@
-import type { BoardDocument, DocumentRepository } from "../model/types";
+import type {
+  BoardDocument,
+  DocumentRepository,
+} from "../board-document.types";
 
 const DATABASE_NAME = "penable";
 const STORE_NAME = "documents";

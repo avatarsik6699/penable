@@ -1,5 +1,5 @@
 import { BoardRegions } from "./regions";
-import type { BoardSnapshot, Stroke } from "./types";
+import type { BoardSnapshot, Stroke } from "./board.types";
 
 function empty(): BoardSnapshot {
   return {

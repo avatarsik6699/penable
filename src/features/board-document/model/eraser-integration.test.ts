@@ -10,7 +10,7 @@ import {
   BoardIds,
   BoardNavigation,
 } from "~/entities/board";
-import { DocumentCodec } from "./codec";
+import { DocumentCodec } from "../modules/codec";
 
 function stroke(id: number, x: number, y = 0): Stroke {
   return {
