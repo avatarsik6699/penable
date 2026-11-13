@@ -325,4 +325,105 @@ export class BoardLibraryPage {
     await this.board.storage.expectScene(original);
     await canvas?.dispose();
   }
+
+  async expectRenameFocusAndTitleHierarchy() {
+    const title =
+      "Конспект с длинным названием для проверки панели и переименования";
+
+    await this.create(title);
+
+    for (const viewport of [
+      { width: 1440, height: 900 },
+      { width: 1000, height: 720 },
+      { width: 390, height: 844 },
+      { width: 390, height: 568 },
+    ]) {
+      await this.page.setViewportSize(viewport);
+
+      const trigger = this.page.getByRole("button", {
+        name: "Доски",
+        exact: true,
+      });
+
+      const hierarchy = await trigger.evaluate((button) => {
+        const label = button.querySelector("span")!;
+        const name = button.querySelector("[data-testid=active-board-title]")!;
+
+        return {
+          labelSize: Number.parseFloat(getComputedStyle(label).fontSize),
+          nameSize: Number.parseFloat(getComputedStyle(name).fontSize),
+          labelBottom: label.getBoundingClientRect().bottom,
+          nameTop: name.getBoundingClientRect().top,
+          text: name.textContent,
+          height: button.getBoundingClientRect().height,
+        };
+      });
+
+      expect(hierarchy.nameSize).toBeGreaterThan(hierarchy.labelSize);
+      expect(hierarchy.nameTop).toBeGreaterThanOrEqual(hierarchy.labelBottom);
+      expect(hierarchy.text).toBe(title);
+      expect(hierarchy.height).toBe(40);
+
+      const surfaceBox = await this.board.surface.boundingBox();
+
+      await this.open();
+
+      await this.page
+        .getByRole("button", { name: "Действия доски: Моя доска", exact: true })
+        .click();
+
+      await this.page
+        .getByLabel("Переименовать доску: Моя доска", { exact: true })
+        .click();
+
+      const field = this.page.getByRole("textbox", {
+        name: "Название доски",
+        exact: true,
+      });
+
+      await field.scrollIntoViewIfNeeded();
+      await expect(field).toBeFocused();
+      await field.fill("321");
+
+      const focus = await field.evaluate((input) => {
+        const style = getComputedStyle(input);
+
+        const ring =
+          Number.parseFloat(style.outlineWidth) +
+          Number.parseFloat(style.outlineOffset);
+
+        const box = input.getBoundingClientRect();
+        const list = input.closest("ul")!;
+        const clip = list.getBoundingClientRect();
+
+        return {
+          style: style.outlineStyle,
+          ring,
+          gaps: [
+            box.left - clip.left - list.clientLeft,
+            clip.left + list.clientLeft + list.clientWidth - box.right,
+            box.top - clip.top - list.clientTop,
+            clip.top + list.clientTop + list.clientHeight - box.bottom,
+          ],
+          overflow: list.scrollWidth - list.clientWidth,
+        };
+      });
+
+      expect(focus.style).not.toBe("none");
+      expect(focus.ring).toBeGreaterThan(0);
+
+      for (const gap of focus.gaps)
+        expect(gap).toBeGreaterThanOrEqual(focus.ring - 0.5);
+
+      expect(focus.overflow).toBeLessThanOrEqual(1);
+      expect(await this.board.surface.boundingBox()).toEqual(surfaceBox);
+
+      await this.page
+        .getByRole("button", { name: "Отмена", exact: true })
+        .click();
+
+      await this.page.keyboard.press("Escape");
+      await expect(trigger).toBeFocused();
+    }
+  }
 }

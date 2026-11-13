@@ -86,7 +86,7 @@ export const BoardLibrary: React.FC<BoardLibraryTypes.Props> = (props) => {
         onClick={() => props.onOpenChange(!props.open)}
         className={styles.trigger}
       >
-        <span>Доски</span>
+        <span className={styles.label}>Доски</span>
         <span className={styles.current} data-testid="active-board-title">
           {active?.title ?? "Моя доска"}
         </span>

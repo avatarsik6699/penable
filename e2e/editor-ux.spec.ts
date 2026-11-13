@@ -12,6 +12,12 @@ test("board sidebar provides search, lazy previews, row actions and stable canva
   await library.expectSidebarSearchAndPreviews();
 });
 
+test("board title leads its label and rename focus stays inside the scrollable list", async ({
+  library,
+}) => {
+  await library.expectRenameFocusAndTitleHierarchy();
+});
+
 test("image insertion survives delayed decode and focus return, and accepts the same file again", async ({
   imageBoard,
   images,
