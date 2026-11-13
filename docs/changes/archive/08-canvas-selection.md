@@ -6,7 +6,7 @@
 |-------|-------|
 | Change | 08 |
 | Slug | canvas-selection |
-| Status | active |
+| Status | shipped locally; hardware trial UNVERIFIED |
 | Branch | feature/08-canvas-selection |
 
 ## Goal
@@ -73,7 +73,7 @@ independent reader reviews final integration. No child delegation.
 
 ## Gate Checks
 
-[STACK](../STACK.md) Fast/Full Gates. Baseline252tests/17files. Own127.0.0.1 origin only,
+[STACK](../../STACK.md) Fast/Full Gates. Baseline252tests/17files. Own127.0.0.1 origin only,
 guard cleanup; no refresh of user notes during development. Playwriter first; known capture
 limitations may justify isolated DevTools for final visual evidence. Offscreen readback contexts
 avoid test-only Chromium warnings. Real clipboard permissions/hardware are separate acceptance.
@@ -98,6 +98,7 @@ avoid test-only Chromium warnings. Real clipboard permissions/hardware are separ
 - Browser receipt `.artifacts/change-08/verification.json` records exact raster comparisons, real IDB abort/reload/recovery, commands/navigation/fragment erasure and PNG adapter checks. Initial harness readback differences and transient pre-reload HMR errors are retained separately; final runtime is clean.
 - Playwriter screenshot transport timed out; isolated Chrome DevTools supplied desktop/narrow visual and actual DPR2 evidence. User localhost/public notes and OS clipboard were not modified by automation.
 - Wacom/Windows clipboard trial requested; currently UNVERIFIED. Synthetic/native mouse checks and injected clipboard success/denial do not certify hardware or OS paste behavior.
+- Full Gate PASS: npm ci, both builds/typecheck,302tests/20files, HTTP smoke, lint, secrets scan and dependency audit (0 vulnerabilities);79 distinct browser assertions PASS. Local implementation commit729546a.
 - Local ship only; no push or Pages deploy in this change.
 
 ## Commit Message

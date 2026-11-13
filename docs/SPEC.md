@@ -12,7 +12,7 @@
 
 | Поле | Значение |
 |------|----------|
-| Версия | 0.8 — exact canvas selection authorized |
+| Версия | 0.8 — exact canvas selection shipped locally; hardware trial pending |
 | Дата | 2026-11-12 |
 | Архитектор / владелец | Пользователь |
 | Предметная область | Личные рукописные конспекты в браузере |

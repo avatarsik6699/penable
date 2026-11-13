@@ -260,7 +260,7 @@ Git internals и локальные артефакты исключены. Со�
 
 ## Разработка по SDD
 
-[SPEC.md](docs/SPEC.md) — согласованные требования, [change 08](docs/changes/08-canvas-selection.md) — точное выделение;
+[SPEC.md](docs/SPEC.md) — согласованные требования, [change 08](docs/changes/archive/08-canvas-selection.md) — точное выделение;
 [change 06](docs/changes/archive/06-board-ux-stability.md) — стабилизация UI/UX;
 [change 05](docs/changes/archive/05-stroke-eraser.md) — ластик;
 [change 04](docs/changes/archive/04-local-storage.md) — сохранение и копии;

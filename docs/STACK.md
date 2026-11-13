@@ -1,7 +1,7 @@
 # Stack Guide
 
 > Source of truth for technologies, commands and required tools.
-> Status: CONFIGURED; changes 01–07 shipped; change08 implements exact selection (local delivery only).
+> Status: CONFIGURED; changes 01–08 shipped locally; change07 published, change08 awaiting separate release.
 > SPEC approved 2026-11-12. Target device: Wacom One, Windows 11.
 
 ## Stack
@@ -123,7 +123,7 @@ pressure, driver behavior and the feeling of handwriting. Read README for the ha
 - src/document/: versioned codec, native IDB, writer lease and serialized save session.
 - src/App.tsx: owns slow interface/document lifecycle state, not high-frequency stroke geometry.
 - vite.config.ts, tsconfig.json, .oxlintrc.json: project configuration.
-- docs/SPEC.md: approved intent and quality contract; docs/changes/: active work; archived changes 01–07: input, ink quality, history/backgrounds, storage, eraser, board UX and GitHub Pages publication.
+- docs/SPEC.md: approved intent and quality contract; docs/changes/: active work; archived changes 01–08: input, ink quality, history/backgrounds, storage, eraser, board UX, GitHub Pages publication and precise fragment selection.
 - docs/playbooks/, .agents/skills/, .claude/skills/, plugins/sdd-workflow/: installed workflow.
 
 ## Implementation conventions
