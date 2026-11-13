@@ -3,6 +3,8 @@ import type { LibraryState } from "../../modules/library";
 export namespace BoardLibraryTypes {
   export type Props = {
     state: LibraryState;
+    onPreviewVisible: (ids: readonly string[]) => void;
+    onPreviewClose: () => void;
     readOnly: boolean;
     blocked: boolean;
     open: boolean;

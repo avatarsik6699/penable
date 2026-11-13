@@ -11,6 +11,10 @@ export class ImageInput {
   private generation = 0;
   private disposed = false;
   private pending = false;
+  status: {
+    phase: "idle" | "choosing" | "processing" | "success" | "error";
+    message: string;
+  } = { phase: "idle", message: "" };
   private input: HTMLInputElement;
   private pendingClaim: ImageInputTypes.PendingClaim | null = null;
 
@@ -24,12 +28,11 @@ export class ImageInput {
     this.input.addEventListener("change", this.file);
     options.canvas.addEventListener("dragover", this.drag);
     options.canvas.addEventListener("drop", this.drop);
-    window.addEventListener("paste", this.paste);
-    window.addEventListener("blur", this.cancel);
+    this.input.addEventListener("cancel", this.pickerCancelled);
   }
 
   get busy() {
-    return this.pending;
+    return this.pending || this.status.phase === "choosing";
   }
 
   private eventAllowed(target: EventTarget | null) {
@@ -45,6 +48,8 @@ export class ImageInput {
 
   readonly open = () => {
     if (this.options.allowed() && !this.pending) {
+      this.status = { phase: "choosing", message: "Выберите PNG или JPEG…" };
+      this.options.changed();
       this.input.value = "";
       this.input.click();
     }
@@ -54,6 +59,14 @@ export class ImageInput {
     const file = this.input.files?.[0];
 
     if (file) void this.insertFile(file);
+    else this.pickerCancelled();
+  };
+
+  private readonly pickerCancelled = () => {
+    if (this.status.phase === "choosing") {
+      this.status = { phase: "idle", message: "" };
+      this.options.changed();
+    }
   };
 
   private readonly drag = (event: DragEvent) => {
@@ -86,75 +99,13 @@ export class ImageInput {
     );
   };
 
-  private readonly paste = (event: ClipboardEvent) => {
-    if (!this.eventAllowed(event.target)) return;
-
-    const file = Array.from(event.clipboardData?.items ?? [])
-      .find((item) => item.kind === "file")
-      ?.getAsFile();
-
-    event.preventDefault();
-
-    if (file) void this.insertFile(file);
-    else this.options.pasteFragment();
-  };
-
-  async readClipboard() {
-    if (!this.options.allowed() || this.pending) return;
-
-    const generation = ++this.generation;
-
-    try {
-      if (!navigator.clipboard?.read)
-        throw new Error("Чтение системного буфера недоступно.");
-
-      const items = await navigator.clipboard.read();
-
-      if (
-        this.disposed ||
-        generation !== this.generation ||
-        !this.options.allowed()
-      )
-        return;
-
-      const item = items.find(
-        (item) =>
-          item.types.includes("image/png") || item.types.includes("image/jpeg"),
-      );
-
-      if (!item)
-        throw new Error(
-          "В системном буфере нет PNG или JPEG. Для фрагмента доски используйте «Вставить».",
-        );
-
-      const blob = await item.getType(
-        item.types.includes("image/png") ? "image/png" : "image/jpeg",
-      );
-
-      if (
-        this.disposed ||
-        generation !== this.generation ||
-        !this.options.allowed()
-      )
-        return;
-
-      await this.insertFile(blob);
-    } catch (error) {
-      if (!this.disposed && generation === this.generation)
-        this.options.notice(
-          error instanceof Error
-            ? error.message
-            : "Нет доступа к системному буферу.",
-        );
-    }
-  }
-
   async insertFile(file: Blob, point?: Position) {
     if (!this.options.allowed() || this.pending) return;
 
     const generation = ++this.generation;
 
     this.pending = true;
+    this.status = { phase: "processing", message: "Обработка изображения…" };
     this.options.changed();
 
     let claim: ImageInputTypes.PendingClaim | null = null;
@@ -223,17 +174,27 @@ export class ImageInput {
 
       const rect = this.options.canvas.getBoundingClientRect(),
         viewport = this.options.viewport(),
+        dock = document
+          .querySelector?.("[data-editor-dock]")
+          ?.getBoundingClientRect(),
+        top = Math.min(
+          rect.height - 32,
+          Math.max(16, (dock?.bottom ?? rect.top) - rect.top + 16),
+        ),
+        bottom = Math.max(top + 1, rect.height - 84),
+        usableWidth = Math.max(1, rect.width - 32),
+        usableHeight = Math.max(1, bottom - top),
         center =
           point ??
           BoardViewport.screenToWorld(
-            { x: rect.width / 2, y: rect.height / 2 },
+            { x: rect.width / 2, y: (top + bottom) / 2 },
             viewport,
           );
 
       const scale = Math.min(
         1,
-        (rect.width * 0.7) / viewport.zoom / header.width,
-        (rect.height * 0.7) / viewport.zoom / header.height,
+        usableWidth / viewport.zoom / header.width,
+        usableHeight / viewport.zoom / header.height,
       );
 
       const inserted = {
@@ -250,19 +211,34 @@ export class ImageInput {
 
       const insertedSuccessfully = await this.options.insert([inserted]);
 
-      if (
-        !this.disposed &&
-        generation === this.generation &&
-        insertedSuccessfully !== false
-      )
-        this.options.notice("");
+      if (!this.disposed && generation === this.generation) {
+        this.status =
+          insertedSuccessfully === false
+            ? {
+                phase: "error",
+                message:
+                  "Не удалось вставить изображение. Повторите выбор файла.",
+              }
+            : {
+                phase: "success",
+                message:
+                  "Изображение вставлено. Перетащите его или измените размер за маркеры.",
+              };
+
+        this.options.notice(this.status.message);
+      }
     } catch (error) {
-      if (!this.disposed && generation === this.generation)
-        this.options.notice(
-          error instanceof Error
-            ? error.message
-            : "Не удалось вставить изображение.",
-        );
+      if (!this.disposed && generation === this.generation) {
+        this.status = {
+          phase: "error",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Не удалось вставить изображение.",
+        };
+
+        this.options.notice(this.status.message);
+      }
     } finally {
       claim?.release();
 
@@ -275,13 +251,22 @@ export class ImageInput {
     }
   }
 
+  readonly dismiss = () => {
+    if (this.pending || this.status.phase === "choosing") return;
+
+    this.status = { phase: "idle", message: "" };
+    this.options.notice("");
+    this.options.changed();
+  };
+
   readonly cancel = () => {
-    const pending = this.pending;
+    const pending = this.pending || this.status.phase === "choosing";
 
     this.generation++;
     this.pendingClaim?.release();
     this.pendingClaim = null;
     this.pending = false;
+    this.status = { phase: "idle", message: "" };
 
     if (pending) this.options.changed();
   };
@@ -293,7 +278,6 @@ export class ImageInput {
     this.input.remove();
     this.options.canvas.removeEventListener("dragover", this.drag);
     this.options.canvas.removeEventListener("drop", this.drop);
-    window.removeEventListener("paste", this.paste);
-    window.removeEventListener("blur", this.cancel);
+    this.input.removeEventListener("cancel", this.pickerCancelled);
   }
 }

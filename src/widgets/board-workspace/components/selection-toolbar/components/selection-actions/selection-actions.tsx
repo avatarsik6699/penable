@@ -54,7 +54,7 @@ export const SelectionActions: React.FC<SelectionActionsTypes.Props> = (
         </Button>
         <Button
           className={styles["action"]}
-          disabled={props.busy || props.readOnly || !props.state.clipboard}
+          disabled={props.busy || props.readOnly}
           onClick={() => props.command("paste")}
         >
           <EditorIcon name="paste" />
@@ -73,15 +73,6 @@ export const SelectionActions: React.FC<SelectionActionsTypes.Props> = (
         <Button
           className={styles["action"]}
           disabled={props.busy || !props.state.selected}
-          onClick={() => props.command("image")}
-        >
-          <EditorIcon name="image" />
-          <span>Копировать изображение</span>
-          <kbd aria-hidden="true"></kbd>
-        </Button>
-        <Button
-          className={styles["action"]}
-          disabled={props.busy || !props.state.png}
           onClick={() => props.command("download")}
         >
           <EditorIcon name="download" />
@@ -110,14 +101,6 @@ export const SelectionActions: React.FC<SelectionActionsTypes.Props> = (
         >
           <EditorIcon name="image" />
           <span>Обрезать изображения</span>
-        </Button>
-        <Button
-          className={styles.action}
-          disabled={props.busy || props.readOnly}
-          onClick={() => props.command("paste-image")}
-        >
-          <EditorIcon name="paste" />
-          <span>Изображение из буфера</span>
         </Button>
         <Button
           className={styles["destructive"]}

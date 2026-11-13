@@ -1,4 +1,5 @@
 import type React from "react";
+import { useLibraryPreviews } from "./hooks/use-library-previews";
 import { useState } from "react";
 import { usePanelDismiss } from "~/shared/ui/panel-dismiss";
 import { Button } from "~/shared/ui/button";
@@ -14,11 +15,33 @@ export const BoardLibrary: React.FC<BoardLibraryTypes.Props> = (props) => {
     onClose: () => props.onOpenChange(false),
   });
 
-  const [title, setTitle] = useState("Моя доска"),
+  const [search, setSearch] = useState(""),
+    [creating, setCreating] = useState(false),
+    [title, setTitle] = useState(""),
     [error, setError] = useState(""),
     [deleting, setDeleting] = useState<{ id: string; title: string } | null>(
       null,
     );
+
+  const boards = props.state.boards.filter((board) =>
+    board.title.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()),
+  );
+
+  const previewRoot = useLibraryPreviews(
+    props,
+    boards.map((board) => board.id).join(","),
+  );
+
+  const beginCreate = () => {
+    let suffix = 1,
+      next = "Моя доска";
+
+    while (props.state.boards.some((board) => board.title === next))
+      next = `Моя доска ${++suffix}`;
+
+    setTitle(next);
+    setCreating(true);
+  };
 
   const active = props.state.boards.find(
     (board) => board.id === props.state.activeId,
@@ -32,6 +55,7 @@ export const BoardLibrary: React.FC<BoardLibraryTypes.Props> = (props) => {
       await action();
 
       if (close) {
+        setCreating(false);
         props.onOpenChange(false);
         panel.focusTrigger();
       }
@@ -57,7 +81,7 @@ export const BoardLibrary: React.FC<BoardLibraryTypes.Props> = (props) => {
         aria-label="Доски"
         title={active?.title ?? "Доски"}
         aria-expanded={props.open}
-        aria-haspopup="dialog"
+        aria-controls="board-library"
         disabled={props.blocked || props.state.busy}
         onClick={() => props.onOpenChange(!props.open)}
         className={styles.trigger}
@@ -70,20 +94,75 @@ export const BoardLibrary: React.FC<BoardLibraryTypes.Props> = (props) => {
       </Button>
       {props.open && (
         <div
-          ref={(node) => {
-            panel.bindRoot(node);
-            panel.bindPanel(node);
-          }}
+          ref={(node) => panel.bindRoot(node)}
           className={styles.panel}
-          role="dialog"
+          id="board-library"
+          role="complementary"
           aria-label="Мои доски"
         >
-          <h2>Мои доски</h2>
-          <ul className={styles.list}>
-            {props.state.boards.map((board) => (
+          <div className={styles.heading}>
+            <h2>Мои доски</h2>
+            <Button
+              aria-label="Закрыть список досок"
+              onClick={panel.closeAndFocus}
+            >
+              <EditorIcon name="close" />
+            </Button>
+          </div>
+          <input
+            className={styles.search}
+            type="search"
+            aria-label="Поиск досок"
+            placeholder="Поиск по названию"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+          <Button
+            className={styles.createButton}
+            onClick={beginCreate}
+            disabled={disabled || props.state.boards.length >= 100}
+          >
+            <EditorIcon name="plus" />
+            Новая доска
+          </Button>
+          {creating && (
+            <form
+              className={styles.create}
+              onSubmit={(event) => {
+                event.preventDefault();
+                void run(() => props.onCreate(title), true);
+              }}
+            >
+              <label>
+                Новая доска
+                <input
+                  autoFocus
+                  aria-label="Название новой доски"
+                  value={title}
+                  maxLength={80}
+                  disabled={disabled}
+                  onChange={(event) => setTitle(event.target.value)}
+                />
+              </label>
+              <div className={styles.createActions}>
+                <Button type="submit" disabled={disabled || !title.trim()}>
+                  Создать доску
+                </Button>
+                <Button
+                  onClick={() => setCreating(false)}
+                  disabled={props.state.busy}
+                >
+                  Отмена
+                </Button>
+              </div>
+            </form>
+          )}
+          <ul ref={previewRoot} className={styles.list}>
+            {boards.map((board) => (
               <BoardRow
                 key={board.id}
                 {...board}
+                preview={props.state.previews?.[board.id]}
                 active={board.id === props.state.activeId}
                 disabled={disabled}
                 last={props.state.boards.length === 1}
@@ -97,34 +176,13 @@ export const BoardLibrary: React.FC<BoardLibraryTypes.Props> = (props) => {
               />
             ))}
           </ul>
-          <form
-            className={styles.create}
-            onSubmit={(event) => {
-              event.preventDefault();
-              void run(() => props.onCreate(title), true);
-            }}
-          >
-            <label>
-              Новая доска
-              <input
-                aria-label="Название новой доски"
-                value={title}
-                maxLength={80}
-                disabled={disabled || props.state.boards.length >= 100}
-                onChange={(event) => setTitle(event.target.value)}
-              />
-            </label>
-            <Button
-              className={styles.createButton}
-              type="submit"
-              disabled={
-                disabled || !title.trim() || props.state.boards.length >= 100
-              }
-            >
-              <EditorIcon name="plus" />
-              Создать доску
-            </Button>
-          </form>
+          {!boards.length && (
+            <p className={styles.empty} role="status">
+              {props.state.boards.length
+                ? "Доски не найдены"
+                : "Загрузка досок…"}
+            </p>
+          )}
           {(error || props.state.message) && (
             <p className={styles.error} role="alert">
               {error || props.state.message}

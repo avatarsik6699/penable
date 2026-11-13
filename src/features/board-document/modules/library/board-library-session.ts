@@ -1,3 +1,6 @@
+import { DocumentJobs } from "../jobs";
+import { BoardPreviews } from "../previews";
+import { DocumentSnapshots } from "../codec";
 import { DocumentCodec } from "../codec";
 import { DocumentErrors } from "../session";
 import type { DocumentSession } from "../session";
@@ -31,7 +34,38 @@ export class BoardLibrarySession {
     value: undefined,
   };
 
-  constructor(private readonly options: LibraryOptions) {}
+  private readonly previewJobs = new DocumentJobs();
+  private readonly previews: BoardPreviews | null;
+  private operation: Promise<unknown> = Promise.resolve();
+
+  constructor(private readonly options: LibraryOptions) {
+    this.previews = options.preview
+      ? new BoardPreviews({
+          load: async (id, signal) => {
+            if (id === this.catalog.activeId)
+              return this.previewJobs.previewDocument(
+                DocumentSnapshots.fromSnapshot(this.options.snapshot()),
+                signal,
+              );
+
+            if (!options.previewLoad)
+              throw new Error("Предпросмотр недоступен.");
+
+            return options.previewLoad(id, signal);
+          },
+
+          render: options.preview,
+
+          changed: () => {
+            if (!this.disposed) this.publish();
+          },
+        })
+      : null;
+  }
+
+  readonly showPreviews = (ids: readonly string[]) => this.previews?.show(ids);
+
+  readonly closePreviews = () => this.previews?.close();
 
   get canWrite() {
     return (
@@ -104,6 +138,7 @@ export class BoardLibrarySession {
 
   private publish() {
     const state: LibraryState = Object.freeze({
+      previews: this.previews?.urls,
       activeId: this.catalog.activeId,
       boards: Object.freeze(
         this.catalog.boards.map((board) => Object.freeze({ ...board })),
@@ -248,7 +283,8 @@ export class BoardLibrarySession {
     this.publish();
 
     try {
-      await action();
+      this.operation = action();
+      await this.operation;
     } catch (error) {
       this.message = DocumentErrors.messageOf(error);
 
@@ -360,6 +396,8 @@ export class BoardLibrarySession {
     if (!this.catalog.boards.some((b) => b.id === id))
       throw new Error("Доска не найдена.");
 
+    this.previews?.invalidate(id);
+
     await this.run(async () => {
       const boards = this.catalog.boards.filter((b) => b.id !== id),
         activeId =
@@ -376,6 +414,9 @@ export class BoardLibrarySession {
   }
 
   changed(urgent = false) {
+    if (urgent && this.canWrite)
+      this.previews?.invalidate(this.catalog.activeId);
+
     if (this.canWrite) this.active?.changed(urgent);
   }
 
@@ -398,6 +439,8 @@ export class BoardLibrarySession {
     if (!this.canImport)
       return Promise.reject(new Error("Замена доски недоступна."));
 
+    this.previews?.invalidate(this.catalog.activeId);
+
     return this.active!.replace(document, isBusy);
   }
 
@@ -409,6 +452,9 @@ export class BoardLibrarySession {
 
     this.closing = (async () => {
       await this.startup?.catch(() => {});
+      await this.operation.catch(() => {});
+      await this.previews?.dispose();
+      await this.previewJobs.close();
       await this.active?.dispose();
       await this.repository?.close();
       await this.lease?.release();

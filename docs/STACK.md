@@ -441,3 +441,13 @@ change17-baseline/candidate folders on4180. Preserve per-sample native ownership
 chunked worker transfer, origin lease and explicit native capability owners. Schema4/catalog
 migration and per-board raw backups are part of this approved contract. User authorizes full
 implementation/local ship without intermediate confirmation; no PWA/release in this change.
+
+## Change18 — Editor UX and unified clipboard
+
+SPEC5.17 governs current implementation. Keep React/Canvas/IDB/schema4/catalog1 and dependencies.
+Native clipboard includes a versioned editable fragment plus PNG; no cross-board transfer service.
+Use preview:pages on strict4198 for owned native checks,4185 for E2E and4180 for benchmark pairs.
+Baseline05828ec source/dist snapshots live under.artifacts/change-18. One src writer; parent owns
+E2E/policies/docs/shared checks/browser/Git. Previews are bounded derived memory cache and must not
+change durable schemas or increase the main two-layer bitmap allocation. Existing Fast/Full/LSP,
+native raster and performance commands apply; report actual OS interaction limits independently.

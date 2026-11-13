@@ -1,4 +1,5 @@
 import path from "node:path";
+import { additionalPublicEntries } from "./policy.mjs";
 
 /** Only authored index.ts files establish recursive module boundaries. */
 export function moduleRoots(files) {
@@ -16,8 +17,11 @@ export function checkModuleImport(file, target, node, roots, report) {
 
     const barrel = `${root}/index.ts`;
 
+    const publicEntry =
+      target === barrel || additionalPublicEntries[root]?.includes(target);
+
     if (contains(root, file)) {
-      if (target === barrel) {
+      if (publicEntry) {
         const ownRoot = roots.find((candidate) => contains(candidate, file));
 
         report(
@@ -27,7 +31,7 @@ export function checkModuleImport(file, target, node, roots, report) {
           "Module internals cannot import their own or an ancestor index.ts barrel.",
         );
       }
-    } else if (target !== barrel)
+    } else if (!publicEntry)
       report(
         file,
         node,

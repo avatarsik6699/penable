@@ -1,3 +1,4 @@
+import type { RenderingContext } from "./rendering-context.types";
 import { BoardPaths } from "./path-cache";
 import type { StrokeGeometry } from "~/entities/board";
 import { BoardSourceGeometry } from "~/entities/board";
@@ -18,7 +19,7 @@ export type StrokePaintState = {
 };
 
 function style(
-  ctx: CanvasRenderingContext2D,
+  ctx: RenderingContext,
   stroke: Stroke,
   state?: StrokePaintState,
 ) {
@@ -44,7 +45,7 @@ function style(
 }
 
 function paintStroke(
-  ctx: CanvasRenderingContext2D,
+  ctx: RenderingContext,
   stroke: BoardItem,
   active = false,
   state?: StrokePaintState,
@@ -134,7 +135,7 @@ function paintStroke(
 }
 
 function paintStrokes(
-  ctx: CanvasRenderingContext2D,
+  ctx: RenderingContext,
   strokes: readonly BoardItem[],
   imageSource?: (asset: ImageAsset) => CanvasImageSource | null,
 ): void {

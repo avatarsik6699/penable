@@ -27,9 +27,17 @@ export const BoardWorkspace: React.FC<BoardWorkspaceTypes.Props> = () => {
         <span className={styles.brandDot} />
       </div>
       <PenToolbar
+        insertion={workspace.ui.selection.insertion}
+        selectionMessage={workspace.ui.selection.message}
+        selectionOpen={workspace.panel === "selection"}
+        onDismissInsertion={() =>
+          workspace.model.controls.current?.dismissInsertion?.()
+        }
         leadingControls={
           <BoardLibrary
             state={workspace.ui.library}
+            onPreviewVisible={workspace.model.showPreviews}
+            onPreviewClose={workspace.model.closePreviews}
             readOnly={readOnly}
             blocked={unavailable || workspace.ui.history.busy}
             open={workspace.panel === "library"}

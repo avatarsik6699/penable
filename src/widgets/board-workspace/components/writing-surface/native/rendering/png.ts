@@ -1,39 +1,9 @@
+import { PNGDimensions } from "./png-dimensions";
+import { RasterJob } from "./raster-job";
 import { BoardPaths } from "./path-cache";
 import { BoardPaint } from "./paint";
-import { type InkBounds, BoardRegions } from "~/entities/board";
+import { BoardRegions } from "~/entities/board";
 import type { ClipMask, BoardItem } from "~/entities/board";
-
-function pngDimensions(
-  bounds: InkBounds,
-  padding = 4,
-): {
-  width: number;
-  height: number;
-} {
-  const width = Math.max(
-    1,
-    Math.ceil((bounds.right - bounds.left) * 2) + padding,
-  );
-
-  const height = Math.max(
-    1,
-    Math.ceil((bounds.bottom - bounds.top) * 2) + padding,
-  );
-
-  if (
-    !Number.isFinite(width) ||
-    !Number.isFinite(height) ||
-    width > 8192 ||
-    height > 8192 ||
-    width * height > 16777216
-  ) {
-    throw new Error(
-      "PNG превышает предел 8192 px по стороне или 16 777 216 пикселей. Выделите меньший фрагмент.",
-    );
-  }
-
-  return { width, height };
-}
 
 async function selectionPNG(
   strokes: readonly BoardItem[],
@@ -54,7 +24,7 @@ async function selectionPNG(
   if (!bounds) throw new Error("Сначала выделите записи.");
 
   const padding = region ? 0 : 4;
-  const size = pngDimensions(bounds, padding);
+  const size = PNGDimensions.ofBounds(bounds, padding);
   const canvas = document.createElement("canvas");
 
   canvas.width = size.width;
@@ -111,15 +81,10 @@ function downloadPNG(blob: Blob) {
   }
 }
 
-function writePNG(png: Promise<Blob>): Promise<void> {
-  try {
-    if (typeof ClipboardItem === "undefined" || !navigator.clipboard?.write)
-      throw new Error("Системный буфер недоступен.");
-
-    return navigator.clipboard.write([new ClipboardItem({ "image/png": png })]);
-  } catch (error) {
-    return Promise.reject(error);
-  }
-}
-
-export const BoardPNG = { pngDimensions, selectionPNG, downloadPNG, writePNG };
+export const BoardPNG = {
+  pngDimensions: PNGDimensions.ofBounds,
+  selectionPNG,
+  downloadPNG,
+  fragmentPNG: async (fragment: Promise<Blob>, signal: AbortSignal) =>
+    RasterJob.render(await fragment, "selection", signal),
+};

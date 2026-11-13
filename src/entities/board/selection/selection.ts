@@ -592,6 +592,74 @@ export class BoardSelection {
     if (!this.busy) this.selectRegion({ shape: "all", points: [] });
   }
 
+  capture() {
+    if (this.busy || !this.hasSelection) return null;
+
+    const scene = [...this.options.scene.strokes],
+      parts = this.parts,
+      region = this.region;
+
+    return {
+      fragment: {
+        strokes: this.selected,
+        region: BoardRegions.cloneMask(this.outline),
+      },
+      current: () =>
+        !this.busy &&
+        this.parts === parts &&
+        this.region === region &&
+        scene.length === this.options.scene.strokes.length &&
+        scene.every((item, i) => item === this.options.scene.strokes[i]),
+    };
+  }
+
+  removeCaptured(
+    capture: NonNullable<ReturnType<BoardSelection["capture"]>>,
+  ): Promise<boolean> {
+    if (!capture.current() || !this.options.writable())
+      return Promise.resolve(false);
+
+    try {
+      const candidate = SelectionCandidates.candidate(
+        this.options.scene.strokes,
+        this.parts,
+        SelectionConfig.ZERO,
+        true,
+      );
+
+      return new Promise((resolve) => this.apply(candidate, [], resolve));
+    } catch (error) {
+      this.report(error);
+
+      return Promise.resolve(false);
+    }
+  }
+
+  insertFragment(fragment: SelectionClipboard): Promise<boolean> {
+    if (this.busy || !this.options.writable()) return Promise.resolve(false);
+
+    try {
+      const insertion = SelectionClipboardTransforms.prepare(
+        this.options.scene.strokes,
+        fragment.strokes,
+        fragment.region ?? [],
+        this.options.viewport(),
+        this.options.bounds(),
+        false,
+      );
+
+      if (!insertion) return Promise.resolve(false);
+
+      return new Promise((resolve) =>
+        this.apply(insertion.candidate, insertion.region, resolve),
+      );
+    } catch (error) {
+      this.report(error);
+
+      return Promise.resolve(false);
+    }
+  }
+
   copy(): void {
     if (!this.busy && this.hasSelection) {
       this.clipboard.strokes = SelectionUtils.copy(this.selected);

@@ -125,6 +125,39 @@ export class DocumentJobs implements DocumentPersistence {
       });
   }
 
+  async previewDocument(
+    document: BoardDocument,
+    signal: AbortSignal,
+  ): Promise<Blob> {
+    const result = await this.transport.execute(
+      "preview",
+      document,
+      undefined,
+      signal,
+    );
+
+    if (!result.fragment) throw new Error("Предпросмотр не подготовлен.");
+
+    return result.fragment;
+  }
+
+  async fragment(
+    fragment: import("~/entities/board").SelectionClipboard,
+    signal: AbortSignal,
+  ): Promise<Blob> {
+    const result = await this.transport.execute(
+      "fragment",
+      { ...DocumentCodec.emptyDocument(), strokes: fragment.strokes },
+      undefined,
+      signal,
+      fragment.region,
+    );
+
+    if (!result.fragment) throw new Error("Фрагмент не подготовлен.");
+
+    return result.fragment;
+  }
+
   cancel() {
     this.transport.cancel();
   }

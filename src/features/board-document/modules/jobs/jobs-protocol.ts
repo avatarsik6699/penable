@@ -9,7 +9,8 @@ import type {
   RegionInput,
 } from "~/entities/board";
 
-export type DocumentJobKind = "select" | "validate" | "save" | "overview";
+export type DocumentJobKind =
+  "select" | "validate" | "save" | "overview" | "fragment" | "preview";
 
 export type FragmentMetadata =
   Omit<Stroke, "points"> | Omit<ImageItem, "asset">;
@@ -36,6 +37,7 @@ export type JobRequest =
       root: Omit<BoardDocument, "strokes">;
       boardId?: string;
       region?: RegionInput;
+      fragmentRegion?: ClipMask;
     }
   | {
       type: "points";
@@ -62,6 +64,7 @@ export type JobResponse = {
   error?: string;
   selection?: SelectionResult;
   overview?: OverviewResult;
+  fragment?: Blob;
   chunk?: SelectionResult["parts"];
 };
 

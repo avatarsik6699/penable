@@ -1,3 +1,4 @@
+import { FragmentCodec } from "../fragments";
 import { DocumentOverview } from "./modules/overview";
 import { DocumentCodec } from "../codec";
 import { DocumentRepositoryAdapter } from "../../adapters/indexeddb";
@@ -203,6 +204,27 @@ async function finish(id: number) {
     host.postMessage({
       id,
       ...(selection ? { selection } : {}),
+      ...(job.kind === "preview"
+        ? {
+            fragment: new Blob(
+              [JSON.stringify(DocumentCodec.encodeDocument(document))],
+              { type: "application/json" },
+            ),
+          }
+        : {}),
+      ...(job.kind === "fragment"
+        ? {
+            fragment: new Blob(
+              [
+                FragmentCodec.serialize({
+                  strokes: document.strokes,
+                  region: job.fragmentRegion ?? [],
+                }),
+              ],
+              { type: "application/x-penable-fragment+json" },
+            ),
+          }
+        : {}),
       ...(job.kind === "overview"
         ? { overview: DocumentOverview.build(document.strokes) }
         : {}),

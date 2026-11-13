@@ -1,27 +1,87 @@
 .row {
   display: flex;
   align-items: center;
-  gap: 4px;
-  flex-wrap: wrap;
+  gap: 6px;
+  position: relative;
+  padding: 6px 0;
 }
 .title {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   flex: 1;
   min-width: 0;
   justify-content: flex-start;
   text-align: left;
+  padding: 8px;
+  height: 70px;
+  content-visibility: auto;
+  contain-intrinsic-block-size: auto 70px;
 }
-.title span {
+.name {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 13px;
+}
+.name small {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+.preview {
+  display: grid;
+  place-items: center;
+  width: 80px;
+  height: 50px;
+  flex-shrink: 0;
+  background: var(--control-hover);
+  border-radius: 5px;
+  overflow: hidden;
+  color: var(--text-muted);
+}
+.preview img {
+  width: 80px;
+  height: 50px;
+  object-fit: contain;
 }
 .title[aria-current] {
   color: var(--control-selected-text);
   background: var(--control-selected-bg);
   opacity: 1;
+}
+.actions {
+  position: relative;
+  flex-shrink: 0;
+}
+.actions > button {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+.menu {
+  position: absolute;
+  right: 0;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 160px;
+  padding: 6px;
+  background: var(--paper);
+  box-shadow: var(--popover-shadow);
+  border-radius: 8px;
+}
+.menu button {
+  min-height: 40px;
+  text-align: left;
 }
 .rename {
   display: flex;
@@ -43,20 +103,4 @@
   width: 100%;
   color: var(--error);
   font-size: 12px;
-}
-
-.title > svg {
-  flex-shrink: 0;
-}
-.title span {
-  min-width: 0;
-}
-.row > button:not(.title) {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  padding: 0;
 }

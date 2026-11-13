@@ -1,10 +1,12 @@
+import { BoardThumbnail } from "../components/writing-surface";
 import { BoardCoordinates } from "~/entities/board";
 import { DocumentDownloads, BoardLibraries } from "~/features/board-document";
 import { WorkspaceModel } from "../model/workspace-model";
 
 function create(): WorkspaceModel {
   return new WorkspaceModel({
-    session: BoardLibraries.create,
+    session: (options) =>
+      BoardLibraries.create({ ...options, preview: BoardThumbnail.render }),
     download: DocumentDownloads.download,
     diagnostics: {
       pointerType: null,

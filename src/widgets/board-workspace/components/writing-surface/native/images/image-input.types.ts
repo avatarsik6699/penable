@@ -9,7 +9,6 @@ export namespace ImageInputTypes {
     viewport: () => Viewport;
     allowed: () => boolean;
     insert: (items: BoardItem[]) => void | boolean | Promise<void | boolean>;
-    pasteFragment: () => void;
     notice: (message: string) => void;
     changed: () => void;
   };

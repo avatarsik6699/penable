@@ -7,6 +7,10 @@ import type {
 } from "~/entities/board";
 
 export type SelectionState = {
+  insertion?: {
+    phase: "idle" | "choosing" | "processing" | "success" | "error";
+    message: string;
+  };
   images?: boolean;
   selected: boolean;
   clipboard: boolean;
@@ -23,10 +27,8 @@ export type SelectionCommand =
   | "paste"
   | "delete"
   | "duplicate"
-  | "image"
   | "download"
-  | "crop"
-  | "paste-image";
+  | "crop";
 
 export type InputDiagnostics = {
   pointerType: string | null;
@@ -46,6 +48,7 @@ export type InputDiagnostics = {
 export type SurfaceControls = {
   transform?: (width: number, height: number, angle: number) => void;
   insertImage?: () => void;
+  dismissInsertion?: () => void;
   zoomIn: () => void;
   zoomOut: () => void;
   reset: () => void;

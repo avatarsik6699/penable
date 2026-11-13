@@ -6,6 +6,7 @@ export {
   BoardPaths,
   BoardPNG,
   BoardCursor,
+  BoardThumbnail,
 } from "./rendering";
 export type {
   CanvasLayer,

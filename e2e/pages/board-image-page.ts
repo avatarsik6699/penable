@@ -202,12 +202,6 @@ export class BoardImagePage {
     await this.page.keyboard.press("Control+a");
     await this.actions();
 
-    await this.page
-      .getByRole("button", { name: "Копировать изображение", exact: true })
-      .click();
-
-    await this.actions();
-
     const downloadButton = this.page.getByRole("button", {
       name: "Скачать PNG",
       exact: true,
@@ -338,6 +332,27 @@ export class BoardImagePage {
   }
 
   async payload(file: TestImageTypes.File, kind: "drop" | "paste") {
+    if (kind === "paste") {
+      await this.page.evaluate(async (base64) => {
+        const bytes = Uint8Array.from(atob(base64), (entry) =>
+          entry.charCodeAt(0),
+        );
+
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "image/png": new Blob([bytes], { type: "image/png" }),
+          }),
+        ]);
+      }, file.buffer.toString("base64"));
+
+      if (!(await this.page.getByRole("dialog").count()))
+        await this.board.surface.focus();
+
+      await this.page.keyboard.press("Control+v");
+
+      return;
+    }
+
     const dataTransfer = await this.page.evaluateHandle(
       ({ name, mimeType, base64 }) => {
         const bytes = Uint8Array.from(atob(base64), (entry) =>
@@ -359,27 +374,11 @@ export class BoardImagePage {
 
     const bounds = (await this.board.surface.boundingBox())!;
 
-    if (kind === "paste") {
-      // dispatchEvent's generic Event initializer drops clipboardData. Construct the
-      // actual ClipboardEvent so the native board listener receives the File payload.
-      await this.board.surface.evaluate(
-        (canvas, transfer) =>
-          canvas.dispatchEvent(
-            new ClipboardEvent("paste", {
-              clipboardData: transfer,
-              bubbles: true,
-              cancelable: true,
-            }),
-          ),
-        dataTransfer,
-      );
-    } else {
-      await this.board.surface.dispatchEvent("drop", {
-        dataTransfer,
-        clientX: bounds.x + 300,
-        clientY: bounds.y + 350,
-      });
-    }
+    await this.board.surface.dispatchEvent("drop", {
+      dataTransfer,
+      clientX: bounds.x + 300,
+      clientY: bounds.y + 350,
+    });
 
     await dataTransfer.dispose();
   }
@@ -410,7 +409,7 @@ export class BoardImagePage {
 
     await expect(
       this.page
-        .getByRole("status")
+        .getByRole("alert")
         .filter({ hasText: /PNG|JPEG|SVG|формат/ })
         .first(),
     ).toBeVisible();
@@ -432,10 +431,93 @@ export class BoardImagePage {
     await this.board.surface.focus();
     await this.page.keyboard.press("Control+a");
     await this.page.keyboard.press("Control+c");
+
+    await expect(
+      this.page
+        .getByText("Фрагмент скопирован в системный буфер.", { exact: true })
+        .first(),
+    ).toBeVisible();
   }
 
   async pasteInternal() {
     await this.board.surface.focus();
     await this.page.keyboard.press("Control+v");
+  }
+
+  async expectPickerFocusAndRepeat(file: TestImageTypes.File) {
+    await this.page.evaluate(() => {
+      const original = window.createImageBitmap;
+      let release!: () => void;
+
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+
+      Object.assign(window, {
+        __releaseImage18: release,
+
+        __restoreImage18: () => {
+          window.createImageBitmap = original;
+        },
+      });
+
+      window.createImageBitmap = (async (
+        ...args: Parameters<typeof createImageBitmap>
+      ) => {
+        const image = await original(...args);
+
+        await gate;
+
+        return image;
+      }) as typeof createImageBitmap;
+    });
+
+    const chooser = this.page.waitForEvent("filechooser");
+
+    await this.page
+      .getByRole("button", { name: "Вставить изображение", exact: true })
+      .click();
+
+    await (await chooser).setFiles(file);
+
+    await expect(
+      this.page.getByText("Обработка изображения…", { exact: true }).first(),
+    ).toBeVisible();
+
+    await this.page.evaluate(() => {
+      window.dispatchEvent(new Event("blur"));
+      window.dispatchEvent(new Event("focus"));
+
+      (
+        window as unknown as { __releaseImage18: () => void }
+      ).__releaseImage18();
+    });
+
+    await this.expectImages(1);
+
+    await expect(
+      this.page
+        .getByText(
+          "Изображение вставлено. Перетащите его или измените размер за маркеры.",
+          { exact: true },
+        )
+        .first(),
+    ).toBeVisible();
+
+    await expect(
+      this.page.getByTestId("selection-handles"),
+    ).not.toHaveAttribute("d", "");
+
+    await this.page.evaluate(() =>
+      (
+        window as unknown as { __restoreImage18: () => void }
+      ).__restoreImage18(),
+    );
+
+    await this.insert(file);
+    await this.expectImages(2);
+    expect((await this.board.storage.records()).main!.assets).toHaveLength(1);
+    await this.board.undo();
+    await this.expectImages(1);
   }
 }

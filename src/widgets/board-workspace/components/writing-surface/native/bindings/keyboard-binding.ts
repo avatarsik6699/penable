@@ -74,8 +74,6 @@ function create(
 
       const commands: Record<string, SelectionCommand> = {
         KeyA: "all",
-        KeyC: "copy",
-        KeyX: "cut",
         KeyD: "duplicate",
       };
 

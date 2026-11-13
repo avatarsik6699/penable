@@ -66,11 +66,6 @@ export const SelectionToolbar: React.FC<SelectionToolbarTypes.Props> = (
           command={toolbar.command}
         />
       )}
-      {!props.open && props.state.message && (
-        <p className={styles.feedback} role="status">
-          {props.state.message}
-        </p>
-      )}
     </div>
   );
 };

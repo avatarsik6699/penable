@@ -243,6 +243,16 @@ export class WorkspaceModel {
     ]).then(() => {});
   }
 
+  readonly showPreviews = (ids: readonly string[]) => {
+    if (this.session && "showPreviews" in this.session)
+      this.session.showPreviews(ids);
+  };
+
+  readonly closePreviews = () => {
+    if (this.session && "closePreviews" in this.session)
+      this.session.closePreviews();
+  };
+
   readonly switchBoard = (id: string) =>
     this.libraryAction((session) => session.switchBoard(id));
 

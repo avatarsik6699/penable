@@ -1,5 +1,5 @@
 import { DocumentCodec } from "../modules/codec";
-import type { LibraryRepository } from "../modules/library";
+import type { LibraryRepository } from "../board-document.types";
 import type { StoredRecord } from "../board-document.types";
 
 function open(

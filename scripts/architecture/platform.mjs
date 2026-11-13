@@ -189,6 +189,7 @@ export function checkPlatform(
   workerFiles,
   entityFiles,
   report,
+  workerCanvasFiles = new Set(),
 ) {
   for (const [file, source] of context.sources) {
     if (!file.startsWith("src/") || isTest(file) || file.endsWith(".d.ts"))
@@ -240,7 +241,8 @@ export function checkPlatform(
 
       if (
         workerFiles.has(file) &&
-        ["dom", "canvas", "frames", "clipboard", "worker"].includes(required)
+        ["dom", "canvas", "frames", "clipboard", "worker"].includes(required) &&
+        !(required === "canvas" && workerCanvasFiles.has(file))
       )
         report(
           file,

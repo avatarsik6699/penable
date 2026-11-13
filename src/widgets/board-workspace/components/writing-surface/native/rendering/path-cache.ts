@@ -1,3 +1,4 @@
+import type { RenderingContext } from "./rendering-context.types";
 import type {
   ClipMask,
   LiveStrokeGeometry,
@@ -13,10 +14,7 @@ const livePaths = new WeakMap<
   }
 >();
 
-function trace(
-  target: CanvasRenderingContext2D | Path2D,
-  command: PathCommand,
-) {
+function trace(target: RenderingContext | Path2D, command: PathCommand) {
   if (command.kind === "move") target.moveTo(command.x, command.y);
   else if (command.kind === "line") target.lineTo(command.x, command.y);
   else target.quadraticCurveTo(command.cx, command.cy, command.x, command.y);
@@ -50,7 +48,7 @@ function livePath(live: LiveStrokeGeometry): Path2D | null {
 }
 
 function traceGeometry(
-  target: CanvasRenderingContext2D | Path2D,
+  target: RenderingContext | Path2D,
   geometry: Extract<
     StrokeGeometry,
     {
@@ -61,7 +59,7 @@ function traceGeometry(
   for (const command of geometry.commands) trace(target, command);
 }
 
-function traceMask(ctx: CanvasRenderingContext2D, mask: ClipMask): void {
+function traceMask(ctx: RenderingContext, mask: ClipMask): void {
   ctx.beginPath();
 
   for (const polygon of mask)

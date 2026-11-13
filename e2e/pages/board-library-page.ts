@@ -38,6 +38,10 @@ export class BoardLibraryPage {
     await this.open();
 
     await this.page
+      .getByRole("button", { name: "Новая доска", exact: true })
+      .click();
+
+    await this.page
       .getByRole("textbox", { name: "Название новой доски", exact: true })
       .fill(title);
 
@@ -66,10 +70,11 @@ export class BoardLibraryPage {
     await this.open();
 
     await this.page
-      .getByRole("button", {
-        name: `Переименовать доску: ${from}`,
-        exact: true,
-      })
+      .getByRole("button", { name: `Действия доски: ${from}`, exact: true })
+      .click();
+
+    await this.page
+      .getByLabel(`Переименовать доску: ${from}`, { exact: true })
       .click();
 
     await this.page
@@ -88,7 +93,11 @@ export class BoardLibraryPage {
     await this.open();
 
     await this.page
-      .getByRole("button", { name: `Удалить доску: ${title}`, exact: true })
+      .getByRole("button", { name: `Действия доски: ${title}`, exact: true })
+      .click();
+
+    await this.page
+      .getByLabel(`Удалить доску: ${title}`, { exact: true })
       .click();
 
     const dialog = this.page.getByRole("alertdialog", {
@@ -145,11 +154,12 @@ export class BoardLibraryPage {
     await this.board.storage.expectScene(main.items);
     await this.open();
 
+    await this.page
+      .getByRole("button", { name: "Действия доски: Моя доска", exact: true })
+      .click();
+
     await expect(
-      this.page.getByRole("button", {
-        name: "Удалить доску: Моя доска",
-        exact: true,
-      }),
+      this.page.getByLabel("Удалить доску: Моя доска", { exact: true }),
     ).toBeDisabled();
   }
 
@@ -230,5 +240,89 @@ export class BoardLibraryPage {
     await this.board.storage.expectStrokeCount(0);
     await this.switchTo("Моя доска");
     await this.board.storage.expectScene(restored.items);
+  }
+
+  async expectSidebarSearchAndPreviews() {
+    await this.create("Алгебра");
+    await this.create("Геометрия");
+    await this.board.drawStroke({ x: 350, y: 300 }, { x: 560, y: 380 });
+    await this.board.storage.expectStrokeCount(1);
+
+    const original = (await this.board.storage.records()).main!.items;
+    const canvas = await this.board.surface.elementHandle();
+    const box = await this.board.surface.boundingBox();
+
+    const dock = this.page.getByRole("group", {
+      name: "Инструменты доски",
+      exact: true,
+    });
+
+    const dockBox = await dock.boundingBox();
+
+    await this.open();
+
+    const sidebar = this.page.getByRole("complementary", {
+      name: "Мои доски",
+      exact: true,
+    });
+
+    const search = sidebar.getByRole("searchbox", {
+      name: "Поиск досок",
+      exact: true,
+    });
+
+    await expect(sidebar).toBeVisible();
+    expect(await this.board.surface.boundingBox()).toEqual(box);
+
+    expect(
+      await this.board.surface.evaluate(
+        (current, old) => current === old,
+        canvas,
+      ),
+    ).toBe(true);
+
+    await search.fill("геом");
+
+    await expect(
+      sidebar.getByRole("button", { name: /^Открыть доску:/ }),
+    ).toHaveCount(1);
+
+    const row = sidebar.getByRole("listitem").filter({
+      has: this.page.getByRole("button", {
+        name: "Открыть доску: Геометрия",
+        exact: true,
+      }),
+    });
+
+    await expect(row.locator("img")).toHaveAttribute("src", /^blob:/);
+
+    await expect
+      .poll(() =>
+        row
+          .locator("img")
+          .evaluate((image) => (image as HTMLImageElement).naturalWidth),
+      )
+      .toBeGreaterThan(0);
+
+    await search.fill("совпадений нет");
+
+    await expect(
+      sidebar.getByText("Доски не найдены", { exact: true }),
+    ).toBeVisible();
+
+    await search.fill("");
+    await this.page.keyboard.press("Escape");
+
+    await expect(
+      this.page.getByRole("button", { name: "Доски", exact: true }),
+    ).toBeFocused();
+
+    const long =
+      "Очень длинное название доски для проверки стабильной верхней панели и поиска";
+
+    await this.rename("Геометрия", long);
+    expect(await dock.boundingBox()).toEqual(dockBox);
+    await this.board.storage.expectScene(original);
+    await canvas?.dispose();
   }
 }

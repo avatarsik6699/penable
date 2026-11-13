@@ -148,8 +148,12 @@ export class EditorChromePage {
     }
   }
 
-  private async expectPanelTail(name: string, tail: string) {
-    const panel = this.page.getByRole("dialog", { name, exact: true });
+  private async expectPanelTail(
+    name: string,
+    tail: string,
+    role: "dialog" | "complementary" = "dialog",
+  ) {
+    const panel = this.page.getByRole(role, { name, exact: true });
 
     await expect(panel).toBeVisible();
 
@@ -179,9 +183,14 @@ export class EditorChromePage {
     await this.board.storage.expectStrokeCount(1);
     await this.page.setViewportSize({ width: 390, height: 844 });
     await this.page.getByRole("button", { name: "Доски", exact: true }).click();
-    await this.expectPanelTail("Мои доски", "Создать доску");
+
+    await this.page
+      .getByRole("button", { name: "Новая доска", exact: true })
+      .click();
+
+    await this.expectPanelTail("Мои доски", "Создать доску", "complementary");
     await this.page.setViewportSize({ width: 390, height: 568 });
-    await this.expectPanelTail("Мои доски", "Создать доску");
+    await this.expectPanelTail("Мои доски", "Создать доску", "complementary");
     await this.page.keyboard.press("Escape");
 
     await this.page
@@ -216,5 +225,82 @@ export class EditorChromePage {
 
     await this.page.keyboard.press("Escape");
     await this.board.storage.expectStrokeCount(1);
+  }
+
+  async expectInvariantDockGeometry() {
+    for (const viewport of [
+      { width: 1440, height: 900 },
+      { width: 1280, height: 720 },
+      { width: 1000, height: 720 },
+      { width: 768, height: 720 },
+      { width: 650, height: 844 },
+      { width: 390, height: 844 },
+      { width: 390, height: 568 },
+    ]) {
+      await this.page.setViewportSize(viewport);
+
+      const dock = this.page.getByRole("group", {
+        name: "Инструменты доски",
+        exact: true,
+      });
+
+      const tools = ["Перо", "Ластик", "Выделение"];
+
+      const buttons = [
+        "Доски",
+        "Вставить изображение",
+        ...tools,
+        "Отменить действие",
+        "Вернуть действие",
+        "Состояние сохранения",
+        "Настройки доски",
+      ];
+
+      await this.page
+        .getByRole("button", { name: tools[0]!, exact: true })
+        .click();
+
+      const expectedDock = (await dock.boundingBox())!;
+
+      const expectedButtons = await Promise.all(
+        buttons.map((name) =>
+          this.page.getByRole("button", { name, exact: true }).boundingBox(),
+        ),
+      );
+
+      expect(expectedDock.width).toBeLessThanOrEqual(viewport.width - 24);
+
+      if (viewport.width >= 1200) expect(expectedDock.width).toBe(960);
+
+      for (const tool of tools.slice(1)) {
+        const target = this.page.getByRole("button", {
+          name: tool,
+          exact: true,
+        });
+
+        await target.click();
+        await expect(target).toHaveAttribute("aria-pressed", "true");
+
+        const actualDock = (await dock.boundingBox())!;
+
+        for (const key of ["x", "y", "width", "height"] as const)
+          expect(
+            Math.abs(actualDock[key] - expectedDock[key]),
+          ).toBeLessThanOrEqual(1);
+
+        for (const [index, name] of buttons.entries()) {
+          const actual = (await this.page
+            .getByRole("button", { name, exact: true })
+            .boundingBox())!;
+
+          const original = expectedButtons[index]!;
+
+          for (const key of ["x", "y", "width", "height"] as const)
+            expect(Math.abs(actual[key] - original[key])).toBeLessThanOrEqual(
+              1,
+            );
+        }
+      }
+    }
   }
 }

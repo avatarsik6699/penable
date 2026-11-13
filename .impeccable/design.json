@@ -166,16 +166,16 @@
     ],
     "breakpoints": [
       {
-        "name": "dock-below-brand",
-        "value": "900px"
+        "name": "dock-desktop",
+        "value": ">=1200px; fixed 960×56px; top 16px"
       },
       {
-        "name": "compact-brand",
-        "value": "700px"
+        "name": "dock-two-row",
+        "value": "651–1199px; 2 rows, 104px high; top 80px; width min(960px, viewport−24px)"
       },
       {
-        "name": "context-second-row",
-        "value": "650px"
+        "name": "dock-three-row",
+        "value": "<=650px; 3 rows, 152px high; top 80px; width viewport−24px"
       }
     ]
   },
@@ -213,7 +213,7 @@
     {
       "name": "Floating Tool Dock",
       "kind": "nav",
-      "description": "Signature solid white floating toolbar; the current-board chooser leads the dock, tools stay grouped, and compact layouts place the chooser, primary tools, and contextual controls in three rows.",
+      "description": "Signature solid white floating toolbar: fixed 960×56px at widths >=1200px; two rows at 651–1199px (104px high, top 80px); three rows at <=650px (152px high, top 80px). The current-board chooser leads the dock and tools stay grouped. Image insertion feedback is visible out of flow; its notice has 10px corners.",
       "html": "<div class=\"ds-dock\" role=\"group\" aria-label=\"\u0418\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u044b \u0434\u043e\u0441\u043a\u0438\"><button class=\"ds-dock-tool\" type=\"button\" aria-label=\"\u041f\u0435\u0440\u043e\" aria-pressed=\"true\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m14 4 6 6-9 9-7 1 1-7Z M11 7l6 6 M4 20l4-4\"/></svg></button><span class=\"ds-dock-divider\" aria-hidden=\"true\"></span><span class=\"ds-dock-readout\">3.0 <small>px</small></span></div>",
       "css": ".ds-dock{font-family:\"Segoe UI\",system-ui,sans-serif;display:inline-flex;align-items:center;gap:8px;height:56px;padding:8px;border-radius:12px;background:var(--paper,#fff);color:var(--ink,#182230);box-shadow:var(--chrome-shadow,0 3px 14px rgb(24 34 48 / 8%),0 1px 3px rgb(24 34 48 / 5%));}.ds-dock-tool{width:40px;height:40px;padding:0;border:0;border-radius:8px;display:grid;place-items:center;background:var(--control-selected-bg,#eaf1ff);color:var(--focus,#175cd3);cursor:pointer;}.ds-dock-tool svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}.ds-dock-tool:hover{background:var(--control-hover,#f1f4f8);}.ds-dock-tool:focus-visible{outline:2px solid var(--focus,#175cd3);outline-offset:3px;}.ds-dock-divider{width:1px;height:22px;margin:0 3px;background:var(--divider,#e0e5ec);}.ds-dock-readout{font-size:13px;font-variant-numeric:tabular-nums;}.ds-dock-readout small{font-size:11px;color:var(--text-muted,#526176);}",
       "refersTo": "floating-dock"
@@ -228,14 +228,14 @@
     {
       "name": "Context Panel",
       "kind": "card",
-      "description": "Solid white, softly elevated container for disclosed settings and actions, including the board library and selection menu.",
+      "description": "Solid white, softly elevated container for disclosed settings and selection actions. The board library is a separate left sidebar up to 360px wide with 16px corners, name search, scrollable preview/name rows with 5px preview corners, per-row rename/delete actions, and a creation form below the list. The protected delete dialog uses an 18px heading.",
       "html": "<section class=\"ds-panel\"><h2>\u041f\u0435\u0440\u043e</h2><p>\u0421\u0433\u043b\u0430\u0436\u0438\u0432\u0430\u0435\u0442 \u0434\u0432\u0438\u0436\u0435\u043d\u0438\u044f \u043f\u0435\u0440\u0430.<br>\u041f\u0440\u0438\u043c\u0435\u043d\u044f\u0435\u0442\u0441\u044f \u043a \u0441\u043b\u0435\u0434\u0443\u044e\u0449\u0435\u043c\u0443 \u0448\u0442\u0440\u0438\u0445\u0443.</p></section>",
       "css": ".ds-panel{font-family:\"Segoe UI\",system-ui,sans-serif;width:284px;padding:16px;border-radius:14px;color:var(--ink,#182230);background:var(--paper,#fff);box-shadow:var(--popover-shadow,0 6px 24px rgb(24 34 48 / 12%),0 1px 4px rgb(24 34 48 / 5%));}.ds-panel h2{margin:0 0 14px;font-size:14px;font-weight:600;}.ds-panel p{margin:0;color:var(--text-muted,#526176);font-size:12px;line-height:1.6;}"
     }
   ],
   "narrative": {
     "northStar": "The Writing-First Notebook",
-    "overview": "The owner-approved light writing editor uses a single centered dock for the current-board chooser, tools, history, status and settings, static branding, lower navigation and help. The board library and selection actions keep document management and direct resize/rotation controls close to the writing surface. Lucide icons share one weight; backgrounds and last-writing navigation are configurable and predictable.",
+    "overview": "The owner-approved light writing editor uses a stable dock for the current-board chooser, tools, history, status and settings, with static branding, lower navigation and help. The dock is fixed at 960×56px from 1200px upward, two rows and 104px high at 651–1199px, and three rows and 152px high at 650px and below. A left board-library sidebar provides name search, scrollable preview/name rows with per-row actions, and a creation form. Lucide icons share one weight; backgrounds and last-writing navigation are configurable and predictable.",
     "keyCharacteristics": [
       "Light writing field with a compact floating horizontal tool dock.",
       "Inline width, contextual stabilization and restrained peripheral controls.",

@@ -1,3 +1,4 @@
+import { BoardClipboard } from "./clipboard";
 import { BitmapCache, ImageInput } from "./images";
 import { NativeMinimap } from "./minimap";
 import { SelectionCommands, HistoryCommands, EditorControls } from "./commands";
@@ -246,9 +247,10 @@ function create(
       paintSelection();
 
       const state = {
+        insertion: imageInput.status,
         selected: selection.hasSelection,
         images: selection.selected.some((item) => item.kind === "image"),
-        clipboard: selection.hasClipboard,
+        clipboard: true,
         busy: selection.busy || selectionCommands.busy || imageInput.busy,
         message: selection.message,
         png: selectionCommands.hasPNG,
@@ -315,10 +317,7 @@ function create(
         return selection.insertItems(items);
       },
 
-      pasteFragment: () => selectionCommand("paste"),
-
       notice: (message) => {
-        readSettings().onNavigationNotice(message);
         selection.message = message;
         publishSelection();
       },
@@ -326,12 +325,25 @@ function create(
       changed: () => publishSelection(),
     });
 
-    const selectionCommands = SelectionCommands.create({
-      pendingInput: () => imageInput.busy,
+    const nativeClipboard = new BoardClipboard({
+      canvas,
+      selection,
+      images,
+      allowed: () =>
+        !disposed &&
+        !interactionsBlocked() &&
+        drawingPointerId() === null &&
+        navigation.pointerId === null &&
+        !selection.busy,
+      writable: canWrite,
+      insertImage: (blob) => imageInput.insertFile(blob),
+      activate: onActivateSelection,
+      changed: publishSelection,
+    });
 
-      pasteImage: () => {
-        void imageInput.readClipboard();
-      },
+    const selectionCommands = SelectionCommands.create({
+      clipboard: nativeClipboard,
+      pendingInput: () => imageInput.busy || nativeClipboard.busy,
 
       images,
       selection,
@@ -347,13 +359,14 @@ function create(
     const selectionCommand = selectionCommands.command;
 
     const historyCommands = HistoryCommands.create({
-      additionalBusy: () => imageInput.busy,
+      additionalBusy: () => imageInput.busy || nativeClipboard.busy,
       history,
       drawingPointerId,
       navigation,
       selection,
       canWrite,
-      interactionsBlocked: () => interactionsBlocked() || imageInput.busy,
+      interactionsBlocked: () =>
+        interactionsBlocked() || imageInput.busy || nativeClipboard.busy,
       renderer,
       onDocumentChange,
       onHistoryState,
@@ -370,9 +383,14 @@ function create(
 
     const surface = SurfaceBindings.bind({
       cancelPendingInput: () => {
-        if (interactionsBlocked() || !imageInput.busy) return false;
+        if (
+          interactionsBlocked() ||
+          (!imageInput.busy && !nativeClipboard.busy)
+        )
+          return false;
 
         imageInput.cancel();
+        nativeClipboard.cancel();
 
         return true;
       },
@@ -386,7 +404,8 @@ function create(
       selection,
       getTool,
       canWrite,
-      interactionsBlocked: () => interactionsBlocked() || imageInput.busy,
+      interactionsBlocked: () =>
+        interactionsBlocked() || imageInput.busy || nativeClipboard.busy,
       drawingPointerId,
       activeInput,
       observeInput: diagnostics.observe,
@@ -398,6 +417,7 @@ function create(
 
     api.cancel = () => {
       imageInput.cancel();
+      nativeClipboard.cancel();
       surface.cancel();
     };
 
@@ -426,15 +446,19 @@ function create(
 
       if (!canWrite() || interactionsBlocked()) imageInput.cancel();
 
+      if (interactionsBlocked()) nativeClipboard.cancel();
+      else nativeClipboard.permissionChanged();
+
       surface.refresh();
       minimap?.setOpen(readSettings().minimapOpen);
     };
 
     controlsRef.current = EditorControls.create({
-      pendingInput: () => imageInput.busy,
+      pendingInput: () => imageInput.busy || nativeClipboard.busy,
       canvas,
       navigation,
-      interactionsBlocked: () => interactionsBlocked() || imageInput.busy,
+      interactionsBlocked: () =>
+        interactionsBlocked() || imageInput.busy || nativeClipboard.busy,
       selection,
       drawingPointerId,
       scene,
@@ -445,6 +469,7 @@ function create(
       applyHistory,
       surface,
       insertImage: imageInput.open,
+      dismissInsertion: imageInput.dismiss,
       lastWritingView: () => lastWritingView,
       notice: (message) => readSettings().onNavigationNotice(message),
     });

@@ -9,3 +9,4 @@ export type { CursorMode, CursorBounds, CursorPresentation } from "./cursor";
 export { SurfaceResolution } from "./surface-resolution";
 export { SurfacePresenters } from "./surface-presenters";
 export { SurfaceDiagnostics } from "./surface-diagnostics";
+export { BoardThumbnail } from "./thumbnail";

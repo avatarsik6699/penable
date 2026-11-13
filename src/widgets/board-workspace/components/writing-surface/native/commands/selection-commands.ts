@@ -1,5 +1,4 @@
 import type { SelectionCommand } from "../../../../model/workspace-model.types";
-import { BoardPNG } from "../rendering";
 import type { EditorCommandTypes } from "./editor-commands.types";
 
 function create(options: EditorCommandTypes.SelectionOptions) {
@@ -11,14 +10,7 @@ function create(options: EditorCommandTypes.SelectionOptions) {
     interactionsBlocked,
     cancel,
     onActivateSelection,
-    publishSelection,
   } = options;
-
-  let disposed = false,
-    pngBusy = false,
-    pngGeneration = 0;
-
-  let pngBlob: Blob | null = null;
 
   const command = (command: SelectionCommand) => {
     if (
@@ -36,80 +28,38 @@ function create(options: EditorCommandTypes.SelectionOptions) {
       return;
     }
 
-    if (selection.busy) return;
+    if (selection.busy || options.clipboard.busy) return;
 
     if (["all", "paste", "duplicate"].includes(command)) onActivateSelection();
 
     if (command === "all") selection.all();
 
-    if (command === "copy") selection.copy();
+    if (command === "copy") void options.clipboard.copy(false);
 
-    if (command === "cut") selection.remove(true);
+    if (command === "cut") void options.clipboard.copy(true);
 
     if (command === "delete") selection.remove();
 
-    if (command === "paste") selection.insert();
+    if (command === "paste") void options.clipboard.paste();
 
     if (command === "crop") selection.cropImages();
 
-    if (command === "paste-image") options.pasteImage?.();
-
     if (command === "duplicate") selection.insert(true);
 
-    if (command === "download" && pngBlob) BoardPNG.downloadPNG(pngBlob);
-
-    if (command === "image" && selection.hasSelection && !pngBusy) {
-      pngBusy = true;
-      publishSelection();
-
-      const generation = ++pngGeneration;
-
-      const promise = BoardPNG.selectionPNG(
-        selection.selected,
-        selection.outline,
-        options.images,
-      );
-
-      // Invoke the clipboard API in the user gesture, passing a deferred PNG Blob.
-      const clipboard = BoardPNG.writePNG(promise);
-
-      void Promise.allSettled([promise, clipboard]).then(
-        ([result, written]) => {
-          if (disposed || generation !== pngGeneration) return;
-
-          pngBusy = false;
-
-          if (result.status === "fulfilled") pngBlob = result.value;
-
-          selection.message =
-            result.status === "rejected"
-              ? String(
-                  result.reason instanceof Error
-                    ? result.reason.message
-                    : result.reason,
-                )
-              : written.status === "fulfilled"
-                ? "PNG передан в системный буфер."
-                : "Не удалось записать PNG в системный буфер. Откройте «Действия» → «Скачать PNG».";
-
-          publishSelection();
-        },
-      );
-    }
+    if (command === "download") void options.clipboard.download();
   };
 
   return {
     command,
     get busy() {
-      return pngBusy;
+      return options.clipboard.busy;
     },
     get hasPNG() {
-      return pngBlob !== null;
+      return selection.hasSelection;
     },
 
     dispose() {
-      disposed = true;
-      pngGeneration++;
+      options.clipboard.dispose();
     },
   };
 }

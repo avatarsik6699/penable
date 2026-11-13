@@ -25,7 +25,7 @@ export namespace EditorCommandTypes {
 
   export type SelectionOptions = Omit<Interaction, "drawingPointerId"> & {
     pendingInput?: () => boolean;
-    pasteImage?: () => void;
+    clipboard: import("../clipboard").BoardClipboard;
     images?: import("../images").BitmapCache;
     input: PenInput;
     eraser: EraserInput;
@@ -47,6 +47,7 @@ export namespace EditorCommandTypes {
   export type ControlsOptions = Interaction & {
     pendingInput?: () => boolean;
     insertImage: () => void;
+    dismissInsertion: () => void;
     canvas: HTMLCanvasElement;
     scene: Scene;
     state: { viewport: Viewport };

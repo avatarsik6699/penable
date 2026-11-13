@@ -17,21 +17,6 @@
   display: grid;
   place-items: center;
 }
-.feedback {
-  position: fixed;
-  bottom: 84px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(440px, calc(100vw - 32px));
-  padding: 11px 16px;
-  margin: 0;
-  color: var(--ink);
-  background: var(--paper);
-  box-shadow: var(--popover-shadow);
-  border-radius: 8px;
-  font-size: 12px;
-  line-height: 1.5;
-}
 @media (max-width: 520px) {
   .toolbar {
     width: 100%;

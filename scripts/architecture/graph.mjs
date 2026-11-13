@@ -1,7 +1,13 @@
 import ts from "typescript";
 import path from "node:path";
 import { imports, resolveImport, visit } from "./ast.mjs";
-import { isolatedLayers, isTest, layers } from "./policy.mjs";
+import {
+  additionalPublicEntries,
+  isolatedLayers,
+  isTest,
+  layers,
+  canvasWorkerProfiles,
+} from "./policy.mjs";
 import { checkModuleImport, isUiExecution, moduleRoots } from "./modules.mjs";
 
 export function owner(file) {
@@ -225,7 +231,10 @@ export function checkGraph(context, files, root, report) {
             "Compose independent slices in the layer above.",
           );
 
-        if (target !== `${toOwner}/index.ts`)
+        if (
+          target !== `${toOwner}/index.ts` &&
+          !additionalPublicEntries[toOwner]?.includes(target)
+        )
           report(
             file,
             entry.node,
@@ -270,9 +279,12 @@ export function checkGraph(context, files, root, report) {
   for (const file of graph.keys()) walk(file);
 
   const workerFiles = new Set();
+  const workerCanvasCandidates = new Set();
+  const workerCanvasDenied = new Set();
 
   for (const worker of workerRoots) {
     const reachable = new Set();
+    const rasterFiles = canvasWorkerProfiles[worker.target];
 
     const traverse = (file) => {
       if (reachable.has(file)) return;
@@ -280,7 +292,10 @@ export function checkGraph(context, files, root, report) {
       reachable.add(file);
       workerFiles.add(file);
 
-      if (isUiExecution(file))
+      if (rasterFiles?.has(file)) workerCanvasCandidates.add(file);
+      else workerCanvasDenied.add(file);
+
+      if (isUiExecution(file) && !rasterFiles?.has(file))
         report(
           worker.file,
           worker.node,
@@ -350,5 +365,9 @@ export function checkGraph(context, files, root, report) {
   for (const file of graph.keys())
     if (file.startsWith("src/entities/")) visitEntityDependency(file);
 
-  return { graph, workerFiles, entityFiles };
+  const workerCanvasFiles = new Set(
+    [...workerCanvasCandidates].filter((file) => !workerCanvasDenied.has(file)),
+  );
+
+  return { graph, workerFiles, workerCanvasFiles, entityFiles };
 }

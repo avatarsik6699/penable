@@ -21,6 +21,7 @@ export const PenToolbar: React.FC<PenToolbarTypes.Props> = (props) => {
       role="group"
       aria-label="Инструменты доски"
       data-editor-chrome=""
+      data-editor-dock=""
     >
       <div className={styles.library}>{props.leadingControls}</div>
       <div className={styles.primary}>
@@ -64,6 +65,35 @@ export const PenToolbar: React.FC<PenToolbarTypes.Props> = (props) => {
           props.selectionControls
         )}
       </div>
+      {props.insertion?.message && (
+        <div
+          className={styles.insertionNotice}
+          role={props.insertion.phase === "error" ? "alert" : "status"}
+        >
+          <span>{props.insertion.message}</span>
+          {["error", "success"].includes(props.insertion.phase) && (
+            <Button
+              className={styles.dismissNotice}
+              aria-label="Закрыть сообщение о вставке"
+              onClick={props.onDismissInsertion}
+            >
+              <EditorIcon name="close" />
+            </Button>
+          )}
+          {props.insertion.phase === "error" && (
+            <Button onClick={props.onInsertImage} disabled={props.readOnly}>
+              Повторить
+            </Button>
+          )}
+        </div>
+      )}
+      {props.selectionMessage &&
+        !props.selectionOpen &&
+        props.selectionMessage !== props.insertion?.message && (
+          <p className={styles.feedback} role="status">
+            {props.selectionMessage}
+          </p>
+        )}
       <div className={styles.trailing}>{props.trailingControls}</div>
       {props.penOpen && (
         <PenSettings

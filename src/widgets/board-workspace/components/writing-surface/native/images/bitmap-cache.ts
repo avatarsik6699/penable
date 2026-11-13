@@ -1,6 +1,6 @@
 import type { ImageAsset, BoardItem } from "~/entities/board";
 import type { BitmapCacheTypes } from "./bitmap-cache.types";
-import { ImageAssets } from "~/features/board-document";
+import { ImageAssets } from "~/features/board-document/worker";
 
 export class BitmapCache {
   private entries = new Map<ImageAsset, BitmapCacheTypes.Entry>();

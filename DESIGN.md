@@ -41,6 +41,10 @@ rounded:
   control: "8px"
   chrome: "12px"
   popover: "14px"
+  delete-dialog: "14px"
+  insertion-notice: "10px"
+  library-sidebar: "16px"
+  library-preview: "5px"
 spacing:
   xs: "4px"
   sm: "8px"
@@ -101,17 +105,17 @@ The board fills the viewport; all chrome and panels are out of flow. Opening pan
 Desktop layouts at 1440×900 and 1280×720 place one dock top-center, static brand top-left,
 zoom/return/minimap bottom-right and Help bottom-left. Tools, history, contextual controls and
 save status/settings share that dock; no separate top-right status pill remains.
-The dock starts 16px from the top; at widths up to900px it moves below the brand to80px.
-At widths up to650px, contextual controls wrap beneath primary tools and status/settings.
-The 390px layout retains all tools. In the compact layout, the current-board chooser spans
-the first dock row, primary tools occupy the second, and contextual controls plus status/settings
-share the third. The current board name truncates only when space requires it. Settings align
-beneath the right edge of the dock.
+At widths of 1200px and above, the dock is fixed at 960×56px and centered 16px from the top.
+From 651px through 1199px, it is up to960px wide, sits80px from the top, and uses two rows
+within a 104px dock. At 650px and below, it uses three rows in a 152px dock, with 40px controls
+and viewport width minus 24px. The current-board chooser leads the dock; the current board name
+truncates only when space requires it. Context and status/settings stay in their reserved areas.
 
 Panels constrain width to the viewport and scroll internally with contained overscroll, using the
 space available below the dock so a tall selection menu remains reachable on short screens. The
-board library is a white popover up to 380px wide with a bounded, independently scrolling board
-list; its creation form remains below the list. No separate mobile drawing behavior is introduced.
+board library is a left sidebar up to 360px wide, with a heading and close control, name search,
+scrollable preview/name rows with per-row actions, and a creation form below the list. At narrow
+widths it uses the available width beneath the dock. No separate mobile drawing behavior is introduced.
 
 ## Elevation & Depth
 
@@ -130,11 +134,11 @@ handles expose direct manipulation rather than decoration.
 ## Components
 
 **Tool dock.** Pen, whole-stroke eraser, selection and history share one group. Width stays inline for Pen; clicking the selected Pen again opens stabilization. Selected state uses both shape/background and blue color.
-**Board library.** The current-board chooser sits at the leading edge of the dock and opens a compact board list. The active row uses the existing selected treatment; each row exposes rename and delete controls, and a final form creates a board. Deletion uses a protected confirmation dialog that names the board and warns that local copies will be removed. The modal heading is 18px, a deliberate dialog-specific hierarchy role alongside the 14px contextual-panel title.
+**Board library.** The current-board chooser sits at the leading edge of the dock and opens a left sidebar up to 360px wide, with 16px corners. It has a heading and close control, name search, independently scrolling preview/name rows with 5px preview corners, per-row rename/delete actions, and a creation form below the list. The active row uses the existing selected treatment. Deletion uses a protected confirmation dialog that names the board and warns that local copies will be removed. The dialog has 14px corners and its heading is 18px, a deliberate dialog-specific hierarchy role alongside the 14px contextual-panel title.
 **Contextual panels.** One workspace-owned main panel opens at a time: board, save, pen, selection or Help. Outside interaction dismisses; Escape closes and returns focus to the persistent trigger. Opening a nonmodal panel preserves pending selection validation.
 **Pinned diagnostics.** Help can open diagnostics as a separate pinned region. Writing leaves it visible; opening another main panel replaces it. Explicit close or Escape returns focus to Help; Actions and diagnostics retain their required Escape input-cancellation behavior.
 **Document controls.** Brand is static. Settings gear in the dock opens one panel: View contains background mode, contrast and spacing; Files and copies contains unique import/export/recovery/retry controls. The adjacent status dot opens Files. Green means saved, amber pending, gray loading/read-only, red error; hover and accessible descriptions name every status, and errors also retain visible text. Import remains a true modal dialog with protected focus.
-**Selection actions.** Rectangle/lasso remain inline; actions disclose a vertical icon-and-label list with shortcut hints. Resize and rotation handles act directly on the selection. The Transform section also exposes numeric width and height percentages plus an angle in degrees, followed by an apply action. The image-insert control is 40×40px and accepts PNG and JPEG; the selection menu also exposes image copy and PNG download. Busy/read-only/clipboard availability controls disabled state, and feedback remains visible without changing canvas dimensions.
+**Selection actions.** Rectangle/lasso remain inline; actions disclose a vertical icon-and-label list with shortcut hints. Resize and rotation handles act directly on the selection. The Transform section also exposes numeric width and height percentages plus an angle in degrees, followed by an apply action. The image-insert control is 40×40px and accepts PNG and JPEG; its insertion notice has 10px corners. Ordinary Copy/Paste negotiate editable board content and images, with PNG download for a selected region. There are no separate image-copy or image-paste commands. Choosing, processing, success, and error feedback remains visible without changing canvas dimensions.
 **Navigation and fields.** Bottom-right zoom/return/minimap uses stable tabular readouts. Percentage resets zoom around the current center; return restores the last completed pen working view. The collapsible minimap stays visible while writing, uses occupancy plus viewport outline, and holds the secondary fit-all action. Background contrast/spacing share immediate world-anchored settings for dots/grid. Ranges have a 40px interaction height, a thin neutral track and accent thumb. Keyboard focus is an accent outline with a 3px offset.
 **Motion.** Button color/background changes use 100ms ease only when reduced motion is not requested; the writing surface has no decorative entrance animation.
 

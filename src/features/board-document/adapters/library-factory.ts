@@ -1,3 +1,4 @@
+import { PreviewLoader } from "./preview-loader";
 import { ImagePreflight } from "./image-preflight";
 import { BoardLibrarySession } from "../modules/library";
 import type { LibraryOptions } from "../modules/library";
@@ -10,11 +11,12 @@ import { LibraryRepositoryAdapter } from "./library-indexeddb";
 function create(
   options: Pick<
     LibraryOptions,
-    "snapshot" | "onHydrate" | "onState" | "onLibrary"
+    "snapshot" | "onHydrate" | "onState" | "onLibrary" | "preview"
   >,
 ): BoardLibrarySession {
   return new BoardLibrarySession({
     ...options,
+    previewLoad: PreviewLoader.load,
     preflight: ImagePreflight.validate,
     acquire: DocumentWriterLease.acquireWriterLease,
     open: LibraryRepositoryAdapter.open,

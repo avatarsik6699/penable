@@ -61,9 +61,22 @@ export function checkFiles(
     }
   }
 
-  const { workerFiles, entityFiles } = checkGraph(context, files, root, report);
+  const { workerFiles, workerCanvasFiles, entityFiles } = checkGraph(
+    context,
+    files,
+    root,
+    report,
+  );
 
-  checkPlatform(context, owners, workerFiles, entityFiles, report);
+  checkPlatform(
+    context,
+    owners,
+    workerFiles,
+    entityFiles,
+    report,
+    workerCanvasFiles,
+  );
+
   checkShape(context, files, report);
   checkE2e(context, report);
 

@@ -56,8 +56,6 @@ function setup(
       allowed: () => true,
       insert,
 
-      pasteFragment: () => {},
-
       notice,
 
       changed: () => {},
@@ -65,6 +63,7 @@ function setup(
 
   return {
     input,
+    nativeInput,
     cache,
     claim,
     notice,
@@ -77,6 +76,83 @@ function setup(
 afterEach(() => vi.unstubAllGlobals());
 
 describe("pending image insertion ownership", () => {
+  it("keeps decode alive across picker blur, reports choosing/cancel, and accepts the same file again", async () => {
+    const decoded = deferred<ImageBitmap>(),
+      started = deferred<void>(),
+      insert = vi.fn();
+
+    vi.stubGlobal("createImageBitmap", () => {
+      started.resolve();
+
+      return decoded.promise;
+    });
+
+    const h = setup(undefined, insert);
+
+    h.input.open();
+    expect(h.input.status.phase).toBe("choosing");
+    expect(h.input.busy).toBe(true);
+    h.nativeInput.dispatchEvent(new Event("cancel"));
+    expect(h.input.status.phase).toBe("idle");
+    expect(h.input.busy).toBe(false);
+    h.input.open();
+
+    const pending = h.input.insertFile(h.file);
+
+    await started.promise;
+    window.dispatchEvent(new Event("blur"));
+    expect(h.input.busy).toBe(true);
+
+    decoded.resolve({
+      width: 1,
+      height: 1,
+      close: vi.fn(),
+    } as unknown as ImageBitmap);
+
+    await pending;
+    expect(insert).toHaveBeenCalledOnce();
+    expect(h.input.status.phase).toBe("success");
+    await h.input.insertFile(h.file);
+    expect(insert).toHaveBeenCalledTimes(2);
+    h.input.dispose();
+    h.cache.dispose();
+  });
+
+  it("failed files report a retryable error without inserting", async () => {
+    const insert = vi.fn(),
+      h = setup(undefined, insert);
+
+    await h.input.insertFile(new Blob(["broken"]));
+    expect(insert).not.toHaveBeenCalled();
+    expect(h.input.status.phase).toBe("error");
+    expect(h.input.busy).toBe(false);
+    h.input.dispose();
+    h.cache.dispose();
+  });
+
+  it("ends a rejected atomic insertion with retryable error and releases temporary bitmap", async () => {
+    const close = vi.fn(),
+      insert = vi.fn(async () => false);
+
+    vi.stubGlobal("createImageBitmap", async () => ({
+      width: 1,
+      height: 1,
+      close,
+    }));
+
+    const h = setup(undefined, insert);
+
+    await h.input.insertFile(h.file);
+    expect(h.input.busy).toBe(false);
+    expect(h.input.status.phase).toBe("error");
+    expect(h.input.status.message).toContain("Повторите");
+    expect(close).toHaveBeenCalledOnce();
+    h.input.dismiss();
+    expect(h.input.status.phase).toBe("idle");
+    h.input.dispose();
+    h.cache.dispose();
+  });
+
   it("closes a canceled delayed decode exactly once without inserting or keeping its bitmap", async () => {
     const started = deferred<void>(),
       decoded = deferred<ImageBitmap>(),

@@ -817,3 +817,88 @@ images/transform/minimap must avoid attributable>=50ms LongTasks. Explicit impor
 costs are measured separately. Final independent source/security/visual review and Full Gate precede
 local ship. Physical Wacom and real OS clipboard remain the owner's final manual acceptance.
 No release/deploy in this change without a separate instruction.
+
+## 5.17 Editor UX and unified clipboard (Change18)
+
+Owner approved the Change18 plan: immediate visible image insertion, a left board library,
+ordinary system clipboard between boards and a stable top dock. This refines5.16 without new
+document/catalog schema, dependencies, routes or per-board transfer transactions. Ctrl+C/X,
+switch board, Ctrl+V is the complete journey; no transfer picker/receipt/global undo.
+
+**Images.** PNG/JPEG from the toolbar appears immediately after successful processing, centered
+in the visible usable canvas area and fitted wholly inside it without enlargement. Select the
+inserted image, retain transform handles and expose a concise move/resize hint. File/drop/paste
+share validation/decode/commit. Show choosing/processing/success/error feedback in an accessible
+out-of-flow area near the insertion trigger; native picker cancel returns to idle without an
+error. Retry and choosing the same file twice work. Separate picker/change/cancel from window
+blur: temporary focus loss cannot silently discard asynchronous file reading/decode/validation.
+Esc, editor disposal/replacement and loss of writable authority cancel pending work safely.
+Existing pointer gesture blur cancellation remains intact. Errors cannot change scene/history.
+Insertion is atomic and undoable; one native event creates one item. Drop uses its world point.
+
+**System clipboard.** One native adapter owns menu and Ctrl/Meta+C/X/V. Preserve editable ink,
+partial-selection whitespace/masks, affine geometry and embedded images in a bounded strict
+versioned Penable fragment payload; publish a PNG representation for external applications in
+the same ClipboardItem where supported. Fragment codec belongs to board-document; entity
+selection exposes pure capture/insert/remove primitives. Native browser/Blob/clipboard/raster
+work stays in widget native owners. Reuse chunked jobs for heavy serialization/validation; no
+large JSON/base64 conversion in a keyboard handler. Source/cut capture is generation guarded.
+
+Clipboard input prefers a valid Penable representation, then PNG/JPEG. An invalid own format
+shows an error rather than silently changing geometry. New external clipboard content must
+never fall back to stale tab memory. Ordinary native paste can consume an image from its event
+when the async API is absent and no own format is detectable. Explicit read denial fails closed
+because Chrome may hide the editable representation behind that event's PNG; permission/unsupported/empty/text feedback is
+explicit and the document remains unchanged. Do not add text objects, HTML/SVG/URL ingestion,
+background clipboard reads, permission bypass or automatic lossy vector fallback. Target is
+current Chrome on Windows11/localhost or HTTPS. If editable write is unavailable, explain the
+failure and retain the original. A cut removes source only after successful clipboard write
+and source-removal validation; failed removal leaves a copied fragment and clear feedback.
+Paste places a fragment at the current view center preserving relative world scale/order,
+allocates safe IDs/lineage, deduplicates assets, validates before commit and selects the result.
+
+Keyboard/menu clipboard use the same operation state and coarse busy/status projection, no
+scene in React. Text inputs/dialogs keep native editing shortcuts. Repeated/pending/disposed
+operations cannot double-insert or remove stale selections. Copy remains allowed read-only;
+cut/paste remain guarded. Remove the duplicate Copy Image and Paste Image actions: ordinary
+Copy/Paste perform format negotiation. PNG download directly exports a selected region without
+requiring a previous copy. Single-board history retains its existing behavior: cut and paste
+are separate ordinary undoable edits; switch/reload still establish the existing baseline.
+
+**Library.** The dock chooser toggles a left out-of-flow sidebar with a heading/close control,
+name search, create action, preview/name rows and per-row context menu (rename/delete). Show
+active board clearly. Keep protected deletion/last-board guard, flush-or-fail switching and
+per-board settings/recovery. Creation focuses a name field; default names avoid accidental
+duplicates, explicit names retain existing80-character policy. Loading/empty/no-results/error,
+busy/read-only/long names and keyboard focus paths are complete. Search is catalog-only and
+does not load every board. Opening the sidebar never resizes/remounts/recenters the canvas;
+other main panels replace it. It uses available screen height; narrow layout uses available
+width beneath the dock. Preserve brand/lower navigation and the existing system type/Lucide.
+
+Previews are derived, not persisted: fixed256×160 or smaller raster, only visible rows, one
+queued job at a time, bounded LRU (up to32previews/8MiB encoded) and placeholder on miss/error.
+Feature owns catalog/document loading/cache lifetime; widget injects a narrow native thumbnail
+render port rather than feature importing a widget. Do not eagerly decode100boards, create
+full-size PNGs for downsizing, block writing or retain temporary decoded images/URLs. Render
+last meaningful writing view when present, otherwise saved view/content fallback. Content
+edit/import/delete invalidates that board's preview; close/dispose cancels pending jobs and
+late results cannot attach to another board. Preview failure never prevents a document save.
+Serialize/drain library-owned work before releasing the origin lease.
+
+**Dock.** At widths>=1200 use a960px centered dock,56px high, with fixed leading/tool/context/
+status column allocation. At651–1199 use min(960px,viewport−24px), below branding, two stable
+rows; at<=650 retain three stable rows with40px controls and viewport−24px width. Heights and
+all permanent button positions stay invariant when switching Pen/Eraser/Selection or changing
+board title/status. Context changes only inside its reserved area. Long names truncate; notices
+and popovers remain out of flow. Narrow/short panels retain reachable final actions. Canvas
+identity, viewport, backing allocation and note coordinates do not change from a disclosure.
+
+**Acceptance.** Preserve524unit/31E2E behavioral coverage and672native raster comparisons. Add
+native picker focus/cancel/retry and delayed decode cases; clipboard editable/mixed/partial,
+cross-board/reload, external image, denial/unsupported/corrupt/large payload, stale selection,
+single insertion and cut preservation; library lazy queue/LRU/disposal/failures/long titles and
+dock geometry across tools at1440/1280/1000/768/650/390 and short screens. Native ordinary input
+with a sidebar/thumbnail/image job must avoid attributable>=50ms tasks; explicit initial decode
+is separate. Existing engine first3 valid warmed pairs and20% CPU budgets apply. Independent
+source/security and bounded visual finish precede Full Gate and automatic local ship. Native
+OS picker/clipboard and physical pen limits are reported honestly. No release without request.

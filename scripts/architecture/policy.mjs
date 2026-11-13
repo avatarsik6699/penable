@@ -1,5 +1,49 @@
 // Exact execution owners. New browser capabilities require an explicit policy change.
 export const platformOwners = {
+  "src/features/board-document/modules/jobs/document-jobs.ts": ["files"],
+  "src/features/board-document/modules/jobs/jobs-protocol.ts": ["files"],
+  "src/features/board-document/modules/library/library.types.ts": ["files"],
+  "src/features/board-document/modules/previews/board-previews.types.ts": [
+    "files",
+  ],
+  "src/features/board-document/adapters/fragment-reader.ts": [
+    "worker",
+    "url",
+    "files",
+    "messaging",
+  ],
+  "src/features/board-document/adapters/fragment-reader.types.ts": [
+    "messaging",
+  ],
+  "src/features/board-document/adapters/fragment-reader-worker.ts": [
+    "worker-scope",
+    "messaging",
+    "files",
+  ],
+  "src/features/board-document/adapters/preview-loader.ts": [
+    "worker",
+    "url",
+    "files",
+    "messaging",
+  ],
+  "src/features/board-document/adapters/preview-loader-worker.ts": [
+    "worker-scope",
+    "messaging",
+    "files",
+  ],
+  "src/features/board-document/adapters/preview-visibility.ts": ["dom"],
+  "src/widgets/board-workspace/components/writing-surface/native/clipboard/board-clipboard.ts":
+    ["dom", "clipboard", "files"],
+  "src/widgets/board-workspace/components/writing-surface/native/clipboard/board-clipboard.types.ts":
+    ["dom", "files"],
+  "src/widgets/board-workspace/components/writing-surface/native/rendering/thumbnail.ts":
+    ["worker", "url", "files", "messaging"],
+  "src/widgets/board-workspace/components/writing-surface/native/rendering/thumbnail-worker.ts":
+    ["canvas", "worker-scope", "messaging", "files"],
+  "src/widgets/board-workspace/components/writing-surface/native/rendering/raster-job.ts":
+    ["worker", "url", "files", "messaging"],
+  "src/widgets/board-workspace/components/writing-surface/native/rendering/rendering-context.types.ts":
+    ["canvas"],
   "src/features/board-document/adapters/library-indexeddb.ts": ["storage"],
   "src/features/board-document/adapters/library-factory.ts": ["dom"],
   "src/features/board-document/adapters/image-preflight.ts": [
@@ -76,6 +120,7 @@ export const platformOwners = {
   "src/features/board-document/modules/jobs/jobs-worker.ts": [
     "worker-scope",
     "messaging",
+    "files",
   ],
   "src/widgets/board-workspace/components/writing-surface/native/minimap/minimap.ts":
     ["dom", "timers"],
@@ -85,6 +130,38 @@ export const platformOwners = {
     ["dom"],
   "src/shared/lib/task-clock/task-clock.ts": ["timers"],
   "src/shared/lib/overlay/overlay.ts": ["dom"],
+};
+
+// These are explicit secondary public APIs, never blanket access to private files.
+export const additionalPublicEntries = {
+  "src/features/board-document": ["src/features/board-document/worker.ts"],
+  "src/widgets/board-workspace/components/writing-surface/native/images": [
+    "src/widgets/board-workspace/components/writing-surface/native/images/worker.ts",
+  ],
+};
+
+const rasterBase =
+  "src/widgets/board-workspace/components/writing-surface/native";
+
+const rasterDependencies = [
+  `${rasterBase}/rendering/paint.ts`,
+  `${rasterBase}/rendering/path-cache.ts`,
+  `${rasterBase}/rendering/png-dimensions.ts`,
+  `${rasterBase}/rendering/rendering-context.types.ts`,
+  `${rasterBase}/images/worker.ts`,
+  `${rasterBase}/images/bitmap-cache.ts`,
+  `${rasterBase}/images/bitmap-cache.types.ts`,
+];
+
+// Each execution root approves only its exact native raster closure. Ordinary
+// document workers cannot gain Canvas by importing an otherwise approved painter.
+const rasterRoot = `${rasterBase}/rendering/thumbnail-worker.ts`;
+
+export const canvasWorkerProfiles = {
+  [rasterRoot]: new Set([rasterRoot, ...rasterDependencies]),
+  "src/features/board-document/adapters/fragment-reader-worker.ts": new Set([
+    "src/features/board-document/adapters/image-preflight.ts",
+  ]),
 };
 
 export const layers = ["app", "widgets", "features", "entities", "shared"];

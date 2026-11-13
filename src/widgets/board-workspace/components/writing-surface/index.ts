@@ -17,3 +17,5 @@ export type {
   CursorBounds,
   CursorPresentation,
 } from "./native";
+
+export { BoardThumbnail } from "./native";

@@ -42,3 +42,7 @@ export type {
 } from "./modules/library";
 export { BoardLibraries } from "./adapters/library-factory";
 export { BoardLibrary } from "./components/board-library";
+
+export { FragmentCodec } from "./modules/fragments";
+export { FragmentReader } from "./adapters/fragment-reader";
+export type { BoardPreviewsTypes } from "./modules/previews";

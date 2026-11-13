@@ -1,5 +1,6 @@
 import { test as base, expect, type Page } from "@playwright/test";
 import { BoardTransformPage } from "./pages/board-transform-page";
+import { BoardClipboardPage } from "./pages/board-clipboard-page";
 import { BoardImagePage } from "./pages/board-image-page";
 import { BoardLibraryPage } from "./pages/board-library-page";
 import { testImageFiles, type TestImageTypes } from "./data/image-files";
@@ -115,6 +116,9 @@ type Samples = {
 };
 
 type Fixtures = {
+  clipboardAccess: void;
+  clipboard: BoardClipboardPage;
+  clipboardFailure: BoardClipboardPage;
   transforms: BoardTransformPage;
   images: TestImageTypes.Files;
   imageBoard: BoardImagePage;
@@ -146,6 +150,73 @@ type Fixtures = {
 };
 
 export const test = base.extend<Fixtures>({
+  clipboardAccess: [
+    async ({ context }, use) => {
+      await context.grantPermissions(["clipboard-read", "clipboard-write"], {
+        origin: "http://127.0.0.1:4185",
+      });
+
+      await use();
+    },
+    { auto: true },
+  ],
+
+  clipboard: async ({ page, board }, use) => {
+    await use(new BoardClipboardPage(page, board));
+  },
+
+  clipboardFailure: async ({ page }, use) => {
+    await page.addInitScript(() => {
+      const native = navigator.clipboard;
+
+      let mode = "none";
+
+      Object.defineProperty(window, "__clipboardFault18", {
+        get: () => mode,
+
+        set: (next: string) => {
+          mode = next;
+        },
+      });
+
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        get: () =>
+          mode === "unavailable"
+            ? undefined
+            : {
+                read: () =>
+                  mode === "read-denied"
+                    ? Promise.reject(
+                        new DOMException("Test read denied", "NotAllowedError"),
+                      )
+                    : native.read(),
+                write: (items: ClipboardItem[]) =>
+                  mode === "write-denied"
+                    ? Promise.reject(
+                        new DOMException(
+                          "Test write denied",
+                          "NotAllowedError",
+                        ),
+                      )
+                    : native.write(items),
+                writeText: (value: string) => native.writeText(value),
+                readText: () => native.readText(),
+              },
+      });
+    });
+
+    const verify = monitor(page),
+      board = new BoardPage(page, new StoragePage(page));
+
+    try {
+      await board.open();
+      await use(new BoardClipboardPage(page, board));
+    } finally {
+      verify();
+    }
+  },
+
   transforms: async ({ page, board }, use) => {
     await use(new BoardTransformPage(page, board));
   },

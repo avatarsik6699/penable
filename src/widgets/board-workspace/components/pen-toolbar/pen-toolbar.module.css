@@ -2,41 +2,41 @@
   position: absolute;
   z-index: 4;
   top: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  min-height: 56px;
-  width: max-content;
-  max-width: calc(100% - 24px);
+  left: max(12px, calc((100% - 960px) / 2));
+  width: 960px;
+  height: 56px;
   padding: 8px;
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 228px 283px 1fr 89px;
+  grid-template-rows: 40px;
   align-items: center;
   gap: 8px;
   background: var(--paper);
   border-radius: 12px;
   box-shadow: var(--chrome-shadow);
 }
-
+.library {
+  display: flex;
+  min-width: 0;
+}
 .primary {
   display: flex;
-  flex-shrink: 0;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 }
-
 .context,
 .trailing {
   display: flex;
   align-items: center;
+  min-width: 0;
+  height: 40px;
   border-left: 1px solid var(--divider);
   padding-left: 8px;
 }
-
 .trailing {
-  margin-left: auto;
-  flex-shrink: 0;
+  justify-content: flex-end;
 }
-
 .divider {
   flex-shrink: 0;
   width: 1px;
@@ -44,23 +44,11 @@
   background: var(--divider);
   margin: 0 3px;
 }
-
 .eraser {
   width: 178px;
   padding: 0 10px;
   font-size: 13px;
   color: var(--text-muted);
-}
-
-@media (max-width: 900px) {
-  .dock {
-    top: 80px;
-  }
-}
-
-.library {
-  display: flex;
-  min-width: 0;
 }
 .imageInsert {
   display: inline-flex;
@@ -71,51 +59,129 @@
   padding: 0;
   flex-shrink: 0;
 }
-
-@media (max-width: 650px) {
+.insertionNotice {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 244px;
+  z-index: 5;
+  width: min(360px, calc(100vw - 48px));
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-radius: 10px;
+  background: var(--paper);
+  box-shadow: var(--popover-shadow);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.insertionNotice button {
+  align-self: flex-start;
+}
+@media (max-width: 1199px) {
   .dock {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    top: 80px;
+    left: 12px;
     width: calc(100% - 24px);
-    gap: 8px;
+    max-width: 960px;
+    height: 104px;
+    grid-template-columns: minmax(0, 1fr) 283px 89px;
+    grid-template-rows: 40px 40px;
   }
   .library {
-    grid-column: 1 / -1;
-    width: 100%;
+    grid-column: 1;
+    grid-row: 1;
   }
   .primary {
-    grid-column: 1 / -1;
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .trailing {
+    grid-column: 3;
+    grid-row: 1;
+  }
+  .context {
+    grid-column: 1/-1;
+    grid-row: 2;
+    justify-content: center;
+    border-left: 0;
+    padding-left: 0;
+  }
+  .insertionNotice {
+    left: auto;
+    right: 100px;
+  }
+}
+@media (min-width: 984px) and (max-width: 1199px) {
+  .dock {
+    left: calc((100% - 960px) / 2);
+  }
+}
+@media (max-width: 650px) {
+  .dock {
+    height: 152px;
+    grid-template-columns: minmax(0, 1fr) 89px;
+    grid-template-rows: 40px 40px 40px;
+  }
+  .library {
+    grid-column: 1/-1;
+    grid-row: 1;
+  }
+  .primary {
+    grid-column: 1/-1;
+    grid-row: 2;
     justify-content: center;
     gap: 4px;
-  }
-  .divider {
-    margin: 0;
   }
   .context {
     grid-column: 1;
     grid-row: 3;
-    min-width: 0;
-    width: auto;
     justify-content: center;
-    border-left: 0;
-    border-top: 1px solid var(--divider);
-    padding: 8px 0 0;
-    min-height: 49px;
   }
   .trailing {
     grid-column: 2;
     grid-row: 3;
-    margin-left: 0;
-    padding: 8px 0 0 4px;
-    align-self: stretch;
-    border-top: 1px solid var(--divider);
+  }
+  .divider {
+    margin: 0;
   }
   .eraser {
     width: auto;
     padding: 0 8px;
     font-size: 12px;
-    min-height: 40px;
-    display: flex;
-    align-items: center;
   }
+  .insertionNotice {
+    left: 8px;
+    right: auto;
+  }
+}
+
+.dismissNotice {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+.insertionNotice > span {
+  padding-right: 28px;
+}
+
+.feedback {
+  position: fixed;
+  bottom: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(440px, calc(100vw - 32px));
+  padding: 11px 16px;
+  margin: 0;
+  color: var(--ink);
+  background: var(--paper);
+  box-shadow: var(--popover-shadow);
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.5;
 }

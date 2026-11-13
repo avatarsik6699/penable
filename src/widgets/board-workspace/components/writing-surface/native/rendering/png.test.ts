@@ -91,7 +91,7 @@ describe("PNG browser boundaries", () => {
     expect(canvas.height).toBe(0);
   });
 
-  it("releases a failed PNG bitmap and rejects clipboard exceptions without touching source data", async () => {
+  it("releases a failed PNG bitmap without touching source data", async () => {
     const canvas = { width: 0, height: 0, getContext: () => null };
 
     vi.stubGlobal("document", { createElement: () => canvas });
@@ -107,44 +107,6 @@ describe("PNG browser boundaries", () => {
     expect(canvas.width).toBe(0);
     expect(canvas.height).toBe(0);
     expect(dot.points).toHaveLength(1);
-
-    vi.stubGlobal(
-      "ClipboardItem",
-      class {
-        constructor() {
-          throw new Error("denied");
-        }
-      },
-    );
-
-    vi.stubGlobal("navigator", { clipboard: { write: vi.fn() } });
-
-    await expect(
-      BoardPNG.writePNG(Promise.resolve(new Blob())),
-    ).rejects.toThrow("denied");
-  });
-
-  it("hands a deferred image/png Blob to the write API directly in the user action", async () => {
-    const write = vi.fn(async () => {});
-    let supplied: Record<string, unknown> = {};
-
-    vi.stubGlobal(
-      "ClipboardItem",
-      class {
-        constructor(data: Record<string, unknown>) {
-          supplied = data;
-        }
-      },
-    );
-
-    vi.stubGlobal("navigator", { clipboard: { write } });
-
-    const png = Promise.resolve(new Blob(["png"], { type: "image/png" }));
-    const writing = BoardPNG.writePNG(png);
-
-    expect(write).toHaveBeenCalledOnce();
-    expect(supplied["image/png"]).toBe(png);
-    await writing;
   });
 });
 

@@ -20,6 +20,31 @@ export type BoardDocument = {
   };
 };
 
+export type BoardCatalog = {
+  format: "penable-library";
+  schemaVersion: 1;
+  activeId: string;
+  boards: Array<{ id: string; title: string }>;
+};
+
+export type LibraryRepository = {
+  read: () => Promise<{ catalog: StoredRecord; main: StoredRecord }>;
+  board: (id: string) => Promise<StoredRecord>;
+  bootstrap: (
+    catalog: BoardCatalog,
+    document: BoardDocument,
+    raw: StoredRecord,
+  ) => Promise<void>;
+  update: (
+    catalog: BoardCatalog,
+    change?: {
+      create?: { id: string; document: BoardDocument };
+      remove?: string;
+    },
+  ) => Promise<void>;
+  close: () => Promise<void>;
+};
+
 export type DocumentRepository = {
   read: () => Promise<{
     main: StoredRecord;

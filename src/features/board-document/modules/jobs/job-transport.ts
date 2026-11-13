@@ -90,6 +90,7 @@ export class JobTransport {
     input: BoardDocument,
     region?: RegionInput,
     signal?: AbortSignal,
+    fragmentRegion?: import("~/entities/board").ClipMask,
   ): Promise<JobResponse> {
     if (signal?.aborted) throw JobScheduling.abortError();
 
@@ -174,6 +175,7 @@ export class JobTransport {
         kind,
         root,
         boardId: this.options.boardId ?? "main",
+        ...(fragmentRegion ? { fragmentRegion } : {}),
         ...(capturedRegion ? { region: capturedRegion } : {}),
       });
 
@@ -183,7 +185,10 @@ export class JobTransport {
         id,
         current,
         checkpoint,
-        kind === "save" || kind === "validate",
+        kind === "save" ||
+          kind === "validate" ||
+          kind === "fragment" ||
+          kind === "preview",
       );
 
       current();
