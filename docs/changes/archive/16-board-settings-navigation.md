@@ -139,3 +139,12 @@ Local ship: implementation e32ccd3, fast-forward merged into main. No push/deplo
 
 2026-11-13: owner manually checked the current UI/navigation and accepted the stage:
 «Я проверил, всё супер. Думаю можно завершать текущий этап.» No further issues reported.
+
+## Release delivery
+
+2026-11-13: owner explicitly requested publication of current main, including changes08–16.
+The release reuses the successful Full Gate above: source/tooling/workflow are unchanged since
+its checked implementation. New release checks scan current files and all Git history, verify
+remote ancestry/authentication/Pages configuration, then require successful CI/deploy for the
+exact pushed SHA and live asset/browser verification. The workflow is the deployment record:
+https://github.com/avatarsik6699/penable/actions/workflows/pages.yml
