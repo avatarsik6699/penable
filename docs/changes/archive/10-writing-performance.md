@@ -6,7 +6,7 @@
 |---|---|
 | Change |10|
 | Slug |writing-performance|
-| Status |verified; local ship|
+| Status |shipped locally|
 | Branch |feature/10-writing-performance|
 
 ## Goal
@@ -81,3 +81,5 @@ refactor(change-10): optimize handwriting and board history
 ```
 
 Full Gate PASS in clean snapshot: npm ci, both builds, tsc,408tests/22files, lint, secrets0, audit0; browser27assertions,672native raster comparisons, desktop/narrow,100k worker move/save/failure/retry and HTTP/assets200. Fresh gate production bytes match browser-tested files. Independent source and harness review resolved. Actual Wacom latency, browser/GPU retained-memory reclamation and OS filesystem download remain unverified. No release authorized.
+
+Implementation commit5bcd57d; merged fast-forward to local main.

@@ -293,6 +293,7 @@ Wacom. Нативный захват1×1px поддерживал~144Hz RAF од
 
 ## Разработка по SDD
 
+[change 10](docs/changes/archive/10-writing-performance.md) — производительность письма и истории;
 [SPEC.md](docs/SPEC.md) — согласованные требования, [change 08](docs/changes/archive/08-canvas-selection.md) — точное выделение;
 [change 09](docs/changes/archive/09-selection-responsiveness.md) — сохранение области и отзывчивость;
 [change 06](docs/changes/archive/06-board-ux-stability.md) — стабилизация UI/UX;
