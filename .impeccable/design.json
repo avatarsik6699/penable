@@ -167,7 +167,7 @@
     "breakpoints": [
       {
         "name": "dock-desktop",
-        "value": ">=1200px; fixed 960×56px; top 16px"
+        "value": ">=1200px; fixed 730×56px; board 128px/context 190px; top 16px"
       },
       {
         "name": "dock-two-row",
@@ -213,7 +213,7 @@
     {
       "name": "Floating Tool Dock",
       "kind": "nav",
-      "description": "Signature solid white floating toolbar: fixed 960×56px at widths >=1200px; two rows at 651–1199px (104px high, top 80px); three rows at <=650px (152px high, top 80px). The current-board chooser leads the dock with an 11px muted library label above a 14px semibold board name inside its 40px control; tools stay grouped. Image insertion feedback is visible out of flow; its notice has 10px corners.",
+      "description": "Signature solid white floating toolbar: fixed 730×56px with 128px board and 190px context slots at widths >=1200px; two rows at 651–1199px (104px high, top 80px); three rows at <=650px (152px high, top 80px). The current-board chooser leads the dock with an 11px muted library label above a 14px semibold board name inside its 40px control; tools stay grouped. Image insertion feedback is visible out of flow; its notice has 10px corners.",
       "html": "<div class=\"ds-dock\" role=\"group\" aria-label=\"\u0418\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u044b \u0434\u043e\u0441\u043a\u0438\"><button class=\"ds-dock-tool\" type=\"button\" aria-label=\"\u041f\u0435\u0440\u043e\" aria-pressed=\"true\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m14 4 6 6-9 9-7 1 1-7Z M11 7l6 6 M4 20l4-4\"/></svg></button><span class=\"ds-dock-divider\" aria-hidden=\"true\"></span><span class=\"ds-dock-readout\">3.0 <small>px</small></span></div>",
       "css": ".ds-dock{font-family:\"Segoe UI\",system-ui,sans-serif;display:inline-flex;align-items:center;gap:8px;height:56px;padding:8px;border-radius:12px;background:var(--paper,#fff);color:var(--ink,#182230);box-shadow:var(--chrome-shadow,0 3px 14px rgb(24 34 48 / 8%),0 1px 3px rgb(24 34 48 / 5%));}.ds-dock-tool{width:40px;height:40px;padding:0;border:0;border-radius:8px;display:grid;place-items:center;background:var(--control-selected-bg,#eaf1ff);color:var(--focus,#175cd3);cursor:pointer;}.ds-dock-tool svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}.ds-dock-tool:hover{background:var(--control-hover,#f1f4f8);}.ds-dock-tool:focus-visible{outline:2px solid var(--focus,#175cd3);outline-offset:3px;}.ds-dock-divider{width:1px;height:22px;margin:0 3px;background:var(--divider,#e0e5ec);}.ds-dock-readout{font-size:13px;font-variant-numeric:tabular-nums;}.ds-dock-readout small{font-size:11px;color:var(--text-muted,#526176);}",
       "refersTo": "floating-dock"
@@ -235,7 +235,7 @@
   ],
   "narrative": {
     "northStar": "The Writing-First Notebook",
-    "overview": "The owner-approved light writing editor uses a stable dock for the current-board chooser, tools, history, status and settings, with static branding, lower navigation and help. The dock is fixed at 960×56px from 1200px upward, two rows and 104px high at 651–1199px, and three rows and 152px high at 650px and below. A left board-library sidebar provides name search, scrollable preview/name rows with per-row actions, and a creation form. Lucide icons share one weight; backgrounds and last-writing navigation are configurable and predictable.",
+    "overview": "The owner-approved light writing editor uses a stable dock for the current-board chooser, tools, history, status and settings, with static branding, lower navigation and help. The dock is fixed at 730×56px with 128px board and 190px context slots from 1200px upward, two rows and 104px high at 651–1199px, and three rows and 152px high at 650px and below. A left board-library sidebar provides name search, scrollable preview/name rows with per-row actions, and a creation form. Lucide icons share one weight; backgrounds and last-writing navigation are configurable and predictable.",
     "keyCharacteristics": [
       "Light writing field with a compact floating horizontal tool dock.",
       "Inline width, contextual stabilization and restrained peripheral controls.",

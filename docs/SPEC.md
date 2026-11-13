@@ -885,7 +885,7 @@ edit/import/delete invalidates that board's preview; close/dispose cancels pendi
 late results cannot attach to another board. Preview failure never prevents a document save.
 Serialize/drain library-owned work before releasing the origin lease.
 
-**Dock.** At widths>=1200 use a960px centered dock,56px high, with fixed leading/tool/context/
+**Dock.** At widths>=1200 use a 730px centered dock with 128px board and 190px context slots,56px high, with fixed leading/tool/context/
 status column allocation. At651–1199 use min(960px,viewport−24px), below branding, two stable
 rows; at<=650 retain three stable rows with40px controls and viewport−24px width. Heights and
 all permanent button positions stay invariant when switching Pen/Eraser/Selection or changing

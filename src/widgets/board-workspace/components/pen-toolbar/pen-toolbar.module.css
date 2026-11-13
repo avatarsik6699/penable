@@ -2,12 +2,12 @@
   position: absolute;
   z-index: 4;
   top: 16px;
-  left: max(12px, calc((100% - 960px) / 2));
-  width: 960px;
+  left: max(12px, calc((100% - 730px) / 2));
+  width: 730px;
   height: 56px;
   padding: 8px;
   display: grid;
-  grid-template-columns: 228px 283px 1fr 89px;
+  grid-template-columns: 128px 283px 190px 89px;
   grid-template-rows: 40px;
   align-items: center;
   gap: 8px;
@@ -62,7 +62,7 @@
 .insertionNotice {
   position: absolute;
   top: calc(100% + 10px);
-  left: 244px;
+  left: 144px;
   z-index: 5;
   width: min(360px, calc(100vw - 48px));
   padding: 12px 16px;
