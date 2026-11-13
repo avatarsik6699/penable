@@ -6,7 +6,7 @@
 |---|---|
 | Change |17|
 | Slug |board-editing-library|
-| Status |active|
+| Status |shipped locally|
 | Branch |feature/17-board-editing-library|
 
 ## Goal
@@ -47,7 +47,7 @@ nonmodal dock popover, delete is a protected confirmation. Desktop1440/1280 and3
 - [x] T1 Extend E2E domain fixtures/Page Objects with transformations, image file/drop/paste/crop/PNG, catalog/switch/migration/backups/failure/read-only and data-preservation regressions — _Depends on:_ F5
 - [x] T2 Apply exact capability owners/public API/performance harness compatibility and required Fast Gate/LSP diagnostics; update binding docs and user instructions — _Depends on:_ F5
 - [x] T3 Native runtime functional/performance/raster/large-image lifecycle checks, bounded desktop+compact visual finish and independent source/security review — _Depends on:_ T1,T2
-- [ ] T4 Full Gate, local commit/merge/archive and handoff of concise manual scenarios; no push/deploy — _Depends on:_ T3
+- [x] T4 Full Gate, local commit/merge/archive and handoff of concise manual scenarios; no push/deploy — _Depends on:_ T3
 
 ## Files
 
@@ -137,3 +137,12 @@ localhost:5173 notes were never inspected or modified through the browser. No re
 
 Fresh isolated npm-ci snapshot: /tmp/penable-change17-gate-rz6nxyot (removed after verification).
 Detailed results and original failed probes remain under.artifacts/change-17.
+
+Local ship: implementation8fd68d0 fast-forward merged into main; this change is archived.
+No push or Pages deploy performed. Owner manual/hardware acceptance remains open.
+
+## Owner acceptance checklist
+
+- Refresh localhost:5173. Resize/rotate a handwritten fragment using handles and numeric controls; try Shift, Esc and undo/redo with Wacom.
+- Insert PNG/JPEG, select a mixed fragment, move/crop it, then export/import JSON and reload to check the result. Native Windows clipboard and download dialogs need the owner's check.
+- Create/rename/switch boards, copy a fragment between them and reload. Check names, notes, images and active board remain correct; delete only a disposable test board.
