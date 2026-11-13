@@ -30,7 +30,7 @@ function create(options: EditorCommandTypes.SelectionOptions) {
       return;
 
     if (command === "clear") {
-      if (selection.busy) cancel();
+      if (selection.busy || options.pendingInput?.()) cancel();
       else selection.clear();
 
       return;
@@ -50,6 +50,10 @@ function create(options: EditorCommandTypes.SelectionOptions) {
 
     if (command === "paste") selection.insert();
 
+    if (command === "crop") selection.cropImages();
+
+    if (command === "paste-image") options.pasteImage?.();
+
     if (command === "duplicate") selection.insert(true);
 
     if (command === "download" && pngBlob) BoardPNG.downloadPNG(pngBlob);
@@ -63,6 +67,7 @@ function create(options: EditorCommandTypes.SelectionOptions) {
       const promise = BoardPNG.selectionPNG(
         selection.selected,
         selection.outline,
+        options.images,
       );
 
       // Invoke the clipboard API in the user gesture, passing a deferred PNG Blob.

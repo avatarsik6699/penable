@@ -10,6 +10,9 @@ export namespace StorageDetailsTypes {
     | "onPrevious"
     | "onUpgrade"
     | "onSchema3"
+    | "onSchema4"
+    | "onLibrary"
+    | "onRaw"
     | "onRetry"
   > & {
     notice: string;

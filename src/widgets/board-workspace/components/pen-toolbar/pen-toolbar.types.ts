@@ -3,6 +3,8 @@ import type { DrawingTool, HistoryState } from "~/entities/board";
 
 export namespace PenToolbarTypes {
   export type Props = {
+    leadingControls: React.ReactNode;
+    onInsertImage: () => void;
     tool: DrawingTool;
     onToolChange: (tool: DrawingTool) => void;
     width: number;

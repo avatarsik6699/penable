@@ -92,6 +92,9 @@ export const StoragePanel: React.FC<StoragePanelTypes.Props> = (props) => {
             onPrevious={props.onPrevious}
             onUpgrade={props.onUpgrade}
             onSchema3={props.onSchema3}
+            onSchema4={props.onSchema4}
+            onLibrary={props.onLibrary}
+            onRaw={props.onRaw}
             onRetry={props.onRetry}
             notice={panel.notice}
             onFeedback={panel.feedback}

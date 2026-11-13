@@ -1,6 +1,6 @@
 import type { BackgroundMode } from "~/entities/board";
 import type {
-  Stroke,
+  BoardItem,
   Viewport,
   BackgroundSettings,
   WritingView,
@@ -8,8 +8,8 @@ import type {
 
 export type BoardDocument = {
   format: "penable-board";
-  schemaVersion: 1 | 2 | 3;
-  strokes: Stroke[];
+  schemaVersion: 1 | 2 | 3 | 4;
+  strokes: BoardItem[];
   viewport: Viewport;
   background: BackgroundMode;
   backgroundSettings?: BackgroundSettings;
@@ -26,6 +26,8 @@ export type DocumentRepository = {
     beforeImport: StoredRecord;
     beforeSchema2?: StoredRecord;
     beforeSchema3?: StoredRecord;
+    beforeSchema4?: StoredRecord;
+    beforeLibrary?: StoredRecord;
   }>;
   write: (document: BoardDocument) => Promise<void>;
   replace: (previous: unknown, candidate: BoardDocument) => Promise<void>;
@@ -55,6 +57,9 @@ export type StorageState = {
   hasPrevious: boolean;
   hasUpgradeCopy?: boolean;
   hasSchema3Copy?: boolean;
+  hasSchema4Copy?: boolean;
+  hasLibraryCopy?: boolean;
+  hasRawCopy?: boolean;
   canReconnect: boolean;
   message: string;
 };

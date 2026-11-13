@@ -15,16 +15,29 @@ function create(options: EditorCommandTypes.ControlsOptions): SurfaceControls {
     api,
     publishSelection,
     applyHistory,
-    surface,
   } = options;
 
   const center = () => {
     const bounds = canvas.getBoundingClientRect();
 
-    return { x: bounds.width / 2, y: bounds.height / 2 };
+    return {
+      x: bounds.width / 2,
+      y: bounds.height / 2,
+    };
   };
 
   return {
+    insertImage: options.insertImage,
+
+    transform: (width, height, angle) => {
+      if (
+        !interactionsBlocked() &&
+        drawingPointerId() === null &&
+        navigation.pointerId === null
+      )
+        selection.transform(width, height, angle);
+    },
+
     zoomIn: () => {
       if (!interactionsBlocked())
         navigation.setZoom(navigation.viewport.zoom * 2, center());
@@ -130,8 +143,9 @@ function create(options: EditorCommandTypes.ControlsOptions): SurfaceControls {
     isBusy: () =>
       drawingPointerId() !== null ||
       navigation.pointerId !== null ||
-      selection.busy,
-    cancelInput: surface.cancel,
+      selection.busy ||
+      Boolean(options.pendingInput?.()),
+    cancelInput: api.cancel,
   };
 }
 

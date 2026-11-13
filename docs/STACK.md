@@ -429,3 +429,15 @@ folders. Minimap uses a separate lazy worker; existing two ink layers keep their
 backing caps512×320. No whole-folder platform exemption; each new native/worker owner is explicit.
 Read legacy1/2; firstwrite3 preserves raw before-schema3 in the same transaction. Native same-origin
 fault injection is on owned test page only. Hardware pen/OS clipboard claims remain separate.
+
+
+## Change17 — Transformable content and board library
+
+SPEC5.16 authorizes affine selection transforms, PNG/JPEG and multiple boards, with existing
+React/Canvas/IndexedDB/Lucide stack and no new packages. One source writer; parent owns E2E,
+architecture policies, performance harness, shared checks and delivery. Native preview4197 is
+isolated from owner data. Baseline67f4d86 snapshots under.artifacts/change-17; benchmarks use
+change17-baseline/candidate folders on4180. Preserve per-sample native ownership, typed items,
+chunked worker transfer, origin lease and explicit native capability owners. Schema4/catalog
+migration and per-board raw backups are part of this approved contract. User authorizes full
+implementation/local ship without intermediate confirmation; no PWA/release in this change.

@@ -94,7 +94,11 @@ describe("whole stroke eraser ownership and transactions", () => {
         DocumentCodec.cloneDocument({ ...document, strokes: scene.strokes });
 
       input.down(event({ pointerType }));
-      expect(input.preview.has(originals[0]!)).toBe(true);
+
+      expect(
+        input.preview.has(originals[0]! as import("~/entities/board").Stroke),
+      ).toBe(true);
+
       input.move(event({ clientX: 60 }));
       expect(input.preview.size).toBe(2);
       expect(scene.strokes).toEqual(originals);
@@ -240,7 +244,10 @@ describe("whole stroke eraser ownership and transactions", () => {
     expect(scene.strokes[0]).toBe(replacement);
     history.undo();
     history.undo();
-    expect(scene.strokes[0]?.points[0]?.x).toBe(0);
+
+    expect(
+      (scene.strokes[0] as import("~/entities/board").Stroke)?.points[0]?.x,
+    ).toBe(0);
   });
 
   it("blocks own navigation only while the eraser owns a pointer", () => {

@@ -1,9 +1,9 @@
-import type { Stroke } from "./board.types";
+import type { BoardItem } from "./board.types";
 import { BoardLimits } from "./scene-limits";
 
 // A batch reserves IDs incrementally; source fragments must never rescan the scene
 // for every inserted item. The single-stroke capture path uses the same allocator.
-function createStrokeIdAllocator(strokes: readonly Stroke[]): () => number {
+function createStrokeIdAllocator(strokes: readonly BoardItem[]): () => number {
   let maximum = 0;
   const used = new Set<number>();
 
@@ -33,7 +33,7 @@ function createStrokeIdAllocator(strokes: readonly Stroke[]): () => number {
   };
 }
 
-function allocateStrokeId(strokes: readonly Stroke[]): number {
+function allocateStrokeId(strokes: readonly BoardItem[]): number {
   return createStrokeIdAllocator(strokes)();
 }
 

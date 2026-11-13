@@ -1,4 +1,4 @@
-import type { Stroke, ClipMask, Viewport } from "../board.types";
+import type { BoardItem, ClipMask, Viewport } from "../board.types";
 import { BoardLimits } from "../scene-limits";
 import { BoardRegions } from "../regions";
 import { BoardViewport } from "../viewport";
@@ -6,8 +6,8 @@ import { BoardIds } from "../stroke-ids";
 import { SelectionUtils } from "./selection.utils";
 
 function prepare(
-  scene: readonly Stroke[],
-  originals: readonly Stroke[],
+  scene: readonly BoardItem[],
+  originals: readonly BoardItem[],
   region: ClipMask,
   viewport: Viewport,
   size: { width: number; height: number },
@@ -18,8 +18,12 @@ function prepare(
       "Вставка превышает предел 20 000 фрагментов. Выделите меньше записей.",
     );
 
-  const points = (strokes: readonly Stroke[]) =>
-    strokes.reduce((sum, stroke) => sum + stroke.points.length, 0);
+  const points = (strokes: readonly BoardItem[]) =>
+    strokes.reduce(
+      (sum, stroke) =>
+        sum + (stroke.kind === "image" ? 0 : stroke.points.length),
+      0,
+    );
 
   if (points(scene) + points(originals) > BoardLimits.SCENE_LIMITS.points)
     throw new Error(
@@ -44,7 +48,7 @@ function prepare(
       };
 
   const allocate = BoardIds.createStrokeIdAllocator(scene),
-    sources = new Map<string | Stroke, string>();
+    sources = new Map<string | BoardItem, string>();
 
   const selected = SelectionUtils.copy(originals).map((stroke, index) => {
     const key = originals[index]!.source ?? originals[index]!;
@@ -62,8 +66,45 @@ function prepare(
     };
   });
 
+  const known = new Map(
+    scene.flatMap((item) =>
+      item.kind === "image" ? [[item.asset.id, item.asset] as const] : [],
+    ),
+  );
+
+  const assets = new Map<
+    import("../board.types").ImageAsset,
+    import("../board.types").ImageAsset
+  >();
+
+  const reconciled = selected.map((item) => {
+    if (item.kind !== "image") return item;
+
+    let asset = assets.get(item.asset);
+
+    if (!asset) {
+      asset =
+        [...known.values()].find(
+          (a) => a.base64 === item.asset.base64 && a.mime === item.asset.mime,
+        ) ?? item.asset;
+
+      if (known.has(asset.id) && known.get(asset.id) !== asset) {
+        let suffix = 1;
+
+        while (known.has(`${asset.id.slice(0, 140)}_${suffix}`)) suffix++;
+
+        asset = { ...asset, id: `${asset.id.slice(0, 140)}_${suffix}` };
+      }
+
+      assets.set(item.asset, asset);
+      known.set(asset.id, asset);
+    }
+
+    return { ...item, asset };
+  });
+
   return {
-    candidate: { strokes: [...scene, ...selected], selected },
+    candidate: { strokes: [...scene, ...reconciled], selected: reconciled },
     region: BoardRegions.translateMask(
       region.length
         ? region

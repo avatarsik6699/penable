@@ -1,4 +1,5 @@
 import { type Stroke, type Position } from "../board.types";
+import { BoardTransforms } from "../transforms";
 import { BoardRegions } from "../regions";
 import { intersection } from "polygon-clipping";
 import { BoardGeometry, BoardStabilization } from "../geometry";
@@ -13,6 +14,18 @@ export class StrokeHitTester {
   constructor(private readonly zoom: number) {}
 
   hits(stroke: Stroke, from: Position, to: Position): boolean {
+    if (stroke.matrix) {
+      const sweep = BoardTransforms.mask(
+        BoardRegions.capsule(from, to, HitTestConfig.ERASER_RADIUS / this.zoom),
+        BoardTransforms.inverse(stroke.matrix),
+      );
+
+      return BoardRegions.inkIntersectsMask(
+        stroke,
+        stroke.clip ? intersection(stroke.clip, sweep) : sweep,
+      );
+    }
+
     if (stroke.clip || stroke.translation) {
       const offset = stroke.translation ?? { x: 0, y: 0 };
 

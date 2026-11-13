@@ -12,6 +12,7 @@ export namespace SelectionToolbarTypes {
     shape: SelectionShape;
     readOnly: boolean;
     blocked: boolean;
+    onTransform: (width: number, height: number, angle: number) => void;
     onShape: (shape: SelectionShape) => void;
     onCommand: (command: SelectionCommand) => void;
     onCancelActiveInput: () => void;

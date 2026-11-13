@@ -1,3 +1,4 @@
+import { BitmapCache, ImageInput } from "./images";
 import { NativeMinimap } from "./minimap";
 import { SelectionCommands, HistoryCommands, EditorControls } from "./commands";
 import type { SurfaceElements, EditorHandle } from "./editor-runtime.types";
@@ -81,9 +82,23 @@ function create(
 
     let minimap: NativeMinimap | null = null;
     let lastWritingView = initial.lastWritingView ?? null;
+    let usesImages = scene.strokes.some((item) => item.kind === "image");
 
     const onDocumentChange = (urgent: boolean) => {
       if (urgent) {
+        if (usesImages) {
+          images.retain(scene.strokes);
+
+          void images.ready(scene.strokes).catch((error) => {
+            if (!disposed)
+              readSettings().onNavigationNotice(
+                error instanceof Error
+                  ? error.message
+                  : "Не удалось загрузить изображение.",
+              );
+          });
+        }
+
         minimap?.invalidate();
         readSettings().onScenePresence(scene.strokes.length > 0);
       }
@@ -94,12 +109,20 @@ function create(
     const history = new StrokeHistory(scene.strokes, scene.strokes.length);
     const visualViewport = window.visualViewport;
 
+    const images = new BitmapCache(() => renderer.sceneChanged());
+
     const renderer = new CanvasRenderer(
       { canvas: completedCanvas, context: completedContext },
       { canvas, context },
       scene,
       state.viewport,
+      undefined,
+      images.get,
     );
+
+    void images.ready(scene.strokes).catch((error) => {
+      if (!disposed) readSettings().onNavigationNotice(String(error));
+    });
 
     const updateBackground = () =>
       SurfacePresenters.background(
@@ -214,6 +237,7 @@ function create(
         state.viewport,
         selection,
         getTool(),
+        elements.selectionHandles,
       );
 
     const publishSelection = () => {
@@ -223,8 +247,9 @@ function create(
 
       const state = {
         selected: selection.hasSelection,
+        images: selection.selected.some((item) => item.kind === "image"),
         clipboard: selection.hasClipboard,
-        busy: selection.busy || selectionCommands.busy,
+        busy: selection.busy || selectionCommands.busy || imageInput.busy,
         message: selection.message,
         png: selectionCommands.hasPNG,
       };
@@ -257,6 +282,7 @@ function create(
 
       commit: (strokes) => {
         if (history.replace(strokes)) {
+          usesImages ||= strokes.some((item) => item.kind === "image");
           renderer.sceneChanged();
           onDocumentChange(true);
         }
@@ -270,7 +296,44 @@ function create(
       },
     });
 
+    const imageInput = new ImageInput({
+      canvas,
+      scene,
+      images,
+      viewport: () => state.viewport,
+      allowed: () =>
+        !disposed &&
+        canWrite() &&
+        !interactionsBlocked() &&
+        drawingPointerId() === null &&
+        navigation.pointerId === null &&
+        !selection.busy,
+
+      insert: (items) => {
+        onActivateSelection();
+
+        return selection.insertItems(items);
+      },
+
+      pasteFragment: () => selectionCommand("paste"),
+
+      notice: (message) => {
+        readSettings().onNavigationNotice(message);
+        selection.message = message;
+        publishSelection();
+      },
+
+      changed: () => publishSelection(),
+    });
+
     const selectionCommands = SelectionCommands.create({
+      pendingInput: () => imageInput.busy,
+
+      pasteImage: () => {
+        void imageInput.readClipboard();
+      },
+
+      images,
       selection,
       input,
       eraser,
@@ -284,12 +347,13 @@ function create(
     const selectionCommand = selectionCommands.command;
 
     const historyCommands = HistoryCommands.create({
+      additionalBusy: () => imageInput.busy,
       history,
       drawingPointerId,
       navigation,
       selection,
       canWrite,
-      interactionsBlocked,
+      interactionsBlocked: () => interactionsBlocked() || imageInput.busy,
       renderer,
       onDocumentChange,
       onHistoryState,
@@ -305,6 +369,14 @@ function create(
     const applyHistory = historyCommands.apply;
 
     const surface = SurfaceBindings.bind({
+      cancelPendingInput: () => {
+        if (interactionsBlocked() || !imageInput.busy) return false;
+
+        imageInput.cancel();
+
+        return true;
+      },
+
       elements,
       canvas,
       state,
@@ -314,7 +386,7 @@ function create(
       selection,
       getTool,
       canWrite,
-      interactionsBlocked,
+      interactionsBlocked: () => interactionsBlocked() || imageInput.busy,
       drawingPointerId,
       activeInput,
       observeInput: diagnostics.observe,
@@ -324,7 +396,10 @@ function create(
       paintSelection,
     });
 
-    api.cancel = surface.cancel;
+    api.cancel = () => {
+      imageInput.cancel();
+      surface.cancel();
+    };
 
     minimap = new NativeMinimap({
       elements,
@@ -348,14 +423,18 @@ function create(
 
     api.refresh = () => {
       updateBackground();
+
+      if (!canWrite() || interactionsBlocked()) imageInput.cancel();
+
       surface.refresh();
       minimap?.setOpen(readSettings().minimapOpen);
     };
 
     controlsRef.current = EditorControls.create({
+      pendingInput: () => imageInput.busy,
       canvas,
       navigation,
-      interactionsBlocked,
+      interactionsBlocked: () => interactionsBlocked() || imageInput.busy,
       selection,
       drawingPointerId,
       scene,
@@ -365,6 +444,7 @@ function create(
       publishSelection,
       applyHistory,
       surface,
+      insertImage: imageInput.open,
       lastWritingView: () => lastWritingView,
       notice: (message) => readSettings().onNavigationNotice(message),
     });
@@ -372,7 +452,7 @@ function create(
     const unbindResolution = SurfaceResolution.bind(
       canvas,
       renderer,
-      surface.cancel,
+      api.cancel,
       (value) => diagnostics.update(value),
     );
 
@@ -390,6 +470,8 @@ function create(
       selectionJobs.dispose();
       minimap?.dispose();
       renderer.dispose();
+      imageInput.dispose();
+      images.dispose();
       controlsRef.current = null;
       diagnostics.dispose();
     };

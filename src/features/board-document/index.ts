@@ -30,3 +30,15 @@ export { StoragePanel } from "./components/storage-panel";
 export { SelectionDocuments } from "./adapters/selection-documents";
 
 export type { OverviewResult } from "./modules/jobs";
+
+export { ImageAssets } from "./modules/image-assets";
+
+export { BoardLibrarySession, LibraryCatalog } from "./modules/library";
+export type {
+  LibraryOptions,
+  LibraryRepository,
+  BoardCatalog,
+  LibraryState,
+} from "./modules/library";
+export { BoardLibraries } from "./adapters/library-factory";
+export { BoardLibrary } from "./components/board-library";

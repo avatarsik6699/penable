@@ -1,7 +1,7 @@
 import type React from "react";
 import { useBoardWorkspace } from "./hooks/use-board-workspace";
 import styles from "./board-workspace.module.css";
-import { StoragePanel } from "~/features/board-document";
+import { StoragePanel, BoardLibrary } from "~/features/board-document";
 import { PenToolbar } from "./components/pen-toolbar";
 import { SelectionToolbar } from "./components/selection-toolbar";
 import { WritingSurface } from "./components/writing-surface";
@@ -27,6 +27,26 @@ export const BoardWorkspace: React.FC<BoardWorkspaceTypes.Props> = () => {
         <span className={styles.brandDot} />
       </div>
       <PenToolbar
+        leadingControls={
+          <BoardLibrary
+            state={workspace.ui.library}
+            readOnly={readOnly}
+            blocked={unavailable || workspace.ui.history.busy}
+            open={workspace.panel === "library"}
+            onOpenChange={(open) =>
+              workspace.changePanel(open ? "library" : null)
+            }
+            onCreate={workspace.model.createBoard}
+            onRename={workspace.model.renameBoard}
+            onDelete={workspace.model.deleteBoard}
+            onSwitch={workspace.model.switchBoard}
+            onModalChange={workspace.model.libraryModalChanged}
+          />
+        }
+        onInsertImage={() => {
+          workspace.changePanel(null);
+          workspace.model.controls.current?.insertImage?.();
+        }}
         tool={workspace.ui.tool}
         onToolChange={workspace.changeTool}
         width={workspace.ui.width}
@@ -50,6 +70,9 @@ export const BoardWorkspace: React.FC<BoardWorkspaceTypes.Props> = () => {
             onOverlayChange={workspace.model.overlayChanged}
             onPrevious={workspace.model.exportPrevious}
             onSchema3={workspace.model.exportSchema3}
+            onSchema4={workspace.model.exportSchema4}
+            onLibrary={workspace.model.exportLibrary}
+            onRaw={workspace.model.exportRaw}
             onRetry={workspace.model.retry}
             onBeginImport={workspace.model.beginImport}
             onEndImport={workspace.model.endImport}
@@ -84,6 +107,13 @@ export const BoardWorkspace: React.FC<BoardWorkspaceTypes.Props> = () => {
               blocked={
                 workspace.ui.dialogOpen ||
                 (workspace.ui.history.busy && !workspace.ui.selection.busy)
+              }
+              onTransform={(width, height, angle) =>
+                workspace.model.controls.current?.transform?.(
+                  width,
+                  height,
+                  angle,
+                )
               }
               onShape={workspace.model.changeShape}
               onCommand={(command) =>

@@ -61,7 +61,9 @@ describe("supported stroke ID allocation", () => {
     document.strokes = strokes;
 
     expect(
-      DocumentCodec.decodeDocument(document).strokes.map((ink) => ink.id),
+      DocumentCodec.decodeDocument(
+        DocumentCodec.encodeDocument(document),
+      ).strokes.map((ink) => ink.id),
     ).toEqual([1, 2, BoardLimits.MAX_STROKE_ID, 3]);
   });
 
@@ -104,7 +106,9 @@ describe("supported stroke ID allocation", () => {
     document.strokes = scene.strokes;
 
     expect(
-      DocumentCodec.decodeDocument(document).strokes.map((ink) => ink.id),
+      DocumentCodec.decodeDocument(
+        DocumentCodec.encodeDocument(document),
+      ).strokes.map((ink) => ink.id),
     ).toEqual([1, 2, BoardLimits.MAX_STROKE_ID, 3, 4]);
 
     expect(scene.strokes.slice(0, 3)).toEqual(base);

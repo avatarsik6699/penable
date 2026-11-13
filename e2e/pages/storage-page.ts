@@ -28,18 +28,31 @@ export class StoragePage {
             const tx = db.transaction("documents", "readonly");
             const result: Record<string, unknown> = {};
 
-            for (const [key, name] of [
-              ["main", "main"],
-              ["before-import", "previous"],
-              ["before-schema2", "upgrade"],
-              ["before-schema3", "upgrade3"],
-            ]) {
-              const read = tx.objectStore("documents").get(key!);
+            const store = tx.objectStore("documents");
+            const catalog = store.get("library");
 
-              read.onsuccess = () => {
-                result[name!] = read.result;
-              };
-            }
+            catalog.onsuccess = () => {
+              result.catalog = catalog.result;
+
+              const id = catalog.result?.activeId ?? "main";
+              const key = id === "main" ? "main" : `board:${id}`;
+              const prefix = id === "main" ? "" : `${key}:`;
+
+              for (const [recordKey, name] of [
+                [key, "main"],
+                [`${prefix}before-import`, "previous"],
+                [`${prefix}before-schema2`, "upgrade"],
+                [`${prefix}before-schema3`, "upgrade3"],
+                [`${prefix}before-schema4`, "upgrade4"],
+                [`${prefix}before-library`, "beforeLibrary"],
+              ]) {
+                const read = store.get(recordKey!);
+
+                read.onsuccess = () => {
+                  result[name!] = read.result;
+                };
+              }
+            };
 
             tx.oncomplete = () => {
               db.close();
@@ -57,7 +70,7 @@ export class StoragePage {
 
   async expectStrokeCount(count: number) {
     await expect
-      .poll(async () => (await this.records()).main?.strokes.length ?? 0)
+      .poll(async () => (await this.records()).main?.items.length ?? 0)
       .toBe(count);
 
     await this.expectSaved();
@@ -73,11 +86,22 @@ export class StoragePage {
         request.onsuccess = () => {
           const db = request.result;
           const transaction = db.transaction("documents", "readonly");
-          const read = transaction.objectStore("documents").get("main");
+          const store = transaction.objectStore("documents");
+          const catalog = store.get("library");
+          let document: TestBoardTypes.StoredDocument | undefined;
+
+          catalog.onsuccess = () => {
+            const id = catalog.result?.activeId ?? "main";
+            const read = store.get(id === "main" ? "main" : `board:${id}`);
+
+            read.onsuccess = () => {
+              document = read.result;
+            };
+          };
 
           transaction.oncomplete = () => {
             db.close();
-            resolve(read.result?.strokes ?? []);
+            resolve(document?.items ?? []);
           };
 
           transaction.onabort = () => {
@@ -114,7 +138,42 @@ export class StoragePage {
     await this.expectSaved();
   }
 
-  async expectScene(strokes: TestBoardTypes.Stroke[]) {
+  async expectCurrentMetadata(document: TestBoardTypes.Document) {
+    const actual = (await this.records()).main!;
+
+    expect(actual.viewport).toEqual(document.viewport);
+    expect(actual.tools).toEqual(document.tools);
+    expect(actual.background).toBe(document.background);
+    expect(actual.backgroundSettings).toEqual(document.backgroundSettings);
+    expect(actual.lastWritingView).toEqual(document.lastWritingView);
+  }
+
+  async expectRawRecovery(document: unknown) {
+    const before = await this.records();
+
+    await this.openFiles();
+
+    const pending = this.page.waitForEvent("download");
+
+    await this.page
+      .getByRole("button", { name: "Исходная запись", exact: true })
+      .click();
+
+    const download = await pending;
+    const path = await download.path();
+
+    expect(path).toBeTruthy();
+    expect(JSON.parse(await readFile(path!, "utf8"))).toEqual(document);
+    expect(await this.records()).toEqual(before);
+
+    await expect(
+      this.page.getByRole("button", { name: "Перо", exact: true }),
+    ).toBeDisabled();
+  }
+
+  async expectScene(
+    strokes: Array<TestBoardTypes.Stroke | TestBoardTypes.Item>,
+  ) {
     const canonical = (value: unknown): unknown =>
       Array.isArray(value)
         ? value.map(canonical)
@@ -126,16 +185,28 @@ export class StoragePage {
             )
           : value;
 
+    const items = strokes.map((entry) => {
+      if ("kind" in entry) return entry;
+
+      const { translation, ...stroke } = entry;
+
+      return {
+        ...stroke,
+        kind: "ink",
+        matrix: [1, 0, 0, 1, translation?.x ?? 0, translation?.y ?? 0],
+      };
+    });
+
     await this.expectFingerprint(
       createHash("sha256")
-        .update(JSON.stringify(canonical(strokes)))
+        .update(JSON.stringify(canonical(items)))
         .digest("hex"),
     );
   }
 
   async expectRecovery(
-    kind: "previous" | "upgrade" | "upgrade3",
-    document: TestBoardTypes.Document,
+    kind: "previous" | "upgrade" | "upgrade3" | "upgrade4" | "beforeLibrary",
+    document: TestBoardTypes.Document | TestBoardTypes.StoredDocument,
   ) {
     await expect
       .poll(async () => (await this.records())[kind])
@@ -232,7 +303,7 @@ export class StoragePage {
     expect((await this.records()).main).toEqual(previous);
   }
 
-  async exportDocument(): Promise<TestBoardTypes.Document> {
+  async exportDocument(): Promise<TestBoardTypes.StoredDocument> {
     await this.openFiles();
 
     const pending = this.page.waitForEvent("download");
@@ -251,7 +322,7 @@ export class StoragePage {
 
     const document = JSON.parse(
       await readFile(path!, "utf8"),
-    ) as TestBoardTypes.Document;
+    ) as TestBoardTypes.StoredDocument;
 
     await this.closeDetails();
 
@@ -263,7 +334,7 @@ export class StoragePage {
 
     expect(exported).toEqual((await this.records()).main);
     expect(exported.format).toBe("penable-board");
-    expect(exported.schemaVersion).toBe(3);
+    expect(exported.schemaVersion).toBe(4);
   }
 
   async expectReadOnly() {

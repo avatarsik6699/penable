@@ -1,7 +1,7 @@
 import { BoardPaths } from "./path-cache";
 import { BoardPaint } from "./paint";
 import { type InkBounds, BoardRegions } from "~/entities/board";
-import type { ClipMask, Stroke } from "~/entities/board";
+import type { ClipMask, BoardItem } from "~/entities/board";
 
 function pngDimensions(
   bounds: InkBounds,
@@ -36,9 +36,17 @@ function pngDimensions(
 }
 
 async function selectionPNG(
-  strokes: readonly Stroke[],
+  strokes: readonly BoardItem[],
   region?: ClipMask,
+  images?: {
+    ready: (items: readonly BoardItem[]) => Promise<void>;
+    get: (
+      asset: import("~/entities/board").ImageAsset,
+    ) => CanvasImageSource | null;
+  },
 ): Promise<Blob> {
+  await images?.ready(strokes);
+
   const bounds = region
     ? BoardRegions.maskBounds(region)
     : BoardRegions.visibleBounds(strokes);
@@ -72,7 +80,7 @@ async function selectionPNG(
       context.clip("nonzero");
     }
 
-    BoardPaint.paintStrokes(context, strokes);
+    BoardPaint.paintStrokes(context, strokes, images?.get);
 
     return await new Promise<Blob>((resolve, reject) =>
       canvas.toBlob(

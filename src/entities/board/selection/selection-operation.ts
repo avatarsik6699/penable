@@ -2,6 +2,7 @@ import type { ClipMask } from "../board.types";
 
 export class SelectionOperation {
   private pending: AbortController | null = null;
+  private cancelled: (() => void) | null = null;
   outline: ClipMask | null = null;
 
   constructor(
@@ -20,6 +21,11 @@ export class SelectionOperation {
     this.pending?.abort();
     this.pending = null;
     this.outline = null;
+
+    const cancelled = this.cancelled;
+
+    this.cancelled = null;
+    cancelled?.();
   }
 
   run<T>(
@@ -31,11 +37,13 @@ export class SelectionOperation {
     const pending = new AbortController();
 
     this.pending = pending;
+    this.cancelled = () => finish(false);
 
     const complete = (success: boolean, value?: T, error?: unknown) => {
       if (this.pending !== pending || pending.signal.aborted) return;
 
       this.pending = null;
+      this.cancelled = null;
       this.outline = null;
 
       if (success) {

@@ -2,7 +2,12 @@ import { BoardPaths } from "./path-cache";
 import type { StrokeGeometry } from "~/entities/board";
 import { BoardSourceGeometry } from "~/entities/board";
 import { BoardRegions } from "~/entities/board";
-import type { Stroke } from "~/entities/board";
+import {
+  BoardTransforms,
+  type Stroke,
+  type ImageAsset,
+} from "~/entities/board";
+import type { BoardItem } from "~/entities/board";
 
 const paths = new WeakMap<StrokeGeometry, Path2D>();
 
@@ -40,23 +45,50 @@ function style(
 
 function paintStroke(
   ctx: CanvasRenderingContext2D,
-  stroke: Stroke,
+  stroke: BoardItem,
   active = false,
   state?: StrokePaintState,
   translationHandled = false,
+  imageSource?: (asset: ImageAsset) => CanvasImageSource | null,
 ): void {
+  if (stroke.kind === "image") {
+    const image = imageSource?.(stroke.asset);
+
+    if (!image) return;
+
+    ctx.save();
+
+    try {
+      if (!translationHandled) ctx.transform(...stroke.matrix);
+
+      if (stroke.clip) {
+        BoardPaths.traceMask(ctx, stroke.clip);
+        ctx.clip("nonzero");
+      }
+
+      ctx.drawImage(image, 0, 0, stroke.asset.width, stroke.asset.height);
+    } finally {
+      ctx.restore();
+    }
+
+    return;
+  }
+
   // Renderer styles sit outside save/restore so the next stroke can reuse them.
   // Standalone callers retain the original Canvas state behavior.
   if (state) style(ctx, stroke, state);
 
   const transformed = Boolean(
-    stroke.clip || (stroke.translation && !translationHandled),
+    stroke.clip ||
+    ((stroke.translation || stroke.matrix) && !translationHandled),
   );
 
   if (transformed) ctx.save();
 
   try {
-    if (stroke.translation && !translationHandled)
+    if (stroke.matrix && !translationHandled)
+      ctx.transform(...BoardTransforms.matrix(stroke));
+    else if (stroke.translation && !translationHandled)
       ctx.translate(stroke.translation.x, stroke.translation.y);
 
     if (stroke.clip) {
@@ -103,10 +135,11 @@ function paintStroke(
 
 function paintStrokes(
   ctx: CanvasRenderingContext2D,
-  strokes: readonly Stroke[],
+  strokes: readonly BoardItem[],
+  imageSource?: (asset: ImageAsset) => CanvasImageSource | null,
 ): void {
   for (const stroke of BoardRegions.groupedStrokes(strokes))
-    paintStroke(ctx, stroke);
+    paintStroke(ctx, stroke, false, undefined, false, imageSource);
 }
 
 export const BoardPaint = { paintStroke, paintStrokes };

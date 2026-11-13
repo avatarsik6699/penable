@@ -18,7 +18,7 @@ comfortable long writing sessions, clear navigation and safe local notes. Second
 
 React/TypeScript/Canvas2D; browser-local storage and JSON recovery copies. Current pen, whole-stroke
 eraser, rectangle/lasso selection, move/copy/edit, undo/redo, pan/zoom and backgrounds exist.
-There is no backend, collaboration, account or note library. Hardware writing quality is separate
+Change17 extends this with affine selection transforms, immutable PNG/JPEG assets and independent named boards in a dock chooser. There is no backend, collaboration or account. Hardware writing quality is separate
 from visual mock acceptance. Source/scene/data behavior stays under SPEC and FRONTEND.
 
 ## Brand commitments

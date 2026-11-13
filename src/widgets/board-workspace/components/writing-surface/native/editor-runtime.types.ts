@@ -5,6 +5,7 @@ export type SurfaceElements = MinimapElements & {
   completed: HTMLCanvasElement | null;
   background: HTMLDivElement | null;
   selectionPath: SVGPathElement | null;
+  selectionHandles: SVGPathElement | null;
   cursor: HTMLDivElement | null;
   focusBadge: HTMLSpanElement | null;
 };

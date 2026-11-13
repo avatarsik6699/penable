@@ -1,3 +1,4 @@
+import { ItemCodec } from "./item-codec";
 import { type BoardDocument } from "../../board-document.types";
 import { CodecConfig } from "./document-codec.config";
 import { CodecPrimitives } from "./document-codec.utils";
@@ -8,21 +9,28 @@ import { BackupSerializer } from "./backup-serializer";
 function decodeDocument(
   value: unknown,
   limits = CodecConfig.DOCUMENT_LIMITS,
+  geometryOnly = false,
 ): BoardDocument {
   const root = CodecPrimitives.object(value, "document");
   const schemaVersion = CodecPrimitives.own(root, "schemaVersion");
 
   if (
     CodecPrimitives.own(root, "format") !== "penable-board" ||
-    (schemaVersion !== 1 && schemaVersion !== 2 && schemaVersion !== 3)
+    (schemaVersion !== 1 &&
+      schemaVersion !== 2 &&
+      schemaVersion !== 3 &&
+      schemaVersion !== 4)
   )
     CodecPrimitives.invalid("format/schemaVersion");
 
-  const decoded = StrokeDecoder.decodeStrokes(
-    CodecPrimitives.own(root, "strokes"),
-    schemaVersion === 1 ? 1 : 2,
-    limits,
-  );
+  const decoded =
+    schemaVersion === 4
+      ? ItemCodec.decode(root, limits, geometryOnly)
+      : StrokeDecoder.decodeStrokes(
+          CodecPrimitives.own(root, "strokes"),
+          schemaVersion === 1 ? 1 : 2,
+          limits,
+        );
 
   const viewport = CodecPrimitives.object(
     CodecPrimitives.own(root, "viewport"),
@@ -42,7 +50,7 @@ function decodeDocument(
   let backgroundSettings = { contrast: 45, spacing: 24 };
   let lastWritingView: import("~/entities/board").WritingView | null = null;
 
-  if (schemaVersion === 3) {
+  if (schemaVersion === 3 || schemaVersion === 4) {
     const settings = CodecPrimitives.object(
       CodecPrimitives.own(root, "backgroundSettings"),
       "backgroundSettings",
@@ -107,7 +115,7 @@ function decodeDocument(
 
   const result: BoardDocument = {
     format: "penable-board",
-    schemaVersion: schemaVersion as 1 | 2 | 3,
+    schemaVersion: schemaVersion as 1 | 2 | 3 | 4,
     strokes: decoded,
     viewport: {
       zoom: CodecPrimitives.number(
@@ -145,7 +153,9 @@ function decodeDocument(
   };
 
   if (
-    new TextEncoder().encode(JSON.stringify(result)).byteLength > limits.bytes
+    !geometryOnly &&
+    new TextEncoder().encode(JSON.stringify(encodeDocument(result)))
+      .byteLength > limits.bytes
   )
     CodecPrimitives.invalid("размер документа превышает 64 MiB");
 
@@ -166,7 +176,10 @@ function serializeDocument(document: BoardDocument): {
   json: string;
   warning: string;
 } {
-  const json = JSON.stringify(SnapshotOperations.cloneDocument(document));
+  const json = JSON.stringify(
+    encodeDocument(SnapshotOperations.cloneDocument(document)),
+  );
+
   let warning = "";
 
   try {
@@ -183,13 +196,25 @@ function documentStats(document: BoardDocument) {
   return {
     strokes: document.strokes.length,
     points: document.strokes.reduce(
-      (sum, stroke) => sum + stroke.points.length,
+      (sum, stroke) =>
+        sum + (stroke.kind === "image" ? 0 : stroke.points.length),
       0,
     ),
   };
 }
 
+function encodeDocument(document: BoardDocument, geometryOnly = false) {
+  const { strokes: _strokes, ...root } = document;
+
+  return {
+    ...root,
+    schemaVersion: 4,
+    ...ItemCodec.encode(document.strokes, geometryOnly),
+  };
+}
+
 export const DocumentCodec = {
+  encodeDocument,
   DOCUMENT_LIMITS: CodecConfig.DOCUMENT_LIMITS,
   emptyDocument: SnapshotOperations.emptyDocument,
   cloneDocument: SnapshotOperations.cloneDocument,

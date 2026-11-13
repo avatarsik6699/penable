@@ -6,7 +6,10 @@ import { BoardGeometry } from "~/entities/board";
 import { BoardStabilization } from "~/entities/board";
 
 function fixture() {
-  const document = DocumentCodec.emptyDocument();
+  const document = {
+    ...DocumentCodec.emptyDocument(),
+    schemaVersion: 3 as const,
+  };
 
   document.strokes = [
     {
@@ -35,9 +38,13 @@ describe("versioned document codec", () => {
       const document = fixture();
 
       if (profile === "legacy")
-        document.strokes[0]!.stabilization = { mode: "strong", captureZoom: 2 };
+        (
+          document.strokes[0]! as import("~/entities/board").Stroke
+        ).stabilization = { mode: "strong", captureZoom: 2 };
 
-      if (profile === "missing") delete document.strokes[0]!.stabilization;
+      if (profile === "missing")
+        delete (document.strokes[0]! as import("~/entities/board").Stroke)
+          .stabilization;
 
       const result = DocumentCodec.serializeDocument(document);
 
@@ -45,7 +52,7 @@ describe("versioned document codec", () => {
 
       const decoded = DocumentCodec.parseDocumentJSON(result.json);
 
-      expect(decoded).toEqual(document);
+      expect(decoded).toEqual({ ...document, schemaVersion: 4 });
       expect(decoded.strokes[0]).not.toBe(document.strokes[0]);
 
       const path = (stroke: Stroke) =>
@@ -57,7 +64,11 @@ describe("versioned document codec", () => {
           stroke.width,
         );
 
-      expect(path(decoded.strokes[0]!)).toEqual(path(document.strokes[0]!));
+      expect(
+        path(decoded.strokes[0]! as import("~/entities/board").Stroke),
+      ).toEqual(
+        path(document.strokes[0]! as import("~/entities/board").Stroke),
+      );
     },
   );
 
@@ -77,8 +88,11 @@ describe("versioned document codec", () => {
 
     expect(json).not.toContain("pointerId");
     expect(json).not.toContain("diagnostics");
-    clone.strokes[0]!.points[0]!.x = 50;
-    expect(document.strokes[0]!.points[0]!.x).toBe(0);
+    (clone.strokes[0]! as import("~/entities/board").Stroke).points[0]!.x = 50;
+
+    expect(
+      (document.strokes[0]! as import("~/entities/board").Stroke).points[0]!.x,
+    ).toBe(0);
   });
 
   it.each([
@@ -105,7 +119,11 @@ describe("versioned document codec", () => {
   ])("rejects invalid raw samples %j", (replacement) => {
     const document = fixture();
 
-    Object.assign(document.strokes[0]!.points[0]!, replacement);
+    Object.assign(
+      (document.strokes[0]! as import("~/entities/board").Stroke).points[0]!,
+      replacement,
+    );
+
     expect(() => DocumentCodec.decodeDocument(document)).toThrow();
   });
 
@@ -226,22 +244,31 @@ describe("versioned document codec", () => {
       }),
     ).toThrow();
 
-    expect(document.strokes[0]?.points).toHaveLength(3);
+    expect(
+      (document.strokes[0] as import("~/entities/board").Stroke)?.points,
+    ).toHaveLength(3);
   });
 
   it("exports all memory with an explicit unsupported-round-trip warning when outside format limits", () => {
     const document = fixture();
 
-    document.strokes[0]!.points[0]!.x = 1e9 + 1;
+    (document.strokes[0]! as import("~/entities/board").Stroke).points[0]!.x =
+      1e9 + 1;
 
     const exported = DocumentCodec.serializeDocument(document);
 
     expect(exported.warning).toContain("Обратный импорт");
 
-    const raw = JSON.parse(exported.json) as typeof document;
+    const raw = JSON.parse(exported.json) as { items: Stroke[] };
 
-    expect(raw.strokes[0]?.points).toHaveLength(3);
-    expect(raw.strokes[0]?.points[0]?.x).toBe(1e9 + 1);
+    expect(
+      (raw.items[0] as import("~/entities/board").Stroke)?.points,
+    ).toHaveLength(3);
+
+    expect(
+      (raw.items[0] as import("~/entities/board").Stroke)?.points[0]?.x,
+    ).toBe(1e9 + 1);
+
     expect(() => DocumentCodec.parseDocumentJSON(exported.json)).toThrow();
   });
 });
@@ -382,15 +409,18 @@ describe("schema2 fragments and schema1 compatibility", () => {
       DocumentCodec.serializeDocument(document).json,
     );
 
-    expect(result).toEqual(document);
+    expect(result).toEqual({ ...document, schemaVersion: 4 });
 
     const [a, b] = result.strokes;
 
-    expect(a!.points).not.toBe(b!.points);
+    expect((a! as import("~/entities/board").Stroke).points).not.toBe(
+      (b! as import("~/entities/board").Stroke).points,
+    );
+
     expect(a!.clip).not.toBe(b!.clip);
-    a!.points[0]!.x = 90;
+    (a! as import("~/entities/board").Stroke).points[0]!.x = 90;
     a!.clip![0]![0]![0]![0] = 90;
-    expect(b!.points[0]!.x).toBe(0);
+    expect((b! as import("~/entities/board").Stroke).points[0]!.x).toBe(0);
     expect(document.strokes[0]!.clip![0]![0]![0]![0]).toBe(0);
   });
 
@@ -539,7 +569,7 @@ describe("schema3 view metadata", () => {
       DocumentCodec.serializeDocument(source).json,
     );
 
-    expect(result).toEqual(source);
+    expect(result).toEqual({ ...source, schemaVersion: 4 });
     expect(result.backgroundSettings).not.toBe(source.backgroundSettings);
 
     expect(result.lastWritingView!.center).not.toBe(

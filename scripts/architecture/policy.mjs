@@ -1,5 +1,19 @@
 // Exact execution owners. New browser capabilities require an explicit policy change.
 export const platformOwners = {
+  "src/features/board-document/adapters/library-indexeddb.ts": ["storage"],
+  "src/features/board-document/adapters/library-factory.ts": ["dom"],
+  "src/features/board-document/adapters/image-preflight.ts": [
+    "canvas",
+    "files",
+  ],
+  "src/widgets/board-workspace/components/writing-surface/native/images/image-input.types.ts":
+    ["dom"],
+  "src/widgets/board-workspace/components/writing-surface/native/images/bitmap-cache.types.ts":
+    ["canvas"],
+  "src/widgets/board-workspace/components/writing-surface/native/images/bitmap-cache.ts":
+    ["canvas", "files"],
+  "src/widgets/board-workspace/components/writing-surface/native/images/image-input.ts":
+    ["canvas", "files", "dom", "clipboard", "timers"],
   "src/main.tsx": ["dom"],
   "src/widgets/board-workspace/adapters/workspace-platform.ts": ["dom"],
   "src/widgets/board-workspace/components/writing-surface/native/editor-runtime.ts":

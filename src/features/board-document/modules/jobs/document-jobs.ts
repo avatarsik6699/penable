@@ -1,4 +1,4 @@
-import type { RegionInput, Stroke, SelectedPart } from "~/entities/board";
+import type { RegionInput, BoardItem, SelectedPart } from "~/entities/board";
 import { DocumentCodec } from "../codec";
 import type {
   BoardDocument,
@@ -18,7 +18,7 @@ export class DocumentJobs implements DocumentPersistence {
   }
 
   select(
-    strokes: readonly Stroke[],
+    strokes: readonly BoardItem[],
     region: RegionInput,
     signal: AbortSignal,
   ): Promise<{
@@ -50,9 +50,9 @@ export class DocumentJobs implements DocumentPersistence {
               original,
               selected: part.same
                 ? original
-                : { ...part.selected, points: original.points },
+                : ({ ...original, ...part.selected } as BoardItem),
               remainder: part.remainder
-                ? { ...part.remainder, points: original.points }
+                ? ({ ...original, ...part.remainder } as BoardItem)
                 : null,
             };
           }),
@@ -61,7 +61,7 @@ export class DocumentJobs implements DocumentPersistence {
   }
 
   validate(
-    strokes: readonly Stroke[],
+    strokes: readonly BoardItem[],
     signal: AbortSignal,
     root: BoardDocument = DocumentCodec.emptyDocument(),
   ): Promise<void> {
@@ -108,7 +108,7 @@ export class DocumentJobs implements DocumentPersistence {
   }
 
   overview(
-    strokes: readonly Stroke[],
+    strokes: readonly BoardItem[],
     signal: AbortSignal,
   ): Promise<import("./modules/overview").OverviewResult> {
     if (this.closing) return Promise.reject(new Error("Обзор закрывается."));

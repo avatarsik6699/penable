@@ -26,7 +26,8 @@ function create(options: EditorCommandTypes.HistoryOptions) {
       busy:
         drawingPointerId() !== null ||
         navigation.pointerId !== null ||
-        selection.busy,
+        selection.busy ||
+        Boolean(options.additionalBusy?.()),
     };
 
     const previous = previousHistory;

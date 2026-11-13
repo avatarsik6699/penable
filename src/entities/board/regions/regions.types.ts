@@ -1,4 +1,4 @@
-import { type Position, type Stroke } from "../board.types";
+import { type Position, type BoardItem } from "../board.types";
 
 type InkBounds = {
   left: number;
@@ -19,9 +19,9 @@ type MaskEdge = {
 };
 
 type SelectedPart = {
-  original: Stroke;
-  selected: Stroke;
-  remainder: Stroke | null;
+  original: BoardItem;
+  selected: BoardItem;
+  remainder: BoardItem | null;
 };
 
 export type { InkBounds, InkSegment, MaskEdge, SelectedPart };

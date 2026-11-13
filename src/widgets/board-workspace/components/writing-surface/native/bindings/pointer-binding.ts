@@ -109,7 +109,7 @@ function create(
       (!canWrite() &&
         (input.pointerId !== null ||
           eraser.pointerId !== null ||
-          selection.moving)) ||
+          selection.pointerId !== null)) ||
       interactionsBlocked()
     ) {
       cancel();
@@ -158,7 +158,7 @@ function create(
       (!canWrite() &&
         (input.pointerId !== null ||
           eraser.pointerId !== null ||
-          selection.moving)) ||
+          selection.pointerId !== null)) ||
       interactionsBlocked()
     ) {
       cancel();

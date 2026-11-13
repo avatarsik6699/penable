@@ -44,13 +44,13 @@ export class BoardNavigationPage {
 
     expect(writing).toBeTruthy();
     await this.board.cancelStroke();
-    await this.board.storage.expectScene(original.strokes);
+    await this.board.storage.expectScene(original.items);
     expect((await this.saved()).lastWritingView).toEqual(writing);
     await this.board.erase({ x: 180, y: 112 }, { x: 220, y: 125 });
     await this.board.storage.expectStrokeCount(0);
     expect((await this.saved()).lastWritingView).toEqual(writing);
     await this.board.undo();
-    await this.board.storage.expectScene(original.strokes);
+    await this.board.storage.expectScene(original.items);
     await this.board.surface.focus();
     await this.page.keyboard.press("Control+a");
     await this.page.keyboard.press("Control+c");
@@ -83,7 +83,7 @@ export class BoardNavigationPage {
 
     const beforeReset = await this.saved();
 
-    expect(beforeReset.strokes).toEqual(original.strokes);
+    expect(beforeReset.items).toEqual(original.items);
 
     const box = (await this.board.surface.boundingBox())!;
 
@@ -118,7 +118,7 @@ export class BoardNavigationPage {
 
     expect(imported.backgroundSettings).toEqual(exported.backgroundSettings);
     expect(imported.lastWritingView).toEqual(writing);
-    expect(imported.strokes).toEqual(exported.strokes);
+    expect(imported.items).toEqual(exported.items);
     await this.board.storage.openFiles();
 
     await expect(

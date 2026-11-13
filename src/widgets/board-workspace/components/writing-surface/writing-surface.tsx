@@ -22,6 +22,7 @@ export const WritingSurface: React.FC<WritingSurfaceTypes.Props> = (props) => {
         bindCompleted={surface.bindCompleted}
         bindCanvas={surface.bindCanvas}
         bindSelectionPath={surface.bindSelectionPath}
+        bindSelectionHandles={surface.bindSelectionHandles}
       />
       <BoardCursorView
         bindCursor={surface.bindCursor}

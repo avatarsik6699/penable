@@ -49,6 +49,24 @@ export const StorageDetails: React.FC<StorageDetailsTypes.Props> = (props) => (
     </div>
     <div className={styles.recovery}>
       <h3>Восстановительные копии</h3>
+      {props.state.hasRawCopy && (
+        <Button onClick={() => props.onFeedback(props.onRaw())}>
+          <EditorIcon name="history" />
+          Исходная запись
+        </Button>
+      )}
+      {props.state.hasSchema4Copy && (
+        <Button onClick={() => props.onFeedback(props.onSchema4())}>
+          <EditorIcon name="history" />
+          Копия до обновления v4
+        </Button>
+      )}
+      {props.state.hasLibraryCopy && (
+        <Button onClick={() => props.onFeedback(props.onLibrary())}>
+          <EditorIcon name="history" />
+          Копия до библиотеки досок
+        </Button>
+      )}
       {props.state.hasPrevious && (
         <Button onClick={() => props.onFeedback(props.onPrevious())}>
           <EditorIcon name="history" />
@@ -70,6 +88,9 @@ export const StorageDetails: React.FC<StorageDetailsTypes.Props> = (props) => (
         </Button>
       )}
       {!props.state.hasPrevious &&
+        !props.state.hasSchema4Copy &&
+        !props.state.hasLibraryCopy &&
+        !props.state.hasRawCopy &&
         !props.state.hasSchema3Copy &&
         !props.state.hasUpgradeCopy && <p>Восстановительных копий пока нет.</p>}
     </div>

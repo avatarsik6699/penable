@@ -39,8 +39,26 @@ function selection(
   viewport: Viewport,
   selection: BoardSelection,
   tool: DrawingTool,
+  handles?: SVGPathElement | null,
 ) {
   if (!path) return;
+
+  handles?.setAttribute(
+    "d",
+    tool === "selection"
+      ? selection
+          .handles()
+          .map((handle) => {
+            const x = handle.x * viewport.zoom + viewport.x,
+              y = handle.y * viewport.zoom + viewport.y;
+
+            return handle.index === 8
+              ? `M${x - 5},${y}a5,5 0 1,0 10,0a5,5 0 1,0 -10,0`
+              : `M${x - 4},${y - 4}h8v8h-8Z`;
+          })
+          .join(" ")
+      : "",
+  );
 
   path.setAttribute(
     "d",

@@ -26,7 +26,23 @@ function setup(
   main: StoredRecord = { exists: true, value: DocumentCodec.emptyDocument() },
   writer = true,
   persistence?: DocumentPersistence,
+  preflight?: import("./document-session.types").SessionOptions["preflight"],
 ) {
+  if (
+    main.exists &&
+    main.value &&
+    typeof main.value === "object" &&
+    "schemaVersion" in main.value &&
+    main.value.schemaVersion === 4 &&
+    "strokes" in main.value
+  )
+    main = {
+      ...main,
+      value: DocumentCodec.encodeDocument(
+        main.value as import("../../board-document.types").BoardDocument,
+      ),
+    };
+
   let live = BoardSnapshots.empty();
 
   let invalidate: (message: string) => void = () => {};
@@ -71,6 +87,7 @@ function setup(
     onHydrate,
     onState,
     persistence,
+    preflight,
     acquire: async () => lease,
 
     open: async (callback) => {
@@ -438,8 +455,8 @@ describe("serialized document session", () => {
   );
 });
 
-describe("schema3 session upgrade state", () => {
-  it("writes schema3 after loading schema1 and exposes the original upgrade copy only after transaction success", async () => {
+describe("schema4 session upgrade state", () => {
+  it("writes schema4 after loading schema1 and exposes the original upgrade copy only after transaction success", async () => {
     const raw = {
         ...DocumentCodec.emptyDocument(),
         schemaVersion: 1,
@@ -448,7 +465,7 @@ describe("schema3 session upgrade state", () => {
       h = setup({ exists: true, value: raw });
 
     await h.session.start();
-    expect(h.session.state.hasSchema3Copy).toBe(false);
+    expect(h.session.state.hasSchema4Copy).toBe(false);
 
     const write = deferred<void>();
 
@@ -458,12 +475,12 @@ describe("schema3 session upgrade state", () => {
     const saving = h.session.flush();
 
     await Promise.resolve();
-    expect(h.repository.write.mock.calls[0]![0].schemaVersion).toBe(3);
-    expect(h.session.state.hasSchema3Copy).toBe(false);
+    expect(h.repository.write.mock.calls[0]![0].schemaVersion).toBe(4);
+    expect(h.session.state.hasSchema4Copy).toBe(false);
     write.resolve();
     await saving;
-    expect(h.session.schema3Record.value).toBe(raw);
-    expect(h.session.state.hasSchema3Copy).toBe(true);
+    expect(h.session.schema4Record.value).toBe(raw);
+    expect(h.session.state.hasSchema4Copy).toBe(true);
     await h.session.dispose();
   });
 
@@ -475,9 +492,9 @@ describe("schema3 session upgrade state", () => {
     h.repository.write.mockRejectedValueOnce(new Error("abort"));
     h.session.changed(true);
     await h.session.flush();
-    expect(h.session.state.hasSchema3Copy).toBe(false);
+    expect(h.session.state.hasSchema4Copy).toBe(false);
     await h.session.retrySave();
-    expect(h.session.schema3Record.value).toBe(raw);
+    expect(h.session.schema4Record.value).toBe(raw);
     await h.session.dispose();
   });
 
@@ -497,11 +514,11 @@ describe("schema3 session upgrade state", () => {
     };
 
     await h.session.replace(candidate, () => false);
-    expect(h.repository.replace.mock.calls[0]![1].schemaVersion).toBe(3);
-    expect(h.session.schema3Record.value).toBe(raw);
+    expect(h.repository.replace.mock.calls[0]![1].schemaVersion).toBe(4);
+    expect(h.session.schema4Record.value).toBe(raw);
     expect(h.session.previousRecord.value).not.toBe(raw);
     expect(h.session.state.hasPrevious).toBe(true);
-    expect(h.session.state.hasSchema3Copy).toBe(true);
+    expect(h.session.state.hasSchema4Copy).toBe(true);
     await h.session.dispose();
   });
 });
@@ -528,11 +545,14 @@ describe("snapshot ownership boundary", () => {
     const saving = h.session.flush();
 
     await Promise.resolve();
-    h.live.strokes[0]!.points[0]!.x = 99;
+    (h.live.strokes[0]! as import("~/entities/board").Stroke).points[0]!.x = 99;
 
-    expect(h.repository.write.mock.calls[0]![0].strokes[0]!.points[0]!.x).toBe(
-      10,
-    );
+    expect(
+      (
+        h.repository.write.mock.calls[0]![0]
+          .strokes[0]! as import("~/entities/board").Stroke
+      ).points[0]!.x,
+    ).toBe(10);
 
     write.resolve();
     await saving;
@@ -567,11 +587,13 @@ describe("snapshot ownership boundary", () => {
     );
 
     await started.promise;
-    h.live.strokes[0]!.points[0]!.x = 99;
+    (h.live.strokes[0]! as import("~/entities/board").Stroke).points[0]!.x = 99;
 
     expect(
-      (h.repository.replace.mock.calls[0]![0] as BoardSnapshot).strokes[0]!
-        .points[0]!.x,
+      (
+        (h.repository.replace.mock.calls[0]![0] as BoardSnapshot)
+          .strokes[0]! as import("~/entities/board").Stroke
+      ).points[0]!.x,
     ).toBe(10);
 
     replacement.resolve();
@@ -635,4 +657,106 @@ describe("durable worker session lifetime", () => {
     await disposed;
     expect(h.lease.release).toHaveBeenCalledOnce();
   });
+});
+
+describe("replace image validation boundary", () => {
+  it("does not replace current notes when native image preflight rejects", async () => {
+    const preflight = vi.fn(async () => {
+        throw new Error("corrupt PNG");
+      }),
+      h = setup(undefined, true, undefined, preflight);
+
+    await h.session.start();
+    h.live.tools.width = 6;
+    h.session.changed(true);
+
+    await expect(
+      h.session.replace(DocumentCodec.emptyDocument(), () => false),
+    ).rejects.toThrow("corrupt PNG");
+
+    expect(h.repository.replace).not.toHaveBeenCalled();
+    expect(h.live.tools.width).toBe(6);
+    expect(h.session.hasUnsaved).toBe(true);
+    expect(h.onHydrate).toHaveBeenCalledOnce();
+    await h.session.dispose();
+  });
+
+  it("aborts a late preflight on disposal before any durable replacement", async () => {
+    const gate = deferred<void>();
+    let signal: AbortSignal | undefined;
+
+    const h = setup(undefined, true, undefined, async (_document, value) => {
+      signal = value;
+      await gate.promise;
+    });
+
+    await h.session.start();
+
+    const replacement = h.session.replace(
+        DocumentCodec.emptyDocument(),
+        () => false,
+      ),
+      rejected = expect(replacement).rejects.toThrow("отменена");
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const disposing = h.session.dispose();
+
+    expect(signal!.aborted).toBe(true);
+    expect(h.repository.replace).not.toHaveBeenCalled();
+    gate.resolve();
+    await rejected;
+    await disposing;
+    expect(h.repository.replace).not.toHaveBeenCalled();
+    expect(h.lease.release).toHaveBeenCalledOnce();
+  });
+});
+
+it("keeps a saved document globally saved after native import preflight rejects", async () => {
+  const h = setup(undefined, true, undefined, async () => {
+    throw new Error("corrupt PNG");
+  });
+
+  await h.session.start();
+
+  await expect(
+    h.session.replace(DocumentCodec.emptyDocument(), () => false),
+  ).rejects.toThrow("corrupt PNG");
+
+  expect(h.session.state).toMatchObject({
+    phase: "saved",
+    message: "",
+    loaded: true,
+    writable: true,
+    importing: false,
+  });
+
+  expect(h.repository.replace).not.toHaveBeenCalled();
+  expect(h.session.hasUnsaved).toBe(false);
+  await h.session.dispose();
+});
+
+it("resumes pending dirty-note saving after rejecting a local import without marking a storage error", async () => {
+  vi.useFakeTimers();
+
+  const h = setup(undefined, true, undefined, async () => {
+    throw new Error("corrupt PNG");
+  });
+
+  await h.session.start();
+  h.live.tools.width = 6;
+  h.session.changed(true);
+
+  await expect(
+    h.session.replace(DocumentCodec.emptyDocument(), () => false),
+  ).rejects.toThrow("corrupt PNG");
+
+  expect(h.session.state.phase).toBe("dirty");
+  expect(h.session.state.message).toBe("");
+  expect(h.session.hasUnsaved).toBe(true);
+  await vi.advanceTimersByTimeAsync(1500);
+  expect(h.repository.write).toHaveBeenCalledOnce();
+  expect(h.session.state.phase).toBe("saved");
+  await h.session.dispose();
 });

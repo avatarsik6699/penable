@@ -1,4 +1,4 @@
-import { type Stroke } from "../board.types";
+import { type BoardItem } from "../board.types";
 import { type Operation, type IndexedStroke } from "./history.types";
 
 export class StrokeHistory {
@@ -6,7 +6,7 @@ export class StrokeHistory {
   private readonly undone: Operation[] = [];
 
   constructor(
-    readonly strokes: Stroke[] = [],
+    readonly strokes: BoardItem[] = [],
     undoFloor = 0,
   ) {
     this.done = strokes.slice(undoFloor).map((stroke, offset) => ({
@@ -23,14 +23,14 @@ export class StrokeHistory {
     return this.undone.length > 0;
   }
 
-  commit(stroke: Stroke) {
+  commit(stroke: BoardItem) {
     this.record({
       removed: [],
       inserted: [{ stroke, index: this.strokes.length }],
     });
   }
 
-  erase(strokes: ReadonlySet<Stroke>): boolean {
+  erase(strokes: ReadonlySet<BoardItem>): boolean {
     const entries: IndexedStroke[] = [];
 
     this.strokes.forEach((stroke, index) => {
@@ -72,7 +72,7 @@ export class StrokeHistory {
     this.undone.length = 0;
   }
 
-  replace(candidate: readonly Stroke[]): boolean {
+  replace(candidate: readonly BoardItem[]): boolean {
     const current = this.strokes;
     let start = 0;
 
@@ -105,8 +105,8 @@ export class StrokeHistory {
 
       if (changed < (end - start) / 2) {
         const indices: number[] = [],
-          before: Stroke[] = [],
-          after: Stroke[] = [];
+          before: BoardItem[] = [],
+          after: BoardItem[] = [];
 
         for (let index = start; index < end; index++) {
           if (current[index] === candidate[index]) continue;

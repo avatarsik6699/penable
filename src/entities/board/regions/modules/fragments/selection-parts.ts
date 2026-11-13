@@ -1,5 +1,6 @@
-import { type Stroke, type ClipMask } from "../../../board.types";
+import { type BoardItem, type ClipMask } from "../../../board.types";
 import { intersection, difference } from "polygon-clipping";
+import { BoardTransforms } from "../../../transforms";
 import { type SelectedPart } from "../../regions.types";
 import { RegionMask } from "../mask";
 import { InkBoundsQueries } from "../ink";
@@ -8,7 +9,7 @@ import { InkIntersections } from "../ink";
 import { FragmentLineage } from "./fragment-lineage";
 
 function selectParts(
-  strokes: readonly Stroke[],
+  strokes: readonly BoardItem[],
   region: ClipMask,
   allocate: () => number,
 ): SelectedPart[] {
@@ -17,14 +18,20 @@ function selectParts(
 
   for (const stroke of strokes) {
     const offset = stroke.translation ?? { x: 0, y: 0 };
-    const key = `${offset.x}:${offset.y}`;
+
+    const key = stroke.matrix
+      ? stroke.matrix.join(":")
+      : `${offset.x}:${offset.y}`;
+
     let localRegion = translated.get(key);
 
     if (!localRegion) {
-      localRegion = RegionMask.translateMask(region, {
-        x: -offset.x,
-        y: -offset.y,
-      });
+      localRegion = stroke.matrix
+        ? BoardTransforms.mask(region, BoardTransforms.inverse(stroke.matrix))
+        : RegionMask.translateMask(region, {
+            x: -offset.x,
+            y: -offset.y,
+          });
 
       translated.set(key, localRegion);
     }
@@ -69,7 +76,7 @@ function selectParts(
     const common = {
       ...stroke,
       source: FragmentLineage.sourceOf(stroke),
-      translation: { ...offset },
+      ...(stroke.matrix ? {} : { translation: { ...offset } }),
     };
 
     const selected = { ...common, clip: selectedClip };

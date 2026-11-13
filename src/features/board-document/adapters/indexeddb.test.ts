@@ -151,6 +151,8 @@ describe("native IndexedDB adapter transaction boundary", () => {
       beforeImport: { exists: false, value: undefined },
       beforeSchema2: { exists: false, value: undefined },
       beforeSchema3: { exists: false, value: undefined },
+      beforeSchema4: { exists: false, value: undefined },
+      beforeLibrary: { exists: false, value: undefined },
     });
 
     await repository.close();
@@ -168,7 +170,7 @@ describe("native IndexedDB adapter transaction boundary", () => {
 
     expect(tx.puts).toEqual([
       [null, "before-import"],
-      [candidate, "main"],
+      [DocumentCodec.encodeDocument(candidate), "main"],
     ]);
 
     tx.oncomplete?.();
@@ -351,12 +353,15 @@ describe("atomic schema3 upgrade copy", () => {
       const repository = await h.opened;
 
       const raw = {
-        ...DocumentCodec.emptyDocument(),
+        ...{ ...DocumentCodec.emptyDocument(), schemaVersion: 3 as const },
         schemaVersion: 2,
         unknown: { retain: true },
       };
 
-      const candidate = DocumentCodec.emptyDocument();
+      const candidate = {
+        ...DocumentCodec.emptyDocument(),
+        schemaVersion: 3 as const,
+      };
 
       const writing =
         mode === "write"
@@ -400,7 +405,10 @@ describe("atomic schema3 upgrade copy", () => {
 
     const repository = await h.opened;
 
-    const writing = repository.write(DocumentCodec.emptyDocument()),
+    const writing = repository.write({
+        ...DocumentCodec.emptyDocument(),
+        schemaVersion: 3 as const,
+      }),
       tx = h.transactions.at(-1)!;
 
     tx.reads.get("value:main")!.result = { schemaVersion: 1 };
@@ -414,7 +422,10 @@ describe("atomic schema3 upgrade copy", () => {
     tx.onabort?.();
     await failed;
 
-    const retry = repository.write(DocumentCodec.emptyDocument()),
+    const retry = repository.write({
+        ...DocumentCodec.emptyDocument(),
+        schemaVersion: 3 as const,
+      }),
       retryTx = h.transactions.at(-1)!;
 
     expect(retryTx.reads.has("value:main")).toBe(true);

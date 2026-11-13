@@ -1,8 +1,9 @@
 import {
   type ClipMask,
-  type Stroke,
+  type BoardItem,
   type Position,
 } from "../../../board.types";
+import { BoardTransforms } from "../../../transforms";
 import { type InkBounds, type InkSegment } from "../../regions.types";
 import { InkUtils } from "./ink.utils";
 import { RegionMask } from "../mask";
@@ -10,17 +11,28 @@ import { InkSegments } from "./ink-segments";
 
 const clippedBoundsCache = new WeakMap<
   ClipMask,
-  WeakMap<Stroke["points"], Map<string, InkBounds | null>>
+  WeakMap<
+    import("../../../board.types").Stroke["points"],
+    Map<string, InkBounds | null>
+  >
 >();
 
-const strokeBoundsCache = new WeakMap<Stroke, InkBounds | null>();
+const strokeBoundsCache = new WeakMap<BoardItem, InkBounds | null>();
 
 const roughBoundsCache = new WeakMap<
-  Stroke["points"],
+  import("../../../board.types").Stroke["points"],
   Map<string, InkBounds | null>
 >();
 
-function sourceBounds(stroke: Stroke): InkBounds | null {
+function sourceBounds(stroke: BoardItem): InkBounds | null {
+  if (stroke.kind === "image")
+    return {
+      left: 0,
+      top: 0,
+      right: stroke.asset.width,
+      bottom: stroke.asset.height,
+    };
+
   if (strokeBoundsCache.has(stroke)) return strokeBoundsCache.get(stroke)!;
 
   const key = InkUtils.profileKey(stroke);
@@ -221,7 +233,21 @@ function clippedCapsuleBounds(
   return result;
 }
 
-function localVisibleBounds(stroke: Stroke): InkBounds | null {
+function localVisibleBounds(stroke: BoardItem): InkBounds | null {
+  if (stroke.kind === "image") {
+    const b = sourceBounds(stroke)!;
+    const clip = stroke.clip ? RegionMask.maskBounds(stroke.clip) : null;
+
+    return clip
+      ? {
+          left: Math.max(0, clip.left),
+          top: Math.max(0, clip.top),
+          right: Math.min(b.right, clip.right),
+          bottom: Math.min(b.bottom, clip.bottom),
+        }
+      : b;
+  }
+
   const key = InkUtils.profileKey(stroke);
 
   let pointsCache = stroke.clip
@@ -264,7 +290,7 @@ function localVisibleBounds(stroke: Stroke): InkBounds | null {
   return result;
 }
 
-function visibleBounds(strokes: readonly Stroke[]): InkBounds | null {
+function visibleBounds(strokes: readonly BoardItem[]): InkBounds | null {
   let result: InkBounds | null = null;
 
   for (const stroke of strokes) {
@@ -272,12 +298,17 @@ function visibleBounds(strokes: readonly Stroke[]): InkBounds | null {
       offset = stroke.translation ?? { x: 0, y: 0 };
 
     if (bounds)
-      result = InkUtils.mergeBounds(result, {
-        left: bounds.left + offset.x,
-        right: bounds.right + offset.x,
-        top: bounds.top + offset.y,
-        bottom: bounds.bottom + offset.y,
-      });
+      result = InkUtils.mergeBounds(
+        result,
+        stroke.matrix
+          ? BoardTransforms.bounds(bounds, stroke.matrix)
+          : {
+              left: bounds.left + offset.x,
+              right: bounds.right + offset.x,
+              top: bounds.top + offset.y,
+              bottom: bounds.bottom + offset.y,
+            },
+      );
   }
 
   return result;

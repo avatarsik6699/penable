@@ -45,6 +45,11 @@ export const SurfaceLayers: React.FC<SurfaceLayersTypes.Props> = (props) => (
           props.bindSelectionPath(node);
         }}
       />
+      <path
+        ref={(node) => props.bindSelectionHandles(node)}
+        data-testid="selection-handles"
+        style={{ strokeDasharray: "none", fill: "var(--paper)" }}
+      />
     </svg>
   </>
 );

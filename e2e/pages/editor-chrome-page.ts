@@ -100,6 +100,8 @@ export class EditorChromePage {
       const bounds = [];
 
       for (const name of [
+        "Доски",
+        "Вставить изображение",
         "Настройки доски",
         "Перо",
         "Состояние сохранения",
@@ -144,5 +146,75 @@ export class EditorChromePage {
 
       await this.page.keyboard.press("Escape");
     }
+  }
+
+  private async expectPanelTail(name: string, tail: string) {
+    const panel = this.page.getByRole("dialog", { name, exact: true });
+
+    await expect(panel).toBeVisible();
+
+    await expect
+      .poll(() =>
+        panel.evaluate((element) => {
+          const bounds = element.getBoundingClientRect();
+
+          return Math.max(-bounds.top, bounds.bottom - innerHeight + 8);
+        }),
+      )
+      .toBeLessThanOrEqual(1);
+
+    const button = panel.getByRole("button", { name: tail, exact: true });
+
+    await button.scrollIntoViewIfNeeded();
+
+    const bounds = (await button.boundingBox())!;
+    const viewport = this.page.viewportSize()!;
+
+    expect(bounds.y).toBeGreaterThanOrEqual(0);
+    expect(bounds.y + bounds.height).toBeLessThanOrEqual(viewport.height - 7);
+  }
+
+  async expectCompactContentPanelsReachable() {
+    await this.board.drawStroke();
+    await this.board.storage.expectStrokeCount(1);
+    await this.page.setViewportSize({ width: 390, height: 844 });
+    await this.page.getByRole("button", { name: "Доски", exact: true }).click();
+    await this.expectPanelTail("Мои доски", "Создать доску");
+    await this.page.setViewportSize({ width: 390, height: 568 });
+    await this.expectPanelTail("Мои доски", "Создать доску");
+    await this.page.keyboard.press("Escape");
+
+    await this.page
+      .getByRole("button", { name: "Выделение", exact: true })
+      .click();
+
+    const actions = this.page.getByRole("button", {
+      name: "Действия",
+      exact: true,
+    });
+
+    await actions.click();
+
+    await this.page
+      .getByRole("button", { name: "Выделить всё", exact: true })
+      .click();
+
+    await actions.click();
+
+    await this.page
+      .getByRole("button", { name: "Преобразовать", exact: true })
+      .click();
+
+    for (const size of [
+      { width: 390, height: 568 },
+      { width: 390, height: 844 },
+      { width: 1280, height: 720 },
+    ]) {
+      await this.page.setViewportSize(size);
+      await this.expectPanelTail("Действия с выделением", "Снять выделение");
+    }
+
+    await this.page.keyboard.press("Escape");
+    await this.board.storage.expectStrokeCount(1);
   }
 }

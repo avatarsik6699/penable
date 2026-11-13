@@ -23,11 +23,14 @@ export class DocumentSession {
   private loaded = false;
   private rawLoaded = false;
   private importing = false;
+  private replacementAbort: AbortController | null = null;
   private writing = false;
   private phase: SavePhase = "loading";
   private message = "";
   private rawMain: StoredRecord = { exists: false, value: undefined };
   private upgrade: StoredRecord = { exists: false, value: undefined };
+  private schema4: StoredRecord = { exists: false, value: undefined };
+  private libraryCopy: StoredRecord = { exists: false, value: undefined };
   private schema3: StoredRecord = { exists: false, value: undefined };
   private previous: StoredRecord = { exists: false, value: undefined };
   private revision = 0;
@@ -79,6 +82,9 @@ export class DocumentSession {
       hasPrevious: this.previous.exists,
       hasUpgradeCopy: this.upgrade.exists,
       hasSchema3Copy: this.schema3.exists,
+      hasSchema4Copy: this.schema4.exists,
+      hasLibraryCopy: this.libraryCopy.exists,
+      hasRawCopy: this.rawMain.exists && !this.loaded && this.phase === "error",
       canReconnect:
         !this.canWrite &&
         this.phase !== "loading" &&
@@ -94,6 +100,25 @@ export class DocumentSession {
 
   get schema3Record(): StoredRecord {
     return this.schema3;
+  }
+
+  get rawRecord(): StoredRecord {
+    return this.rawMain;
+  }
+
+  get schema4Record(): StoredRecord {
+    return this.schema4;
+  }
+
+  get libraryRecord(): StoredRecord {
+    return this.libraryCopy;
+  }
+
+  async flushOrThrow(): Promise<void> {
+    await this.flush();
+
+    if (this.phase === "error" || this.hasUnsaved || this.paused)
+      throw new Error(this.message || "Не удалось сохранить текущую доску.");
   }
 
   get previousRecord(): StoredRecord {
@@ -146,6 +171,16 @@ export class DocumentSession {
       };
 
       this.schema3 = records.beforeSchema3 ?? {
+        exists: false,
+        value: undefined,
+      };
+
+      this.schema4 = records.beforeSchema4 ?? {
+        exists: false,
+        value: undefined,
+      };
+
+      this.libraryCopy = records.beforeLibrary ?? {
         exists: false,
         value: undefined,
       };
@@ -227,14 +262,16 @@ export class DocumentSession {
         const snapshot = this.options.persistence
           ? {
               ...live,
-              schemaVersion: 3 as const,
+              schemaVersion: 4 as const,
               strokes: [...live.strokes],
               viewport: { ...live.viewport },
               tools: { ...live.tools },
             }
           : {
-              ...DocumentCodec.decodeDocument(live),
-              schemaVersion: 3 as const,
+              ...DocumentCodec.decodeDocument(
+                DocumentCodec.encodeDocument(live),
+              ),
+              schemaVersion: 4 as const,
             };
 
         this.writing = true;
@@ -252,11 +289,11 @@ export class DocumentSession {
         this.savedRevision = revision;
 
         if (
-          !this.schema3.exists &&
+          !this.schema4.exists &&
           this.rawMain.exists &&
-          SessionUtils.isLegacy(this.rawMain.value)
+          SessionUtils.isPre4(this.rawMain.value)
         )
-          this.schema3 = this.rawMain;
+          this.schema4 = this.rawMain;
 
         this.rawMain = { exists: true, value: snapshot };
         this.phase = this.revision === revision ? "saved" : "dirty";
@@ -301,18 +338,35 @@ export class DocumentSession {
 
     try {
       document = {
-        ...DocumentCodec.decodeDocument(candidate),
-        schemaVersion: 3,
+        ...DocumentCodec.decodeDocument(
+          candidate.schemaVersion === 4
+            ? DocumentCodec.encodeDocument(candidate)
+            : candidate,
+        ),
+        schemaVersion: 4,
       };
     } catch (error) {
       return Promise.reject(error);
     }
 
     this.importing = true;
+
+    const controller = new AbortController();
+
+    this.replacementAbort = controller;
     this.clearTimers();
     this.publish();
 
     const preceding = this.tail;
+
+    let writeAttempted = false,
+      validationFailed = false;
+
+    let priorState = {
+      phase: this.phase,
+      paused: this.paused,
+      message: this.message,
+    };
 
     const replacement = (async () => {
       try {
@@ -323,22 +377,34 @@ export class DocumentSession {
             "Подключение к хранилищу изменилось. Замена не выполнена.",
           );
 
+        priorState = {
+          phase: this.phase,
+          paused: this.paused,
+          message: this.message,
+        };
+
+        await this.options.preflight?.(document, controller.signal);
+
+        if (this.disposed || this.fatal || controller.signal.aborted)
+          throw new Error("Замена отменена. Текущая доска сохранена.");
+
         const previous = this.loaded
           ? DocumentCodec.cloneDocument(
               DocumentSnapshots.fromSnapshot(this.options.snapshot()),
             )
           : this.rawMain.value;
 
+        writeAttempted = true;
         await this.repository.replace(previous, document);
 
         if (this.disposed || this.fatal) return;
 
         if (
-          !this.schema3.exists &&
+          !this.schema4.exists &&
           this.rawMain.exists &&
-          SessionUtils.isLegacy(this.rawMain.value)
+          SessionUtils.isPre4(this.rawMain.value)
         )
-          this.schema3 = this.rawMain;
+          this.schema4 = this.rawMain;
 
         this.previous = { exists: true, value: previous };
         this.rawMain = { exists: true, value: document };
@@ -351,15 +417,35 @@ export class DocumentSession {
         this.phase = "saved";
         this.options.onHydrate(DocumentSnapshots.toSnapshot(document));
       } catch (error) {
-        this.paused = true;
-        this.phase = "error";
+        if (!writeAttempted && !this.disposed && !this.fatal) {
+          this.phase = priorState.phase;
+          this.paused = priorState.paused;
+          this.message = priorState.message;
+          validationFailed = true;
+        } else {
+          this.paused = true;
+          this.phase = "error";
 
-        this.message =
-          "Замена не выполнена. " + DocumentErrors.messageOf(error);
+          this.message =
+            "Замена не выполнена. " + DocumentErrors.messageOf(error);
+        }
 
         throw error;
       } finally {
+        this.replacementAbort = null;
         this.importing = false;
+
+        if (
+          validationFailed &&
+          !this.paused &&
+          !this.disposed &&
+          !this.fatal &&
+          this.revision > this.savedRevision
+        )
+          this.timer = TaskClock.schedule(() => {
+            void this.flush();
+          }, SessionConfig.saveDelay);
+
         this.publish();
       }
     })();
@@ -373,6 +459,7 @@ export class DocumentSession {
     if (this.disposal) return this.disposal;
 
     this.disposed = true;
+    this.replacementAbort?.abort();
     this.clearTimers();
 
     this.disposal = (async () => {

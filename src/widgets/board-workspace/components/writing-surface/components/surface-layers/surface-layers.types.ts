@@ -5,6 +5,7 @@ type ExtraProps = {
   bindBackground: (node: SurfaceElements["background"]) => void;
   bindCompleted: (node: SurfaceElements["completed"]) => void;
   bindCanvas: (node: SurfaceElements["canvas"]) => void;
+  bindSelectionHandles: (node: SurfaceElements["selectionHandles"]) => void;
   bindSelectionPath: (node: SurfaceElements["selectionPath"]) => void;
 };
 

@@ -21,6 +21,7 @@ export type BindingOptions = {
   getTool: () => DrawingTool;
   canWrite: () => boolean;
   interactionsBlocked: () => boolean;
+  cancelPendingInput?: () => boolean;
   drawingPointerId: () => number | null;
   activeInput: () => PenInput | EraserInput | BoardSelection;
   observeInput: (event?: PointerEvent) => void;

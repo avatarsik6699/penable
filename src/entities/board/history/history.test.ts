@@ -97,9 +97,18 @@ describe("completed stroke history", () => {
     expect(history.canUndo).toBe(false);
     history.redo();
     expect(history.strokes[0]).toBe(a);
-    expect(history.strokes[0]?.points).toBe(originalPoints);
-    expect(history.strokes[0]?.stabilization).toBe(originalProfile);
-    expect(history.strokes[0]?.width).toBe(0.7);
+
+    expect(
+      (history.strokes[0] as import("../board.types").Stroke)?.points,
+    ).toBe(originalPoints);
+
+    expect(
+      (history.strokes[0] as import("../board.types").Stroke)?.stabilization,
+    ).toBe(originalProfile);
+
+    expect((history.strokes[0] as import("../board.types").Stroke)?.width).toBe(
+      0.7,
+    );
   });
 
   it("clears redo only when a new stroke is committed and appends that same object", () => {

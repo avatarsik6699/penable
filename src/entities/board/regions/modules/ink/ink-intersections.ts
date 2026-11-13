@@ -1,7 +1,7 @@
 import {
   type Position,
   type ClipMask,
-  type Stroke,
+  type BoardItem,
 } from "../../../board.types";
 import { BoardSourceGeometry } from "../../../geometry";
 import { RegionMask } from "../mask";
@@ -62,11 +62,13 @@ function curveIntersects(
   );
 }
 
-function inkIntersectsMask(stroke: Stroke, mask: ClipMask): boolean {
+function inkIntersectsMask(stroke: BoardItem, mask: ClipMask): boolean {
   const bounds = RegionMask.maskBounds(mask),
     source = InkBoundsQueries.sourceBounds(stroke);
 
   if (!bounds || !source || !InkUtils.overlaps(bounds, source)) return false;
+
+  if (stroke.kind === "image") return true;
 
   const geometry = BoardSourceGeometry.sourceGeometry(stroke),
     radius = stroke.width / 2;

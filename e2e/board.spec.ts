@@ -5,7 +5,7 @@ test("ink commits exactly, persists, supports undo/redo and a protected reload b
 }) => {
   await board.drawAndExpectExactCommitRaster();
 
-  const original = (await board.storage.records()).main!.strokes;
+  const original = (await board.storage.records()).main!.items;
 
   await board.undo();
   await board.storage.expectStrokeCount(0);
@@ -23,14 +23,14 @@ test("partial selection retains margins, clips and restores the exact scene", as
   await board.drawStroke();
   await board.storage.expectStrokeCount(1);
 
-  const original = (await board.storage.records()).main!.strokes;
+  const original = (await board.storage.records()).main!.items;
 
   await board.selectRectangle(samples.selectionStart, samples.selectionEnd);
   await board.expectSelectionSize(130, 120);
   await board.moveSelection(samples.moveStart, samples.moveEnd);
   await board.expectPartialMove(40, 30);
 
-  const moved = (await board.storage.records()).main!.strokes;
+  const moved = (await board.storage.records()).main!.items;
 
   await board.undo();
   await board.storage.expectScene(original);
@@ -45,7 +45,7 @@ test("eraser is undoable and cancelled pen input never commits", async ({
   await board.drawStroke();
   await board.storage.expectStrokeCount(1);
 
-  const original = (await board.storage.records()).main!.strokes;
+  const original = (await board.storage.records()).main!.items;
 
   await board.cancelStroke();
   await board.storage.expectScene(original);
@@ -73,7 +73,7 @@ test("JSON import/export and invalid import preserve recoverability", async ({
   await board.storage.expectRecovery("previous", previous);
 });
 
-test("legacy first v3 save keeps original schema1 and independent import backup", async ({
+test("library migration keeps original schema1 and independent import backup", async ({
   legacyBoard,
   documents,
   samples,
@@ -81,7 +81,8 @@ test("legacy first v3 save keeps original schema1 and independent import backup"
   await legacyBoard.storage.expectStrokeCount(1);
   await legacyBoard.drawStroke(samples.extraStart, samples.extraEnd);
   await legacyBoard.storage.expectStrokeCount(2);
-  await legacyBoard.storage.expectRecovery("upgrade3", documents.legacy);
+  await legacyBoard.storage.expectRecovery("upgrade4", documents.legacy);
+  await legacyBoard.storage.expectRecovery("beforeLibrary", documents.legacy);
   await legacyBoard.storage.expectRecovery("previous", documents.previous);
   await legacyBoard.storage.expectExportMatchesSaved();
 });
@@ -149,12 +150,12 @@ test("v2 migration retains raw original and both older recovery copies", async (
   samples,
 }) => {
   await v2Board.drawStroke(samples.extraStart, samples.extraEnd);
-  await v2Board.storage.expectRecovery("upgrade3", documents.v2);
+  await v2Board.storage.expectRecovery("upgrade4", documents.v2);
   await v2Board.storage.expectRecovery("upgrade", documents.legacy);
   await v2Board.storage.expectRecovery("previous", documents.previous);
   await v2Board.reopenSavedBoard();
   await v2Board.storage.importDocument(documents.empty);
-  await v2Board.storage.expectRecovery("upgrade3", documents.v2);
+  await v2Board.storage.expectRecovery("upgrade4", documents.v2);
   await v2Board.storage.expectRecovery("upgrade", documents.legacy);
 });
 

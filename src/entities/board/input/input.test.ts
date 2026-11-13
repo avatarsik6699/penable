@@ -132,7 +132,9 @@ describe("one-contact pen input", () => {
     input.up(pointer({ buttons: 0, pressure: 0, timeStamp: 2 }));
     expect(scene.strokes).toHaveLength(1);
 
-    expect(scene.strokes[0]?.points).toEqual([
+    expect(
+      (scene.strokes[0] as import("../board.types").Stroke)?.points,
+    ).toEqual([
       { x: 20, y: 20, pressure: 0, time: 1 },
       { x: 20, y: 20, pressure: 0, time: 2 },
     ]);
@@ -164,7 +166,9 @@ describe("one-contact pen input", () => {
       }),
     );
 
-    expect(scene.strokes[0]?.points.at(-1)).toEqual({
+    expect(
+      (scene.strokes[0] as import("../board.types").Stroke)?.points.at(-1),
+    ).toEqual({
       x: 50,
       y: 60,
       pressure: 0,
@@ -180,7 +184,11 @@ describe("one-contact pen input", () => {
     input.move(pointer({ pressure: 1, timeStamp: 2 }));
     input.up(pointer({ buttons: 0, pressure: 0, timeStamp: 3 }));
     input.down(pointer({ timeStamp: 4 }));
-    expect(scene.strokes[0]?.width).toBe(3);
+
+    expect((scene.strokes[0] as import("../board.types").Stroke)?.width).toBe(
+      3,
+    );
+
     expect(scene.active?.width).toBe(12);
   });
 
@@ -212,14 +220,20 @@ describe("one-contact pen input", () => {
 
     expect(scene.active?.width).toBe(1.2);
 
-    expect(scene.strokes[0]?.stabilization).toEqual({
+    expect(
+      (scene.strokes[0] as import("../board.types").Stroke)?.stabilization,
+    ).toEqual({
       strength: 65,
       captureZoom: 4,
     });
 
-    expect(scene.strokes[0]?.width).toBe(0.7);
+    expect((scene.strokes[0] as import("../board.types").Stroke)?.width).toBe(
+      0.7,
+    );
 
-    expect(scene.strokes[0]?.points).toEqual([
+    expect(
+      (scene.strokes[0] as import("../board.types").Stroke)?.points,
+    ).toEqual([
       { x: 5, y: 5, pressure: 0.5, time: 1 },
       { x: 10, y: 5, pressure: 0.5, time: 2 },
       { x: 10, y: 5, pressure: 0, time: 3 },
@@ -333,7 +347,9 @@ describe("coalesced samples", () => {
 
     input.up(pointer({ clientX: 40, buttons: 0, pressure: 0, timeStamp: 5 }));
 
-    expect(scene.strokes[0]?.points.at(-1)).toEqual({
+    expect(
+      (scene.strokes[0] as import("../board.types").Stroke)?.points.at(-1),
+    ).toEqual({
       x: 30,
       y: 20,
       pressure: 0,

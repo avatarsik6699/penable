@@ -57,6 +57,8 @@ export const SelectionToolbar: React.FC<SelectionToolbarTypes.Props> = (
       </div>
       {props.open && (
         <SelectionActions
+          bindPanel={toolbar.bindPanel}
+          onTransform={props.onTransform}
           state={props.state}
           readOnly={props.readOnly}
           blocked={props.blocked}

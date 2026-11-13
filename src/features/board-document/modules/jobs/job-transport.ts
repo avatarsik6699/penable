@@ -173,6 +173,7 @@ export class JobTransport {
         id,
         kind,
         root,
+        boardId: this.options.boardId ?? "main",
         ...(capturedRegion ? { region: capturedRegion } : {}),
       });
 
@@ -182,6 +183,7 @@ export class JobTransport {
         id,
         current,
         checkpoint,
+        kind === "save" || kind === "validate",
       );
 
       current();
@@ -189,7 +191,7 @@ export class JobTransport {
 
       const response = await result;
 
-      this.upload.commit(used);
+      this.upload.commit(used, document.strokes);
 
       return response;
     } catch (error) {

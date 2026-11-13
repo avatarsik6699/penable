@@ -153,7 +153,11 @@ describe("tab and editor ownership", () => {
     const captured = h.model.readBoardSnapshot();
 
     expect(captured.strokes[0]).toBe(stroke);
-    expect(captured.strokes[0]!.points).toBe(points);
+
+    expect(
+      (captured.strokes[0]! as import("~/entities/board").Stroke).points,
+    ).toBe(points);
+
     expect(reads).toBe(0);
     expect(captured).not.toHaveProperty("schemaVersion");
     expect(captured).not.toHaveProperty("format");
@@ -317,7 +321,7 @@ describe("workspace view metadata", () => {
       expect(h.repository.write).toHaveBeenCalledOnce();
 
       expect(vi.mocked(h.repository.write).mock.calls[0]![0]).toMatchObject({
-        schemaVersion: 3,
+        schemaVersion: 4,
         backgroundSettings: { contrast: 73, spacing: 32 },
         lastWritingView: { center: { x: 500, y: -100 }, zoom: 2 },
       });

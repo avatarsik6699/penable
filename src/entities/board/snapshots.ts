@@ -15,6 +15,13 @@ function empty(): BoardSnapshot {
 function clone(document: BoardSnapshot): BoardSnapshot {
   return {
     strokes: document.strokes.map((stroke) => {
+      if (stroke.kind === "image")
+        return {
+          ...stroke,
+          matrix: [...stroke.matrix],
+          clip: stroke.clip ? BoardRegions.cloneMask(stroke.clip) : undefined,
+        };
+
       const result: Stroke = {
         id: stroke.id,
         color: stroke.color,
@@ -35,6 +42,8 @@ function clone(document: BoardSnapshot): BoardSnapshot {
             ? { strength: profile.strength, captureZoom: profile.captureZoom }
             : { mode: profile.mode, captureZoom: profile.captureZoom };
       }
+
+      if (stroke.matrix) result.matrix = [...stroke.matrix];
 
       if (stroke.source !== undefined) result.source = stroke.source;
 

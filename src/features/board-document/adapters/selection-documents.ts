@@ -2,7 +2,7 @@ import {
   BoardSelectionHelpers,
   type BoardSnapshot,
   type RegionInput,
-  type Stroke,
+  type BoardItem,
 } from "~/entities/board";
 import { DocumentCodec, DocumentSnapshots } from "../modules/codec";
 import { DocumentJobs, DocumentWorkload } from "../modules/jobs";
@@ -11,7 +11,11 @@ import { DocumentJobs, DocumentWorkload } from "../modules/jobs";
 export class SelectionDocuments {
   private readonly jobs = new DocumentJobs();
 
-  select(strokes: readonly Stroke[], region: RegionInput, signal: AbortSignal) {
+  select(
+    strokes: readonly BoardItem[],
+    region: RegionInput,
+    signal: AbortSignal,
+  ) {
     return DocumentWorkload.heavyDocument(strokes, region)
       ? this.jobs.select(strokes, region, signal)
       : BoardSelectionHelpers.prepareSelection(strokes, region);
@@ -23,7 +27,7 @@ export class SelectionDocuments {
     if (DocumentWorkload.heavyDocument(snapshot.strokes))
       return this.jobs.validate(snapshot.strokes, signal, dto);
 
-    DocumentCodec.decodeDocument(dto);
+    DocumentCodec.decodeDocument(DocumentCodec.encodeDocument(dto));
   }
 
   dispose() {

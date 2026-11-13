@@ -1,9 +1,13 @@
 import { BoardCoordinates } from "~/entities/board";
 import { LayerPainter } from "./layer-painter";
-import type { CanvasLayer, FrameScheduler } from "./renderer.types";
+import type {
+  CanvasLayer,
+  FrameScheduler,
+  ImageResolver,
+} from "./renderer.types";
 import { BoardRegions } from "~/entities/board";
 import type { SelectionPreview } from "~/entities/board";
-import type { Scene, Stroke, Viewport } from "~/entities/board";
+import type { Scene, BoardItem, Viewport } from "~/entities/board";
 
 const browserFrames: FrameScheduler = {
   request: (callback) => requestAnimationFrame(callback),
@@ -21,16 +25,16 @@ export class CanvasRenderer {
   private fullDirty = true;
   private liveDirty = false;
   private resizePending = false;
-  private commits: Stroke[] = [];
+  private commits: BoardItem[] = [];
   private disposed = false;
-  private preview: ReadonlySet<Stroke> = new Set();
+  private preview: ReadonlySet<BoardItem> = new Set();
   private selectionPreview: SelectionPreview | null = null;
-  private canonicalGroups: Stroke[] | null = null;
-  private stationarySource: readonly Stroke[] | null = null;
-  private stationaryGroups: Stroke[] = [];
-  private selectedSource: readonly Stroke[] | null = null;
-  private selectedGroups: Stroke[] = [];
-  private readonly painter = new LayerPainter();
+  private canonicalGroups: BoardItem[] | null = null;
+  private stationarySource: readonly BoardItem[] | null = null;
+  private stationaryGroups: BoardItem[] = [];
+  private selectedSource: readonly BoardItem[] | null = null;
+  private selectedGroups: BoardItem[] = [];
+  private readonly painter: LayerPainter;
 
   constructor(
     private readonly completed: CanvasLayer,
@@ -38,8 +42,10 @@ export class CanvasRenderer {
     private readonly scene: Scene,
     viewport: Viewport,
     private readonly frames: FrameScheduler = browserFrames,
+    imageSource?: ImageResolver,
   ) {
     this.viewport = viewport;
+    this.painter = new LayerPainter(imageSource);
   }
 
   get resolution() {
@@ -98,7 +104,7 @@ export class CanvasRenderer {
     this.schedule();
   }
 
-  commit(stroke: Stroke) {
+  commit(stroke: BoardItem) {
     // Every finished stroke survives even if several contacts happen before the next RAF.
     this.canonicalGroups = null;
     this.commits.push(stroke);
@@ -106,7 +112,7 @@ export class CanvasRenderer {
     this.schedule();
   }
 
-  setEraserPreview(preview: ReadonlySet<Stroke>) {
+  setEraserPreview(preview: ReadonlySet<BoardItem>) {
     this.preview = preview;
     this.sceneChanged();
   }
@@ -117,9 +123,14 @@ export class CanvasRenderer {
     if (!previous && !preview) return;
 
     const previousMoved =
-      previous && (previous.delta.x !== 0 || previous.delta.y !== 0);
+      previous &&
+      (previous.transformed ||
+        previous.delta.x !== 0 ||
+        previous.delta.y !== 0);
 
-    const moved = preview && (preview.delta.x !== 0 || preview.delta.y !== 0);
+    const moved =
+      preview &&
+      (preview.transformed || preview.delta.x !== 0 || preview.delta.y !== 0);
 
     this.selectionPreview = preview;
 
@@ -135,6 +146,8 @@ export class CanvasRenderer {
       previous?.stationary !== preview?.stationary
     )
       this.fullDirty = true;
+
+    if (moved && preview?.ordered) this.fullDirty = true;
 
     this.liveDirty = true;
 
@@ -165,6 +178,35 @@ export class CanvasRenderer {
     if (this.disposed || this.frameId !== null) return;
 
     this.frameId = this.frames.request(() => this.flush());
+  }
+
+  private paintOrderedPreview(preview: SelectionPreview) {
+    let run: BoardItem[] = [],
+      selected = false;
+
+    const paint = () => {
+      for (const item of BoardRegions.groupedStrokes(run))
+        this.painter.drawStroke(
+          this.completed.context,
+          item,
+          false,
+          selected ? preview.delta : undefined,
+        );
+    };
+
+    for (const entry of preview.ordered ?? []) {
+      if (this.preview.has(entry.item)) continue;
+
+      if (run.length && selected !== entry.selected) {
+        paint();
+        run = [];
+      }
+
+      selected = entry.selected;
+      run.push(entry.item);
+    }
+
+    if (run.length) paint();
   }
 
   private flush() {
@@ -198,14 +240,20 @@ export class CanvasRenderer {
     const selection = this.selectionPreview;
 
     const moving =
-      selection && (selection.delta.x !== 0 || selection.delta.y !== 0);
+      selection &&
+      (selection.transformed ||
+        selection.delta.x !== 0 ||
+        selection.delta.y !== 0);
+
+    const ordered = moving && selection.ordered;
 
     if (this.fullDirty) {
       this.painter.clear(this.completed);
 
-      let completed: readonly Stroke[];
+      let completed: readonly BoardItem[];
 
-      if (moving) {
+      if (ordered) completed = [];
+      else if (moving) {
         if (this.stationarySource !== selection.stationary) {
           this.stationarySource = selection.stationary;
 
@@ -226,6 +274,8 @@ export class CanvasRenderer {
       for (const stroke of completed) {
         this.painter.drawStroke(this.completed.context, stroke);
       }
+
+      if (ordered) this.paintOrderedPreview(selection);
     } else {
       for (const stroke of this.commits) {
         if (!this.preview.has(stroke))
@@ -236,7 +286,7 @@ export class CanvasRenderer {
     if (this.fullDirty || this.liveDirty) {
       this.painter.clear(this.live);
 
-      if (moving) {
+      if (moving && !ordered) {
         if (this.selectedSource !== selection.selected) {
           this.selectedSource = selection.selected;
           this.selectedGroups = BoardRegions.groupedStrokes(selection.selected);

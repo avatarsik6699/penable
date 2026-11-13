@@ -1,10 +1,10 @@
 import { BoardCoordinates } from "~/entities/board";
-import { DocumentDownloads, DocumentSessions } from "~/features/board-document";
+import { DocumentDownloads, BoardLibraries } from "~/features/board-document";
 import { WorkspaceModel } from "../model/workspace-model";
 
 function create(): WorkspaceModel {
   return new WorkspaceModel({
-    session: DocumentSessions.create,
+    session: BoardLibraries.create,
     download: DocumentDownloads.download,
     diagnostics: {
       pointerType: null,

@@ -3,7 +3,7 @@
 Binding for Penable production source and its test/tooling boundaries. Product behavior lives in
 SPEC; commands and gates live in STACK. Approved change11 adapts infraegev2 FRONTEND §§2–4,6,
 its reading-position adapter/model split, explicit session ownership and executable policies.
-The reference checkout is read-only. Existing visual direction and legacy schema1/2 compatibility are retained; schema3 metadata is governed by SPEC5.15.
+The reference checkout is read-only. Existing visual direction and legacy schema1/2 compatibility are retained; schema3 metadata is governed by SPEC5.15; schema4 ordered items/assets and named boards by SPEC5.16.
 
 ## Layers and public APIs
 
@@ -12,7 +12,7 @@ The reference checkout is read-only. Existing visual direction and legacy schema
 - app is composition/bootstrap/theme, not document or editor use cases.
 - widgets/board-workspace owns tool/surface composition, native Canvas painting/path caches,
   cursor/background/outline presenters and pointer/keyboard/resize bindings.
-- features/board-document owns schema DTO/codec, repository/lease, worker protocol/client/entry,
+- features/board-document owns schema DTO/codec, image asset validation, board catalog/library, repository/lease, worker protocol/client/entry,
   document session, import/export model and storage presentation.
 - entities/board owns strokes/scene/viewport, semantic input/selection/navigation/history,
   IDs/scene limits and browser-free geometry/stabilization/regions.
@@ -80,11 +80,12 @@ Do not create all directories or suffix files by template: every one must own ac
   belong to concrete owning adapters/native runtime files, not views or pure board modules.
   Allowlist exact files/capabilities; never an entire layer/lib folder. Resolve lexical globals:
   a local BoardSnapshot variable named document is not DOM access.
+- Ordered BoardItem collections discriminate ink and image; raw points/local masks and immutable assets are separate from affine placement. Wire schema4 uses items plus a deduplicated asset table; runtime strokes collection name remains for native API compatibility. Worker geometry jobs omit image bytes; only durable/explicit asset validation uploads bounded payload chunks. Generation-owned image caches release unreferenced resources and late decodes.
 - Core live geometry provides readonly geometry/stable-prefix boundary; native painter owns
   Path2D prefix/cache and draws one combined path. Keep weak ownership, sealing and O(new samples).
-- Workspace/tab owns clipboard, document session and durable writer. Editor generation owns
+- Workspace/tab owns clipboard and one feature library session. The library holds origin authority, catalog and one board-scoped document session/durable writer. Board sessions borrow authority; only the library releases the lease after draining children. Editor generation owns
   renderer, semantic input, selection worker and DOM subscriptions. Import replaces only editor
-  generation. Session preserves raw schema metadata for atomic before-schema2/before-schema3 recovery.
+  generation. Sessions preserve raw schema metadata for atomic schema2/3/4 recovery; library bootstrap preserves exact raw pre-library data.
 - Dispose cancels interaction/selection/frames/listeners, drains persistence/repository, then
   releases lease. StrictMode startup waits prior disposal. Selection cancellation never closes
   the durable writer. Factories inject dependencies; one explicit owner composes cleanup.

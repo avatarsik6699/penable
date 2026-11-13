@@ -40,7 +40,7 @@ export type ActiveStroke = Stroke & {
 };
 
 export type Scene = {
-  strokes: Stroke[];
+  strokes: BoardItem[];
   active: ActiveStroke | null;
 };
 
@@ -57,6 +57,7 @@ export type PointerInput = PointerSample & {
   isPrimary: boolean;
   button: number;
   buttons: number;
+  shiftKey?: boolean;
   getCoalescedEvents?: () => PointerSample[];
 };
 
@@ -76,7 +77,7 @@ export type BackgroundSettings = { contrast: number; spacing: number };
 export type WritingView = { center: Position; zoom: number };
 
 export type BoardSnapshot = {
-  strokes: Stroke[];
+  strokes: BoardItem[];
   viewport: Viewport;
   background: BackgroundMode;
   backgroundSettings?: BackgroundSettings;
@@ -89,7 +90,38 @@ export type BoardSnapshot = {
 
 export const BoardConstants = { INK };
 
+export type AffineMatrix = readonly [
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+];
+
+export type ImageAsset = {
+  readonly id: string;
+  readonly mime: "image/png" | "image/jpeg";
+  readonly width: number;
+  readonly height: number;
+  readonly base64: string;
+};
+
+export type ImageItem = {
+  readonly kind: "image";
+  id: number;
+  readonly asset: ImageAsset;
+  source?: string;
+  clip?: ClipMask;
+  matrix: AffineMatrix;
+  translation?: Position;
+};
+
+export type BoardItem = Stroke | ImageItem;
+
 export type Stroke = {
+  kind?: "ink";
+  matrix?: AffineMatrix;
   id: number;
   color: typeof INK;
   width: number;

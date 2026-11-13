@@ -8,6 +8,10 @@ import type {
 
 export type SessionOptions = {
   snapshot: () => BoardSnapshot;
+  preflight?: (
+    document: import("../../board-document.types").BoardDocument,
+    signal: AbortSignal,
+  ) => Promise<void>;
   // Internal completed-source contract; injected/default adapters retain strict synchronous detachment.
   persistence?: DocumentPersistence;
   onHydrate: (document: BoardSnapshot) => void;

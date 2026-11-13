@@ -1,0 +1,62 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-start;
+  text-align: left;
+}
+.title span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.title[aria-current] {
+  color: var(--control-selected-text);
+  background: var(--control-selected-bg);
+  opacity: 1;
+}
+.rename {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 0;
+}
+.rename input {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px;
+  border: 1px solid var(--divider);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+}
+.error {
+  width: 100%;
+  color: var(--error);
+  font-size: 12px;
+}
+
+.title > svg {
+  flex-shrink: 0;
+}
+.title span {
+  min-width: 0;
+}
+.row > button:not(.title) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  padding: 0;
+}

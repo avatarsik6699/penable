@@ -63,6 +63,40 @@ export const testBoards = {
     return { ...testBoards.legacy(), schemaVersion: 2, background: "dots" };
   },
 
+  previousV3(): TestBoardTypes.Document {
+    return {
+      ...testBoards.document(3),
+      strokes: [
+        {
+          ...testBoards.legacy().strokes[0]!,
+          source: "v3_original",
+          translation: { x: 25, y: 30 },
+        },
+      ],
+      background: "dots",
+      backgroundSettings: { contrast: 60, spacing: 32 },
+      lastWritingView: { center: { x: 400, y: 300 }, zoom: 2 },
+    };
+  },
+
+  corrupt(): unknown {
+    return {
+      format: "penable-board",
+      schemaVersion: 4,
+      items: "corrupt-owned-test",
+      assets: [],
+    };
+  },
+
+  catalogWithMissingBoard(): TestBoardTypes.Catalog {
+    return {
+      format: "penable-library",
+      schemaVersion: 1,
+      activeId: "main",
+      boards: [{ id: "main", title: "Моя доска" }],
+    };
+  },
+
   distant(): TestBoardTypes.Document {
     const result = testBoards.document();
     const stroke = testBoards.legacy().strokes[0]!;

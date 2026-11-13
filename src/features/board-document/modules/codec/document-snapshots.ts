@@ -4,7 +4,7 @@ import { BoardSnapshots, type BoardSnapshot } from "~/entities/board";
 function emptyDocument(): BoardDocument {
   return {
     format: "penable-board",
-    schemaVersion: 3,
+    schemaVersion: 4,
     strokes: [],
     viewport: { zoom: 1, x: 0, y: 0 },
     background: "blank",
@@ -43,7 +43,7 @@ function toSnapshot(document: BoardDocument): BoardSnapshot {
 function fromSnapshot(snapshot: BoardSnapshot): BoardDocument {
   return {
     format: "penable-board",
-    schemaVersion: 3,
+    schemaVersion: 4,
     strokes: snapshot.strokes,
     viewport: snapshot.viewport,
     background: snapshot.background,

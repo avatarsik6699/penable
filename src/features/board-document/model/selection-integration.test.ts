@@ -63,10 +63,12 @@ function harness(
     validate: (strokes) => {
       if (fail) throw new Error("limit");
 
-      DocumentCodec.decodeDocument({
-        ...DocumentCodec.emptyDocument(),
-        strokes,
-      });
+      DocumentCodec.decodeDocument(
+        DocumentCodec.encodeDocument({
+          ...DocumentCodec.emptyDocument(),
+          strokes,
+        }),
+      );
     },
 
     commit: (strokes) => {
@@ -140,7 +142,11 @@ describe("selection transactions and ownership", () => {
     h.selection.up(pointer(70, 70, { buttons: 0 }));
     expect(h.commits()).toBe(1);
     expect(h.scene.strokes).toHaveLength(2);
-    expect(h.selection.selected[0]!.points).toBe(original!.points);
+
+    expect(
+      (h.selection.selected[0]! as import("~/entities/board").Stroke).points,
+    ).toBe((original! as import("~/entities/board").Stroke).points);
+
     h.history.undo();
     expect(h.scene.strokes).toEqual([original]);
     expect(h.scene.strokes[0]).toBe(original);
@@ -391,8 +397,8 @@ describe("retained selection area", () => {
     ]);
 
     expect(h.selection.hit({ x: 15, y: 15 })).toBe(true);
-    h.selection.down(pointer(15, 15));
-    h.selection.up(pointer(25, 35, { buttons: 0 }));
+    h.selection.down(pointer(25, 25));
+    h.selection.up(pointer(35, 45, { buttons: 0 }));
 
     expect(h.selection.outline).toEqual([
       [

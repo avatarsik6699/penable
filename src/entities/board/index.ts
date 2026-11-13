@@ -43,3 +43,11 @@ export type {
 } from "./board.types";
 export { BoardNavigation, BoardViewport } from "./viewport";
 export type { BoardWheel } from "./viewport";
+
+export type {
+  BoardItem,
+  ImageItem,
+  ImageAsset,
+  AffineMatrix,
+} from "./board.types";
+export { BoardTransforms } from "./transforms";

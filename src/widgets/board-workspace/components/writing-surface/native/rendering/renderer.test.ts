@@ -19,6 +19,8 @@ function layer() {
     save: vi.fn(),
     restore: vi.fn(),
     translate: vi.fn(),
+    transform: vi.fn(),
+    drawImage: vi.fn(),
     closePath: vi.fn(),
     clip: vi.fn(),
     setTransform: vi.fn(),
@@ -355,7 +357,10 @@ describe("layered frame renderer", () => {
     renderer.setViewport({ zoom: 4, x: 0, y: 0 });
     clock.run();
     expect(completed.canvas).toEqual({ width: 304, height: 242 });
-    expect(scene.strokes[0]?.width).toBe(3);
+
+    expect((scene.strokes[0] as import("~/entities/board").Stroke)?.width).toBe(
+      3,
+    );
   });
 
   it("does nothing for repeated size notifications and cancels scheduled work on disposal", () => {
@@ -851,4 +856,114 @@ describe("idle selection cancellation after pen commit", () => {
     h.clock.run();
     expect(h.completed.context.fill).toHaveBeenCalledTimes(2);
   });
+});
+
+describe("mixed ordered selection preview", () => {
+  it.each(["ink", "image"] as const)(
+    "keeps selected lower %s below a later opaque image during drag and resize",
+    (kind) => {
+      const imageAsset = (id: string, width: number) => ({
+        id,
+        mime: "image/png" as const,
+        width,
+        height: 30,
+        base64: "",
+      });
+
+      const lower: import("~/entities/board").BoardItem =
+        kind === "ink"
+          ? {
+              id: 1,
+              color: BoardConstants.INK,
+              width: 2,
+              points: [
+                { x: 5, y: 10, pressure: 0.5, time: 0 },
+                { x: 20, y: 10, pressure: 0.5, time: 1 },
+              ],
+            }
+          : {
+              kind: "image",
+              id: 1,
+              matrix: [1, 0, 0, 1, 0, 0],
+              asset: imageAsset("lower", 20),
+            };
+
+      const upper: import("~/entities/board").ImageItem = {
+          kind: "image",
+          id: 2,
+          matrix: [1, 0, 0, 1, 40, 0],
+          asset: imageAsset("upper", 100),
+        },
+        scene: Scene = { strokes: [lower, upper], active: null };
+
+      const completed = layer(),
+        live = layer(),
+        clock = frameClock(),
+        order: string[] = [],
+        bitmapLower = {} as CanvasImageSource,
+        bitmapUpper = {} as CanvasImageSource;
+
+      completed.context.stroke.mockImplementation(() => order.push("lower"));
+      live.context.stroke.mockImplementation(() => order.push("lower"));
+
+      const record = (bitmap: unknown) => {
+        order.push(bitmap === bitmapUpper ? "upper" : "lower");
+      };
+
+      completed.context.drawImage.mockImplementation(record);
+      live.context.drawImage.mockImplementation(record);
+
+      const renderer = new CanvasRenderer(
+        completed.target,
+        live.target,
+        scene,
+        { x: 0, y: 0, zoom: 1 },
+        clock.frames,
+        (asset) => (asset.id === "upper" ? bitmapUpper : bitmapLower),
+      );
+
+      renderer.resize(800, 600, 1);
+      clock.run();
+      order.length = 0;
+
+      const selection = new BoardSelection({
+        scene,
+        viewport: () => ({ x: 0, y: 0, zoom: 1 }),
+        bounds: () => ({ left: 0, top: 0, width: 800, height: 600 }),
+        writable: () => true,
+
+        validate: () => {},
+
+        commit: () => {},
+
+        preview: (value) => renderer.setSelectionPreview(value),
+
+        changed: () => {},
+
+        setViewport: () => {},
+      });
+
+      selection.down(pointer({ clientX: 0, clientY: 0 }));
+      selection.up(pointer({ clientX: 30, clientY: 35, buttons: 0 }));
+      selection.down(pointer({ clientX: 15, clientY: 17 }));
+      selection.move(pointer({ clientX: 65, clientY: 17 }));
+      clock.run();
+      expect(order).toEqual(["lower", "upper"]);
+      expect(live.context.stroke).not.toHaveBeenCalled();
+      expect(live.context.drawImage).not.toHaveBeenCalled();
+      order.length = 0;
+      selection.move(pointer({ clientX: 70, clientY: 17 }));
+      clock.run();
+      expect(order).toEqual(["lower", "upper"]);
+      selection.cancel();
+      clock.run();
+      order.length = 0;
+      selection.down(pointer({ clientX: 30, clientY: 35 }));
+      selection.move(pointer({ clientX: 100, clientY: 35 }));
+      clock.run();
+      expect(order).toEqual(["lower", "upper"]);
+      expect(scene.strokes).toEqual([lower, upper]);
+      renderer.dispose();
+    },
+  );
 });

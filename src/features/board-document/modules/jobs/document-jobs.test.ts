@@ -384,7 +384,11 @@ describe("private background result assembly", () => {
     const result = await selecting;
 
     expect(result.parts[0]!.original).toBe(original);
-    expect(result.parts[0]!.selected.points).toBe(original.points);
+
+    expect(
+      (result.parts[0]!.selected as import("~/entities/board").Stroke).points,
+    ).toBe(original.points);
+
     expect(result.parts[0]!.selected.clip).toEqual(region);
     expect(result.region).toEqual(region);
     await jobs.close();
@@ -544,4 +548,105 @@ describe("independent overview jobs", () => {
     await selection.close();
     await writer.close();
   });
+});
+
+describe("mixed worker boundaries", () => {
+  const image: import("~/entities/board").ImageItem = {
+    kind: "image",
+    id: 2,
+    matrix: [1, 0, 0, 1, 0, 0],
+    asset: {
+      id: "image",
+      mime: "image/png",
+      width: 1,
+      height: 1,
+      base64: "AAAA".repeat(20000),
+    },
+  };
+
+  it("sends image bounds without encoded pixels during selection", async () => {
+    const workers = factory(false),
+      jobs = new DocumentJobs({ worker: workers.create });
+
+    const selecting = jobs.select(
+      [ink(1), image],
+      { shape: "all", points: [] },
+      new AbortController().signal,
+    );
+
+    await workers.instances[0]!.waitForFinish();
+
+    const messages = workers.instances[0]!.messages,
+      start = messages.find((message) => message.type === "start")!;
+
+    expect(start).not.toHaveProperty("root.items");
+    expect(start).not.toHaveProperty("root.assets");
+    expect(start).not.toHaveProperty("root.strokes");
+    expect(messages.some((message) => message.type === "asset")).toBe(false);
+    expect(JSON.stringify(messages)).not.toContain(image.asset.base64);
+
+    const metadata = messages.flatMap((message) =>
+      message.type === "strokes" ? message.values : [],
+    );
+
+    expect(metadata[1]).toMatchObject({
+      kind: "image",
+      asset: { id: "image", width: 1, height: 1 },
+    });
+
+    expect(metadata[1]).not.toHaveProperty("points");
+    expect(metadata[1]).not.toHaveProperty("asset.base64");
+
+    workers.instances[0]!.worker.onmessage?.call(
+      workers.instances[0]!.worker as Worker,
+      {
+        data: { id: start.id, selection: { region: [], parts: [] } },
+      } as unknown as MessageEvent<JobResponse>,
+    );
+
+    await selecting;
+    await jobs.close();
+  });
+
+  it("uploads assets as bounded independent chunks once for durable saves with immutable board identity", async () => {
+    const workers = factory(),
+      jobs = new DocumentJobs({ worker: workers.create, boardId: "owned" });
+
+    const board = { ...DocumentCodec.emptyDocument(), strokes: [image] };
+
+    await jobs.write(board);
+    await jobs.write(board);
+
+    const messages = workers.instances[0]!.messages,
+      chunks = messages.filter((message) => message.type === "asset");
+
+    expect(chunks).toHaveLength(2);
+    expect(chunks.every((chunk) => chunk.value.length <= 65536)).toBe(true);
+    expect(chunks.map((c) => c.value).join("")).toBe(image.asset.base64);
+
+    expect(
+      messages
+        .filter((message) => message.type === "start")
+        .every((start) => start.boardId === "owned"),
+    ).toBe(true);
+
+    await jobs.close();
+  });
+});
+
+it("routes a large compressed image through worker validation even with no ink points", () => {
+  const image: import("~/entities/board").ImageItem = {
+    kind: "image",
+    id: 1,
+    matrix: [1, 0, 0, 1, 0, 0],
+    asset: {
+      id: "image",
+      mime: "image/png",
+      width: 4000,
+      height: 4000,
+      base64: "A".repeat(200000),
+    },
+  };
+
+  expect(DocumentWorkload.heavyDocument([image])).toBe(true);
 });

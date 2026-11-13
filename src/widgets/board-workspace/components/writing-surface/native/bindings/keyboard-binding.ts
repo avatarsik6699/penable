@@ -15,6 +15,7 @@ function create(
     | "selection"
     | "getTool"
     | "interactionsBlocked"
+    | "cancelPendingInput"
     | "drawingPointerId"
     | "selectionCommand"
     | "applyHistory"
@@ -37,13 +38,26 @@ function create(
   const keyDown = (event: KeyboardEvent) => {
     if (event.code === "Tab") interaction.keyboardEntry = true;
 
-    if (interactionsBlocked()) return;
-
     const target = event.target instanceof HTMLElement ? event.target : null;
 
     const editable = Boolean(
       target?.closest("input,textarea,select,[contenteditable],dialog"),
     );
+
+    if (
+      event.code === "Escape" &&
+      !editable &&
+      !event.defaultPrevented &&
+      !event.isComposing &&
+      options.cancelPendingInput?.()
+    ) {
+      event.preventDefault();
+      pointer.cancel();
+
+      return;
+    }
+
+    if (interactionsBlocked()) return;
 
     const boardContext = Boolean(
       target === canvas || target?.closest("[data-board-selection-toolbar]"),
@@ -62,7 +76,6 @@ function create(
         KeyA: "all",
         KeyC: "copy",
         KeyX: "cut",
-        KeyV: "paste",
         KeyD: "duplicate",
       };
 

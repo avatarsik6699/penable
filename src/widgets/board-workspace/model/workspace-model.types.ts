@@ -1,5 +1,5 @@
 import type {
-  Stroke,
+  BoardItem,
   Viewport,
   SelectionShape,
   BackgroundSettings,
@@ -7,6 +7,7 @@ import type {
 } from "~/entities/board";
 
 export type SelectionState = {
+  images?: boolean;
   selected: boolean;
   clipboard: boolean;
   busy: boolean;
@@ -23,7 +24,9 @@ export type SelectionCommand =
   | "delete"
   | "duplicate"
   | "image"
-  | "download";
+  | "download"
+  | "crop"
+  | "paste-image";
 
 export type InputDiagnostics = {
   pointerType: string | null;
@@ -41,6 +44,8 @@ export type InputDiagnostics = {
 };
 
 export type SurfaceControls = {
+  transform?: (width: number, height: number, angle: number) => void;
+  insertImage?: () => void;
   zoomIn: () => void;
   zoomOut: () => void;
   reset: () => void;
@@ -51,7 +56,7 @@ export type SurfaceControls = {
   undo: () => void;
   redo: () => void;
   snapshot: () => {
-    strokes: Stroke[];
+    strokes: BoardItem[];
     viewport: Viewport;
   };
   isBusy: () => boolean;
@@ -64,7 +69,12 @@ import type {
   DrawingTool,
   HistoryState,
 } from "~/entities/board";
-import type { DocumentSession, StorageState } from "~/features/board-document";
+import type {
+  BoardLibrarySession,
+  LibraryState,
+  DocumentSession,
+  StorageState,
+} from "~/features/board-document";
 
 export type WorkspaceState = Readonly<{
   selectionShape: SelectionShape;
@@ -85,6 +95,7 @@ export type WorkspaceState = Readonly<{
   dialogOpen: boolean;
   uiRevision: number;
   navigationMessage: string;
+  library: LibraryState;
 }>;
 
 export type WorkspaceDependencies = {
@@ -93,6 +104,7 @@ export type WorkspaceDependencies = {
     snapshot: () => BoardSnapshot;
     onHydrate: (board: BoardSnapshot) => void;
     onState: (state: StorageState) => void;
-  }) => DocumentSession;
+    onLibrary?: (state: LibraryState) => void;
+  }) => DocumentSession | BoardLibrarySession;
   download: (json: string, name: string) => void;
 };

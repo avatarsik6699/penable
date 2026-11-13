@@ -1,7 +1,7 @@
 import {
   type Viewport,
   type Position,
-  type Stroke,
+  type BoardItem,
   type WritingView,
 } from "../board.types";
 import { BoardRegions } from "../regions";
@@ -85,7 +85,7 @@ function restoreWritingView(
 }
 
 function fitAll(
-  strokes: readonly Stroke[],
+  strokes: readonly BoardItem[],
   width: number,
   height: number,
 ): Viewport {

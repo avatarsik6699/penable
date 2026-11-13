@@ -9,6 +9,7 @@ export function useWritingSurface(props: WritingSurfaceTypes.Props) {
     completed: null,
     background: null,
     selectionPath: null,
+    selectionHandles: null,
     cursor: null,
     focusBadge: null,
     mapHost: null,
@@ -79,6 +80,13 @@ export function useWritingSurface(props: WritingSurfaceTypes.Props) {
     [],
   );
 
+  const bindSelectionHandles = useCallback(
+    (node: SurfaceElements["selectionHandles"]) => {
+      elements.current.selectionHandles = node;
+    },
+    [],
+  );
+
   const bindCursor = useCallback((node: SurfaceElements["cursor"]) => {
     elements.current.cursor = node;
   }, []);
@@ -133,6 +141,7 @@ export function useWritingSurface(props: WritingSurfaceTypes.Props) {
     bindCompleted,
     bindCanvas,
     bindSelectionPath,
+    bindSelectionHandles,
     bindCursor,
     bindFocusBadge,
   };

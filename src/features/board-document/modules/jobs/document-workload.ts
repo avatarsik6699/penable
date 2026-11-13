@@ -1,9 +1,9 @@
 import { DocumentJobConfig } from "./document-jobs.config";
-import type { Stroke, RegionInput } from "~/entities/board";
+import type { BoardItem, RegionInput } from "~/entities/board";
 import { BoardRegions } from "~/entities/board";
 
 function heavyDocument(
-  strokes: readonly Stroke[],
+  strokes: readonly BoardItem[],
   region?: RegionInput,
 ): boolean {
   if (
@@ -14,10 +14,20 @@ function heavyDocument(
     return true;
 
   let points = 0,
-    vertices = 0;
+    vertices = 0,
+    imageBytes = 0;
+
+  const assets = new Set<import("~/entities/board").ImageAsset>();
 
   for (const stroke of strokes) {
-    points += stroke.points.length;
+    if (stroke.kind === "image" && !assets.has(stroke.asset)) {
+      assets.add(stroke.asset);
+      imageBytes += stroke.asset.base64.length;
+
+      if (imageBytes >= 128 * 1024) return true;
+    }
+
+    points += stroke.kind === "image" ? 0 : stroke.points.length;
     vertices += stroke.clip ? BoardRegions.vertexCount(stroke.clip) : 0;
 
     if (

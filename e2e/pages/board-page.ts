@@ -98,7 +98,9 @@ export class BoardPage {
 
     await this.storage.expectStrokeCount(1);
 
-    const ink = (await this.storage.records()).main!.strokes[0]!;
+    const ink = (await this.storage.records()).main!.items[0]!;
+
+    if (ink.kind !== "ink") throw new Error("Expected ink in fresh board");
 
     expect(ink.points.length).toBeGreaterThan(10);
     expect(ink.points[0]!.x).toBeCloseTo(100, 5);
@@ -151,7 +153,7 @@ export class BoardPage {
 
   private outline() {
     return this.page.locator(
-      "svg.selection-outline path, [data-testid=board-selection] path",
+      "[data-testid=board-selection] path:not([data-testid=selection-handles])",
     );
   }
 
@@ -206,11 +208,11 @@ export class BoardPage {
   async expectPartialMove(x: number, y: number) {
     await expect
       .poll(async () => {
-        const strokes = (await this.storage.records()).main?.strokes ?? [];
+        const strokes = (await this.storage.records()).main?.items ?? [];
 
         return strokes
           .filter((stroke) => stroke.clip)
-          .map((stroke) => stroke.translation);
+          .map((stroke) => ({ x: stroke.matrix[4], y: stroke.matrix[5] }));
       })
       .toContainEqual({ x, y });
 
@@ -238,7 +240,7 @@ export class BoardPage {
   }
 
   async expectViewportChangesOnly() {
-    const original = (await this.storage.records()).main!.strokes;
+    const original = (await this.storage.records()).main!.items;
 
     await this.move({ x: 600, y: 200 });
     await this.page.mouse.wheel(120, 80);
@@ -251,7 +253,7 @@ export class BoardPage {
       .poll(async () => (await this.storage.records()).main?.viewport.zoom)
       .toBeGreaterThan(1);
 
-    expect((await this.storage.records()).main!.strokes).toEqual(original);
+    expect((await this.storage.records()).main!.items).toEqual(original);
   }
 
   async tryDrawingReadOnly() {
@@ -369,10 +371,13 @@ export class BoardPage {
     await this.storage.expectStrokeCount(1);
 
     const saved = (await this.storage.records()).main!;
+    const ink = saved.items[0]!;
+
+    if (ink.kind !== "ink") throw new Error("Expected ink from the pen tool");
 
     expect(saved.tools).toEqual({ width: 3.1, stabilization: 66 });
-    expect(saved.strokes[0]!.width).toBe(3.1);
-    expect(saved.strokes[0]!.stabilization?.strength).toBe(66);
+    expect(ink.width).toBe(3.1);
+    expect(ink.stabilization?.strength).toBe(66);
   }
 
   async expectNarrowLayout() {

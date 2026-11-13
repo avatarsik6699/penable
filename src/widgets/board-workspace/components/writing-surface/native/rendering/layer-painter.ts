@@ -1,8 +1,10 @@
 import {
   BoardCoordinates,
+  BoardTransforms,
+  type ImageAsset,
   BoardRegions,
   type Viewport,
-  type Stroke,
+  type BoardItem,
 } from "~/entities/board";
 import { BoardPaint, type StrokePaintState } from "./paint";
 import type { CanvasLayer } from "./renderer.types";
@@ -22,6 +24,12 @@ export class LayerPainter {
   private viewport: Viewport = { zoom: 1, x: 0, y: 0 };
   private raster = BoardCoordinates.bitmapSize(1, 1, 1);
   private paintStates = new WeakMap<CanvasRenderingContext2D, PaintState>();
+
+  constructor(
+    private readonly imageSource?: (
+      asset: ImageAsset,
+    ) => CanvasImageSource | null,
+  ) {}
 
   configure(
     width: number,
@@ -43,7 +51,7 @@ export class LayerPainter {
 
   drawStroke(
     ctx: CanvasRenderingContext2D,
-    stroke: Stroke,
+    stroke: BoardItem,
     active = false,
     delta = ZERO,
   ) {
@@ -66,14 +74,59 @@ export class LayerPainter {
 
       const offset = stroke.translation ?? ZERO;
 
+      if (stroke.matrix && bounds) {
+        const world = BoardTransforms.bounds(bounds, stroke.matrix);
+
+        if (
+          (world.right + delta.x) * zoom + x < -1 ||
+          (world.left + delta.x) * zoom + x > this.width + 1 ||
+          (world.bottom + delta.y) * zoom + y < -1 ||
+          (world.top + delta.y) * zoom + y > this.height + 1
+        )
+          return;
+      }
+
       if (
         !bounds ||
-        (bounds.right + offset.x + delta.x) * zoom + x < -1 ||
-        (bounds.left + offset.x + delta.x) * zoom + x > this.width + 1 ||
-        (bounds.bottom + offset.y + delta.y) * zoom + y < -1 ||
-        (bounds.top + offset.y + delta.y) * zoom + y > this.height + 1
+        (!stroke.matrix &&
+          ((bounds.right + offset.x + delta.x) * zoom + x < -1 ||
+            (bounds.left + offset.x + delta.x) * zoom + x > this.width + 1 ||
+            (bounds.bottom + offset.y + delta.y) * zoom + y < -1 ||
+            (bounds.top + offset.y + delta.y) * zoom + y > this.height + 1))
       )
         return;
+    }
+
+    if (stroke.matrix) {
+      const m = stroke.matrix;
+
+      ctx.setTransform(
+        scaleX * zoom * m[0],
+        scaleY * zoom * m[1],
+        scaleX * zoom * m[2],
+        scaleY * zoom * m[3],
+        scaleX * (x + delta.x * zoom) + scaleX * zoom * m[4],
+        scaleY * (y + delta.y * zoom) + scaleY * zoom * m[5],
+      );
+
+      const state = this.paintStates.get(ctx) ?? {};
+
+      delete state.sx;
+      delete state.sy;
+      delete state.tx;
+      delete state.ty;
+      this.paintStates.set(ctx, state);
+
+      BoardPaint.paintStroke(
+        ctx,
+        stroke,
+        active,
+        state,
+        true,
+        this.imageSource,
+      );
+
+      return;
     }
 
     const sx = scaleX * zoom,
@@ -104,6 +157,6 @@ export class LayerPainter {
       state.ty = ty;
     }
 
-    BoardPaint.paintStroke(ctx, stroke, active, state, true);
+    BoardPaint.paintStroke(ctx, stroke, active, state, true, this.imageSource);
   }
 }

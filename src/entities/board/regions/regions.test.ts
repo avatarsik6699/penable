@@ -25,7 +25,11 @@ describe("painted fragment selection", () => {
     );
 
     expect(part).toBeDefined();
-    expect(part!.selected.points).toBe(original.points);
+
+    expect((part!.selected as import("../board.types").Stroke).points).toBe(
+      original.points,
+    );
+
     expect(part!.selected.source).toBe(part!.remainder!.source);
 
     expect(BoardRegions.visibleBounds([part!.selected])).toMatchObject({
@@ -37,13 +41,21 @@ describe("painted fragment selection", () => {
 
     const tester = new StrokeHitTester(8);
 
-    expect(tester.hits(part!.selected, { x: 30, y: 5 }, { x: 30, y: 5 })).toBe(
-      true,
-    );
+    expect(
+      tester.hits(
+        part!.selected as import("../board.types").Stroke,
+        { x: 30, y: 5 },
+        { x: 30, y: 5 },
+      ),
+    ).toBe(true);
 
-    expect(tester.hits(part!.selected, { x: 90, y: 0 }, { x: 90, y: 0 })).toBe(
-      false,
-    );
+    expect(
+      tester.hits(
+        part!.selected as import("../board.types").Stroke,
+        { x: 90, y: 0 },
+        { x: 90, y: 0 },
+      ),
+    ).toBe(false);
   });
 
   it("unions complementary sibling clips once after moving back", () => {
@@ -167,7 +179,10 @@ describe("exact footprint regressions", () => {
     );
 
     expect(part!.remainder).not.toBeNull();
-    expect(part!.remainder!.points).toBe(dot.points);
+
+    expect((part!.remainder! as import("../board.types").Stroke).points).toBe(
+      dot.points,
+    );
   });
 
   it("selects and bounds a normal 50-point curve without unioning its painted capsules", () => {

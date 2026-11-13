@@ -1,4 +1,6 @@
 import type React from "react";
+import { Button } from "~/shared/ui/button";
+import { EditorIcon } from "~/shared/ui/editor-icon";
 import { InkSettings } from "./components/ink-settings";
 import { PenSettings } from "./components/pen-settings";
 import { HistoryControls } from "./components/history-controls";
@@ -20,7 +22,17 @@ export const PenToolbar: React.FC<PenToolbarTypes.Props> = (props) => {
       aria-label="Инструменты доски"
       data-editor-chrome=""
     >
+      <div className={styles.library}>{props.leadingControls}</div>
       <div className={styles.primary}>
+        <Button
+          className={styles.imageInsert}
+          aria-label="Вставить изображение"
+          title="Вставить изображение"
+          disabled={props.readOnly || props.historyState.busy}
+          onClick={props.onInsertImage}
+        >
+          <EditorIcon name="image" />
+        </Button>
         <ToolControls
           tool={props.tool}
           onToolChange={props.onToolChange}

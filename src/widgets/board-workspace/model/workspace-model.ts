@@ -20,7 +20,8 @@ import {
 } from "~/entities/board";
 import {
   DocumentSnapshots,
-  DocumentSession,
+  type DocumentSession,
+  type BoardLibrarySession,
   type BoardDocument,
   DocumentErrors,
   DocumentCodec,
@@ -32,12 +33,12 @@ export class WorkspaceModel {
   readonly controls = { current: null as SurfaceControls | null };
   readonly clipboard: SelectionClipboard = { strokes: [] };
   private initialBoard: BoardSnapshot | null = null;
-  private session: DocumentSession | null = null;
+  private session: DocumentSession | BoardLibrarySession | null = null;
   private listeners = new Set<() => void>();
   private priorDisposal: Promise<void> = Promise.resolve();
   private lifetime: {
     active: boolean;
-    session: DocumentSession;
+    session: DocumentSession | BoardLibrarySession;
     starting: Promise<void>;
   } | null = null;
   private state: WorkspaceState;
@@ -78,6 +79,12 @@ export class WorkspaceModel {
       dialogOpen: false,
       uiRevision: 0,
       navigationMessage: "",
+      library: Object.freeze({
+        activeId: "main",
+        boards: Object.freeze([{ id: "main", title: "Моя доска" }]),
+        busy: false,
+        message: "",
+      }),
     });
   }
 
@@ -168,6 +175,7 @@ export class WorkspaceModel {
   start(): () => void {
     const session = this.dependencies.session({
       snapshot: this.readBoardSnapshot,
+      onLibrary: (library) => this.patch({ library }),
 
       onHydrate: (board) => {
         if (!lifetime.active || this.session !== session) return;
@@ -233,6 +241,39 @@ export class WorkspaceModel {
       lifetime.starting,
       lifetime.session.dispose(),
     ]).then(() => {});
+  }
+
+  readonly switchBoard = (id: string) =>
+    this.libraryAction((session) => session.switchBoard(id));
+
+  readonly createBoard = (title: string) =>
+    this.libraryAction((session) => session.createBoard(title));
+
+  readonly renameBoard = (id: string, title: string) =>
+    this.libraryAction((session) => session.renameBoard(id, title));
+
+  readonly deleteBoard = (id: string) =>
+    this.libraryAction((session) => session.deleteBoard(id), true);
+
+  readonly libraryModalChanged = (dialogOpen: boolean) => {
+    this.controls.current?.cancelInput();
+    this.patch({ dialogOpen });
+  };
+
+  private async libraryAction(
+    action: (session: BoardLibrarySession) => Promise<void>,
+    allowModal = false,
+  ) {
+    if (
+      !this.session ||
+      !("switchBoard" in this.session) ||
+      (this.state.dialogOpen && !allowModal) ||
+      this.controls.current?.isBusy()
+    )
+      throw new Error("Завершите действие на доске.");
+
+    this.controls.current?.cancelInput();
+    await action(this.session);
   }
 
   readonly flush = () => this.session?.flush();
@@ -403,6 +444,39 @@ export class WorkspaceModel {
       return DocumentErrors.messageOf(error);
     }
   };
+
+  private exportRecord(
+    record: import("~/features/board-document").StoredRecord | undefined,
+    name: string,
+  ): string {
+    try {
+      if (!record?.exists) throw new Error("Исходной копии пока нет.");
+
+      this.dependencies.download(
+        DocumentCodec.serializeRawBackup(record.value),
+        name,
+      );
+
+      return "Копия передана браузеру. Проверьте файл в загрузках.";
+    } catch (error) {
+      return DocumentErrors.messageOf(error);
+    }
+  }
+
+  readonly exportSchema4 = () =>
+    this.exportRecord(
+      this.session?.schema4Record,
+      "penable-before-schema4.json",
+    );
+
+  readonly exportLibrary = () =>
+    this.exportRecord(
+      this.session?.libraryRecord,
+      "penable-before-library.json",
+    );
+
+  readonly exportRaw = () =>
+    this.exportRecord(this.session?.rawRecord, "penable-original-record.json");
 
   readonly retry = () => {
     if (this.session?.canWrite) {

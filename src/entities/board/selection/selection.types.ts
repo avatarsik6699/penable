@@ -1,5 +1,5 @@
 import {
-  type Stroke,
+  type BoardItem,
   type Position,
   type ClipMask,
   type Scene,
@@ -9,13 +9,15 @@ import {
 import { type SelectedPart } from "../regions";
 
 type SelectionPreview = {
-  stationary: readonly Stroke[];
-  selected: readonly Stroke[];
+  stationary: readonly BoardItem[];
+  selected: readonly BoardItem[];
   delta: Position;
+  transformed?: boolean;
+  ordered?: readonly { item: BoardItem; selected: boolean }[];
 };
 
 type SelectionClipboard = {
-  strokes: Stroke[];
+  strokes: BoardItem[];
   region?: ClipMask;
 };
 
@@ -42,8 +44,8 @@ type SelectionOptions = {
         region: ClipMask;
         parts: SelectedPart[];
       }>;
-  validate: (strokes: Stroke[], signal: AbortSignal) => void | Promise<void>;
-  commit: (strokes: Stroke[]) => void;
+  validate: (strokes: BoardItem[], signal: AbortSignal) => void | Promise<void>;
+  commit: (strokes: BoardItem[]) => void;
   preview: (preview: SelectionPreview | null) => void;
   changed: () => void;
   setViewport: (viewport: Viewport) => void;

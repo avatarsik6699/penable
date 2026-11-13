@@ -11,7 +11,7 @@ import {
   DocumentProtocol,
 } from "./jobs-protocol";
 import type { DocumentRepository } from "../../board-document.types";
-import type { Point } from "~/entities/board";
+import type { BoardItem, Point, ImageAsset } from "~/entities/board";
 
 const host = self as unknown as {
   onmessage: ((event: MessageEvent<JobRequest>) => void) | null;
@@ -31,15 +31,33 @@ let strokes: StrokeMetadata[] = [];
 let repository: Promise<DocumentRepository> | null = null;
 let invalidated = "";
 
-function metadata<
-  T extends {
-    points: Point[];
-  },
->(stroke: T): Omit<T, "points"> {
-  const { points: _points, ...result } = stroke;
+function metadata(
+  stroke: BoardItem,
+): import("./jobs-protocol").FragmentMetadata {
+  if (stroke.kind === "image") {
+    const { asset: _asset, ...entry } = stroke;
 
-  return result;
+    return entry;
+  }
+
+  const { points: _points, ...entry } = stroke;
+
+  return entry;
 }
+
+const assets = new Map<string, ImageAsset>();
+
+const assetChunks = new Map<
+  string,
+  {
+    asset: Omit<ImageAsset, "base64">;
+    chunks: string[];
+    offset: number;
+    length: number;
+  }
+>();
+
+let boardId: string | null = null;
 
 async function finish(id: number) {
   const job = pending;
@@ -47,13 +65,26 @@ async function finish(id: number) {
   if (!job || job.id !== id) return;
 
   try {
-    const document = DocumentCodec.decodeDocument({
-      ...job.root,
-      strokes: strokes.map(({ geometry, ...stroke }) => ({
-        ...stroke,
-        points: geometries.get(geometry),
-      })),
+    const items: BoardItem[] = strokes.map((entry) => {
+      if (entry.kind === "image")
+        return {
+          ...entry,
+          asset: assets.get(entry.asset.id) ?? { ...entry.asset, base64: "" },
+        };
+
+      const { geometry, ...stroke } = entry;
+
+      return { ...stroke, points: geometries.get(geometry)! };
     });
+
+    const document = DocumentCodec.decodeDocument(
+      DocumentCodec.encodeDocument(
+        { ...job.root, strokes: items },
+        job.kind === "select" || job.kind === "overview",
+      ),
+      undefined,
+      job.kind === "select" || job.kind === "overview",
+    );
 
     let selection: SelectionResult | undefined;
 
@@ -110,11 +141,15 @@ async function finish(id: number) {
     if (job.kind === "save") {
       if (invalidated) throw new Error(invalidated);
 
-      repository ??= DocumentRepositoryAdapter.openRepository((message) => {
-        invalidated = message;
-      });
+      repository ??= DocumentRepositoryAdapter.openRepository(
+        (message) => {
+          invalidated = message;
+        },
+        undefined,
+        boardId ?? "main",
+      );
 
-      await (await repository).write({ ...document, schemaVersion: 3 });
+      await (await repository).write({ ...document, schemaVersion: 4 });
     }
 
     if (selection) {
@@ -144,7 +179,20 @@ async function finish(id: number) {
       selection.parts = [];
     }
 
-    const used = new Set(strokes.map((stroke) => stroke.geometry));
+    const used = new Set(
+      strokes.flatMap((stroke) =>
+        stroke.kind === "image" ? [] : [stroke.geometry],
+      ),
+    );
+
+    const usedAssets = new Set(
+      strokes.flatMap((stroke) =>
+        stroke.kind === "image" ? [stroke.asset.id] : [],
+      ),
+    );
+
+    for (const key of assets.keys())
+      if (!usedAssets.has(key)) assets.delete(key);
 
     for (const key of geometries.keys())
       if (!used.has(key)) geometries.delete(key);
@@ -176,6 +224,9 @@ host.onmessage = ({ data }) => {
     void (async () => {
       try {
         await (await repository)?.close();
+        assets.clear();
+        geometries.clear();
+        assetChunks.clear();
         host.postMessage({ id: data.id });
       } catch (error) {
         host.postMessage({ id: data.id, error: String(error) });
@@ -186,13 +237,70 @@ host.onmessage = ({ data }) => {
   }
 
   if (data.type === "start") {
+    const target = data.boardId ?? "main";
+
+    if (boardId !== null && boardId !== target) {
+      host.postMessage({
+        id: data.id,
+        error: "Нельзя сменить доску фонового сохранения.",
+      });
+
+      return;
+    }
+
+    boardId = target;
     pending = data;
+    assetChunks.clear();
     strokes = [];
 
     return;
   }
 
   if (!pending || data.id !== pending.id) return;
+
+  if (data.type === "asset") {
+    let upload = assetChunks.get(data.asset.id);
+
+    if (!upload && data.offset === 0) {
+      upload = {
+        asset: data.asset,
+        chunks: [],
+        offset: 0,
+        length: data.length,
+      };
+
+      assetChunks.set(data.asset.id, upload);
+    }
+
+    if (
+      !upload ||
+      data.length > 12 * 1024 * 1024 ||
+      upload.offset !== data.offset ||
+      upload.length !== data.length ||
+      data.value.length > 65536
+    ) {
+      host.postMessage({
+        id: data.id,
+        error: "Некорректная передача изображения.",
+      });
+
+      pending = null;
+
+      return;
+    }
+
+    upload.chunks.push(data.value);
+    upload.offset += data.value.length;
+
+    if (upload.offset === upload.length) {
+      assets.set(data.asset.id, {
+        ...upload.asset,
+        base64: upload.chunks.join(""),
+      });
+
+      assetChunks.delete(data.asset.id);
+    }
+  }
 
   if (data.type === "points") {
     let points = geometries.get(data.geometry);

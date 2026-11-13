@@ -1,5 +1,10 @@
 import { DocumentJobConfig } from "./document-jobs.config";
-import { BoardRegions, type Stroke } from "~/entities/board";
+import {
+  BoardRegions,
+  type BoardItem,
+  type Stroke,
+  type ImageAsset,
+} from "~/entities/board";
 import type { BoardDocument } from "../../board-document.types";
 import type { JobWorker } from "./document-jobs.types";
 import type { StrokeMetadata } from "./jobs-protocol";
@@ -8,14 +13,24 @@ export class SourceUpload {
   private sourceIDs = new WeakMap<Stroke["points"], number>();
   private known = new Set<number>();
   private nextSource = 0;
+  private knownAssets = new Set<ImageAsset>();
 
   reset() {
     this.known.clear();
+    this.knownAssets.clear();
     this.sourceIDs = new WeakMap();
     this.nextSource = 0;
   }
 
-  commit(used: Set<number>) {
+  commit(used: Set<number>, items: readonly BoardItem[] = []) {
+    const current = new Set(
+      items.flatMap((i) => (i.kind === "image" ? [i.asset] : [])),
+    );
+
+    this.knownAssets = new Set(
+      [...this.knownAssets].filter((a) => current.has(a)),
+    );
+
     this.known = used;
   }
 
@@ -25,6 +40,7 @@ export class SourceUpload {
     id: number,
     current: () => void,
     checkpoint: () => Promise<void>,
+    uploadAssets = true,
   ): Promise<Set<number>> {
     const used = new Set<number>(),
       metadata: StrokeMetadata[] = [];
@@ -45,6 +61,41 @@ export class SourceUpload {
 
     for (const stroke of document.strokes) {
       current();
+
+      if (stroke.kind === "image") {
+        const { base64, ...asset } = stroke.asset;
+
+        if (uploadAssets && !this.knownAssets.has(stroke.asset)) {
+          for (let offset = 0; offset < base64.length; offset += 65536) {
+            worker.postMessage({
+              type: "asset",
+              id,
+              asset,
+              offset,
+              length: base64.length,
+              value: base64.slice(offset, offset + 65536),
+            });
+
+            await checkpoint();
+          }
+
+          this.knownAssets.add(stroke.asset);
+        }
+
+        const { asset: _asset, ...entry } = stroke;
+
+        metadata.push({ ...entry, asset });
+        vertices += stroke.clip ? BoardRegions.vertexCount(stroke.clip) : 0;
+
+        if (
+          metadata.length >= DocumentJobConfig.metadataChunk ||
+          vertices >= DocumentJobConfig.vertexChunk
+        )
+          sendMetadata();
+
+        await checkpoint();
+        continue;
+      }
 
       let geometry = this.sourceIDs.get(stroke.points);
 
@@ -94,7 +145,7 @@ export class SourceUpload {
 
       const { points: _points, ...entry } = stroke;
 
-      metadata.push({ ...entry, geometry });
+      metadata.push({ ...entry, kind: "ink", geometry });
       vertices += stroke.clip ? BoardRegions.vertexCount(stroke.clip) : 0;
 
       if (

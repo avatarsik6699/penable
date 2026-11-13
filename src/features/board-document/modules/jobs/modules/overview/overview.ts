@@ -1,10 +1,10 @@
-import { BoardRegions, type InkBounds, type Stroke } from "~/entities/board";
+import { BoardRegions, type InkBounds, type BoardItem } from "~/entities/board";
 import type { OverviewResult } from "./overview.types";
 
 const WIDTH = 256;
 const HEIGHT = 160;
 
-function build(strokes: readonly Stroke[]): OverviewResult {
+function build(strokes: readonly BoardItem[]): OverviewResult {
   const items: InkBounds[] = [];
   let bounds: InkBounds | null = null;
 

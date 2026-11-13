@@ -4,6 +4,7 @@ export type JobWorker = Pick<
 >;
 
 export type JobOptions = {
+  boardId?: string;
   worker?: () => JobWorker;
   yield?: () => Promise<void>;
   now?: () => number;

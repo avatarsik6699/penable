@@ -1,7 +1,7 @@
-import { type Stroke } from "../board.types";
+import { type BoardItem } from "../board.types";
 
 type IndexedStroke = {
-  stroke: Stroke;
+  stroke: BoardItem;
   index: number;
 };
 
@@ -16,8 +16,8 @@ type DeltaOperation = {
 type Replacement = {
   kind: "replace";
   start: number;
-  before: Stroke[];
-  after: Stroke[];
+  before: BoardItem[];
+  after: BoardItem[];
   indices?: number[];
 };
 

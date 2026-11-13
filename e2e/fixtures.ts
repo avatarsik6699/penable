@@ -1,4 +1,8 @@
 import { test as base, expect, type Page } from "@playwright/test";
+import { BoardTransformPage } from "./pages/board-transform-page";
+import { BoardImagePage } from "./pages/board-image-page";
+import { BoardLibraryPage } from "./pages/board-library-page";
+import { testImageFiles, type TestImageTypes } from "./data/image-files";
 import { BoardNavigationPage } from "./pages/board-navigation-page";
 import { EditorChromePage } from "./pages/editor-chrome-page";
 import { BoardPage } from "./pages/board-page";
@@ -43,7 +47,7 @@ function monitor(
   };
 }
 
-async function seedLegacy(page: Page, secondVersion = false) {
+async function seedRecords(page: Page, records: Record<string, unknown>) {
   const url = "http://127.0.0.1:4185/__e2e_seed";
 
   await page.route(url, (route) =>
@@ -57,7 +61,7 @@ async function seedLegacy(page: Page, secondVersion = false) {
   await page.goto(url);
 
   await page.evaluate(
-    ({ main, previous, beforeSchema2 }) =>
+    (values) =>
       new Promise<void>((resolve, reject) => {
         const request = indexedDB.open("penable", 1);
 
@@ -71,11 +75,8 @@ async function seedLegacy(page: Page, secondVersion = false) {
           const db = request.result,
             tx = db.transaction("documents", "readwrite");
 
-          tx.objectStore("documents").put(main, "main");
-          tx.objectStore("documents").put(previous, "before-import");
-
-          if (beforeSchema2)
-            tx.objectStore("documents").put(beforeSchema2, "before-schema2");
+          for (const [key, value] of Object.entries(values))
+            tx.objectStore("documents").put(value, key);
 
           tx.oncomplete = () => {
             db.close();
@@ -88,14 +89,18 @@ async function seedLegacy(page: Page, secondVersion = false) {
           };
         };
       }),
-    {
-      main: secondVersion ? testBoards.previousV2() : testBoards.legacy(),
-      previous: testBoards.previous(),
-      beforeSchema2: secondVersion ? testBoards.legacy() : null,
-    },
+    records,
   );
 
   await page.unroute(url);
+}
+
+async function seedLegacy(page: Page, secondVersion = false) {
+  await seedRecords(page, {
+    main: secondVersion ? testBoards.previousV2() : testBoards.legacy(),
+    "before-import": testBoards.previous(),
+    ...(secondVersion ? { "before-schema2": testBoards.legacy() } : {}),
+  });
 }
 
 type Samples = {
@@ -110,12 +115,20 @@ type Samples = {
 };
 
 type Fixtures = {
+  transforms: BoardTransformPage;
+  images: TestImageTypes.Files;
+  imageBoard: BoardImagePage;
+  library: BoardLibraryPage;
+  failedSwitch: { library: BoardLibraryPage; release: () => Promise<void> };
   documents: {
     empty: TestBoardTypes.Document;
     heavy: TestBoardTypes.Document;
     legacy: TestBoardTypes.Document;
     previous: TestBoardTypes.Document;
     v2: TestBoardTypes.Document;
+    v3: TestBoardTypes.Document;
+    corrupt: unknown;
+    missingCatalog: TestBoardTypes.Catalog;
     distant: TestBoardTypes.Document;
   };
   samples: Samples;
@@ -126,10 +139,65 @@ type Fixtures = {
   secondBoard: BoardPage;
   legacyBoard: BoardPage;
   v2Board: BoardPage;
+  v3Board: BoardPage;
+  corruptStorage: StoragePage;
+  missingBoardStorage: StoragePage;
   saveFailureBoard: BoardPage;
 };
 
 export const test = base.extend<Fixtures>({
+  transforms: async ({ page, board }, use) => {
+    await use(new BoardTransformPage(page, board));
+  },
+
+  images: async ({ baseURL: _baseURL }, use) => {
+    await use(await testImageFiles.files());
+  },
+
+  imageBoard: async ({ page, board }, use) => {
+    await use(new BoardImagePage(page, board));
+  },
+
+  library: async ({ page, board }, use) => {
+    await use(new BoardLibraryPage(page, board));
+  },
+
+  failedSwitch: async ({ page }, use) => {
+    let active = true,
+      blocked = 0;
+
+    const verify = monitor(page, () => active);
+    const board = new BoardPage(page, new StoragePage(page));
+    const library = new BoardLibraryPage(page, board);
+    const worker = /\/assets\/[^/]*worker[^/]*\.js$/i;
+
+    await board.open();
+    await library.prepareFailureTarget();
+
+    await page.route(worker, (route) => {
+      blocked++;
+
+      return route.abort("failed");
+    });
+
+    const release = async () => {
+      expect(
+        blocked,
+        "The actual board save worker must have failed",
+      ).toBeGreaterThan(0);
+
+      await page.unroute(worker);
+      active = false;
+    };
+
+    try {
+      await use({ library, release });
+    } finally {
+      await page.unroute(worker);
+      verify();
+    }
+  },
+
   navigation: async ({ page, board }, use) => {
     await use(new BoardNavigationPage(page, board));
   },
@@ -145,6 +213,9 @@ export const test = base.extend<Fixtures>({
       legacy: testBoards.legacy(),
       previous: testBoards.previous(),
       v2: testBoards.previousV2(),
+      v3: testBoards.previousV3(),
+      corrupt: testBoards.corrupt(),
+      missingCatalog: testBoards.catalogWithMissingBoard(),
       distant: testBoards.distant(),
     });
   },
@@ -213,6 +284,56 @@ export const test = base.extend<Fixtures>({
     try {
       await board.open();
       await use(board);
+    } finally {
+      verify();
+    }
+  },
+
+  v3Board: async ({ page }, use) => {
+    const verify = monitor(page),
+      board = new BoardPage(page, new StoragePage(page));
+
+    try {
+      await seedRecords(page, {
+        main: testBoards.previousV3(),
+        "before-import": testBoards.previous(),
+        "before-schema2": testBoards.legacy(),
+        "before-schema3": testBoards.previousV2(),
+      });
+
+      await board.open();
+      await use(board);
+    } finally {
+      verify();
+    }
+  },
+
+  corruptStorage: async ({ page }, use) => {
+    const verify = monitor(page),
+      storage = new StoragePage(page);
+
+    try {
+      await seedRecords(page, { main: testBoards.corrupt() });
+      await page.goto("/penable/");
+      await storage.expectSaveError();
+      await use(storage);
+    } finally {
+      verify();
+    }
+  },
+
+  missingBoardStorage: async ({ page }, use) => {
+    const verify = monitor(page),
+      storage = new StoragePage(page);
+
+    try {
+      await seedRecords(page, {
+        library: testBoards.catalogWithMissingBoard(),
+      });
+
+      await page.goto("/penable/");
+      await storage.expectSaveError();
+      await use(storage);
     } finally {
       verify();
     }

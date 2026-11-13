@@ -724,3 +724,96 @@ releases resources. No new dependency, automatic main-cluster heuristic, bookmar
 Owner refinement during Change16: use lucide-react named imports for all production icons instead
 of authored glyphs. Main top-center dock groups tools/history/contextual controls plus status/settings;
 bottom navigation and Help remain. Existing established light style and compact touch targets retained.
+
+
+### 5.16 Transformable content, images and named boards — change17
+
+Owner2026-11-13 explicitly authorizes planning AND complete implementation of selection resize/
+rotation, PNG/JPEG insertion/editing and multiple boards, without intermediate approval pauses.
+Offline/PWA remains excluded. Existing light Operate surface, centered primary dock, Lucide icons,
+lower navigation/help, raw handwriting quality and recursive FSD boundaries remain binding.
+
+**Scene and transforms.** One ordered BoardItem union (ink or image) owns drawing order; no fake
+image strokes/dummy points and no separate unsynchronized ordering table. Immutable ink sources
+retain raw points, profiles and width. A finite invertible six-number affine local-to-world matrix
+composes resize/rotation/translation; clips remain source-local. Legacy translations normalize on
+load. Identity/translation rendering retains existing fast paths and floating point ordering.
+World bounds retain existing coordinate guards; invalid/singular/out-of-range transformations
+reject atomically with readable feedback. No repeated point baking or rasterizing handwriting.
+
+Selection retains the actual rectangle/lasso region and whitespace. Eight resize handles and a
+rotation handle act in screen-sized hit areas before ordinary move hit-testing. Opposite anchor
+stays fixed; Shift preserves proportions during resize and snaps rotation to15degrees. No zero
+scale or crossing into accidental mirroring. Compute every preview from pointerdown state, outside
+React. Pointerup commits one history replacement after validation; Esc/blur/resize/lost capture/
+permission loss restores the exact prior scene. No-op keeps redo. Keyboard users can enter width/
+height percentages and angle through selection actions; labels and numeric units are explicit.
+Partial ink/image selection inverse-transforms the world mask into each source's local coordinates.
+Source lineage + full matrix + item kind governs seam-free grouping. Eraser continues to erase ink,
+including nonuniformly transformed ink using inverse-transformed world sweep, never images.
+
+**Images.** Toolbar file control, board drop and native paste accept PNG/JPEG. File/paste insertion
+centers in current view and fits large images into the view; drop anchors at its world location.
+A completed decode inserts one selected image in one undo action. It may be moved/resized/rotated,
+selected partially, copied/cut/duplicated/deleted and included in transparent PNG exports. Explicit
+«Обрезать изображения» keeps selected portions of affected images, removes their remainder,
+preserves ink/other objects, and is one undoable action. Original image bytes remain immutable;
+no automatic downsample/re-encoding. Raster images retain their original resolution constraints.
+Mixed item order is preserved throughout all operations and backup roundtrips.
+
+Allowed image payloads: PNG/JPEG file signatures and validated base64, no SVG/external URL or
+arbitrary data URI. Limit8MiB binary/image,8192px/side,16million pixels/image; per board32MiB
+binary total unique assets,32million pixels total and100unique assets. Existing64MiB JSON/item/
+point/mask limits remain enforced. Validate headers/dimensions before decode and oriented decoded
+size after decode. Corrupt/oversized data leaves scene unchanged with local feedback. Text fields,
+UI overlays, modal, read-only and active input retain ownership of clipboard/drop/shortcuts.
+Explicit clipboard-read fallback reports denial and preserves existing internal-fragment paste.
+Late asynchronous results are bound to board/editor generation and disposed on switch/cancel.
+Native generation-owned bitmap cache releases resources on disposal; no images/points in React.
+
+**Portable schema4.** Read JSON1/2/3, write4. Persist discriminated items and a deduplicated embedded
+asset table, items reference asset IDs. Runtime image items/clipboard/history share immutable assets.
+Copy between boards carries its assets and resolves conflicting IDs without aliasing different bytes.
+Strict decode rejects missing/conflicting assets, malformed matrices and all exceeded limits before
+mutation. Store stays IndexedDBv1/documents; exact raw pre-schema4 and pre-library copies are atomic
+and existing before-import/schema2/schema3 records stay untouched. Import replaces only active board;
+export/recovery files remain self-contained. Recovery raw values retain existing corrupt-data rules.
+
+**Worker boundaries.** Job root excludes items and assets. Geometry metadata discriminates ink
+point sources from image natural bounds/asset IDs. Select/overview never retransmit encoded pixels.
+Source/asset uploads use independent identity caches and bounded cancellable chunks; durable save
+gets required payloads once, tied to immutable board ID. Worker rejects retargeting; close drains
+writes/releases cache/repository. Main reconstructs selection results from original source identities.
+PNG waits for image readiness, minimap uses transformed visible bounds without bitmap decoding.
+
+**Board library.** One feature-owned library session holds existing origin-wide
+penable:board:main Web Lock throughout workspace lifetime and owns catalog repository plus one
+active DocumentSession. Board sessions borrow authority and cannot release the real lease; other
+browser tabs retain existing read-only/reconnect semantics. First board remains ID/key main;
+other IDs and backup keys are namespaced in the same store. Strict versioned catalog contains
+IDs/titles/active ID, no scene data in React. Default migrated title «Моя доска»; trimmed titles1–80
+characters, up to100boards. Existing main and legacy recovery are preserved; initial upgrade and
+catalog creation commit atomically under the lease, with exact raw recovery. Corrupt catalog/main
+is surfaced with recovery, never silently replaced with an empty library. Read-only legacy opens
+without modifying storage.
+
+Center-dock «Доски» control shows current title and opens a bounded nonmodal list with create,
+rename and delete actions; no new home screen/router. New board has an independent blank document.
+Delete requires a protected confirmation naming the board; the last board cannot be deleted.
+Deleting active board preloads a valid successor before atomic catalog/document deletion. Each
+board retains its scene/view/background/tools/writing anchor/backups. History resets on switch as
+on reload; tab clipboard survives. Switching blocks input/late decode, requires flushOrThrow and
+no dirty/error, validates target before closing current session, drains old worker, then hydrates
+new generation and updates catalog active ID. Failure keeps current content and recovery available.
+Do not infer success from existing flush() because it catches storage errors.
+
+**Acceptance.** Preserve448unit cases/15E2E behavior and672native raster comparisons, adapting only
+intentional schema/UI contracts. Add transformed partial clipping/thick edges/cancel/undo/PNG,
+image decode/limits/file/drop/paste and bitmap cleanup; raw schema1–3 migration, per-board backups,
+failed switch, delayed save/decode, catalog abort, cross-board clipboard and two-tab read-only.
+Native browser desktop1440×900/1280×720 and390×844 checks cover central dock, focus, panels and
+clear feedback. First3 valid fully warmed engine pairs use existing20%budget; ordinary input with
+images/transform/minimap must avoid attributable>=50ms LongTasks. Explicit import/startup/decode
+costs are measured separately. Final independent source/security/visual review and Full Gate precede
+local ship. Physical Wacom and real OS clipboard remain the owner's final manual acceptance.
+No release/deploy in this change without a separate instruction.

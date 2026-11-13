@@ -1,16 +1,22 @@
 import type { OverviewResult } from "./modules/overview";
 import type { BoardDocument } from "../../board-document.types";
-import type { ClipMask, Point, Stroke } from "~/entities/board";
+import type {
+  ClipMask,
+  Point,
+  Stroke,
+  ImageItem,
+  ImageAsset,
+  RegionInput,
+} from "~/entities/board";
 
 export type DocumentJobKind = "select" | "validate" | "save" | "overview";
 
-import type { RegionInput } from "~/entities/board";
+export type FragmentMetadata =
+  Omit<Stroke, "points"> | Omit<ImageItem, "asset">;
 
-export type StrokeMetadata = Omit<Stroke, "points"> & {
-  geometry: number;
-};
-
-export type FragmentMetadata = Omit<Stroke, "points">;
+export type StrokeMetadata =
+  | (Omit<Stroke, "points"> & { kind: "ink"; geometry: number })
+  | (Omit<ImageItem, "asset"> & { asset: Omit<ImageAsset, "base64"> });
 
 export type SelectionResult = {
   region: ClipMask;
@@ -28,6 +34,7 @@ export type JobRequest =
       id: number;
       kind: DocumentJobKind;
       root: Omit<BoardDocument, "strokes">;
+      boardId?: string;
       region?: RegionInput;
     }
   | {
@@ -39,18 +46,16 @@ export type JobRequest =
       values: Float64Array;
     }
   | {
-      type: "strokes";
+      type: "asset";
       id: number;
-      values: StrokeMetadata[];
+      asset: Omit<ImageAsset, "base64">;
+      offset: number;
+      length: number;
+      value: string;
     }
-  | {
-      type: "finish";
-      id: number;
-    }
-  | {
-      type: "close";
-      id: number;
-    };
+  | { type: "strokes"; id: number; values: StrokeMetadata[] }
+  | { type: "finish"; id: number }
+  | { type: "close"; id: number };
 
 export type JobResponse = {
   id: number;

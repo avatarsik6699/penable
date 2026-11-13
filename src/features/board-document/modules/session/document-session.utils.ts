@@ -38,6 +38,9 @@ function sameState(
     previous.importing === state.importing &&
     previous.hasUpgradeCopy === state.hasUpgradeCopy &&
     previous.hasSchema3Copy === state.hasSchema3Copy &&
+    previous.hasSchema4Copy === state.hasSchema4Copy &&
+    previous.hasLibraryCopy === state.hasLibraryCopy &&
+    previous.hasRawCopy === state.hasRawCopy &&
     previous.hasPrevious === state.hasPrevious &&
     previous.canReconnect === state.canReconnect &&
     previous.message === state.message,
@@ -45,4 +48,14 @@ function sameState(
 }
 
 export const DocumentErrors = { messageOf };
-export const SessionUtils = { isSchema1, isLegacy, sameState };
+
+function isPre4(value: unknown): boolean {
+  return Boolean(
+    value &&
+    typeof value === "object" &&
+    "schemaVersion" in value &&
+    [1, 2, 3].includes(value.schemaVersion as number),
+  );
+}
+
+export const SessionUtils = { isSchema1, isLegacy, isPre4, sameState };

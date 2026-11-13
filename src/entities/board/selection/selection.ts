@@ -1,3 +1,6 @@
+import { SelectionTransform } from "./modules/transform";
+import { BoardTransforms } from "../transforms";
+import type { AffineMatrix } from "../board.types";
 import { SelectionGesture } from "./modules/gesture";
 import { SelectionCandidates } from "./selection-candidates";
 import { SelectionOperation } from "./selection-operation";
@@ -6,7 +9,7 @@ import {
   type SelectionShape,
   type ClipMask,
   type Viewport,
-  type Stroke,
+  type BoardItem,
   type Position,
   type PointerInput,
   type RegionInput,
@@ -35,6 +38,7 @@ export class BoardSelection {
     },
   });
   private parts: SelectedPart[] = [];
+  private readonly transformGesture = new SelectionTransform();
   private readonly gesture = new SelectionGesture({
     world: (event) => this.world(event),
     viewport: () => this.options.viewport(),
@@ -51,7 +55,7 @@ export class BoardSelection {
     return this.options.clipboard ?? this.localClipboard;
   }
 
-  private get buffer(): Stroke[] {
+  private get buffer(): BoardItem[] {
     return this.clipboard.strokes;
   }
 
@@ -62,13 +66,11 @@ export class BoardSelection {
   constructor(private readonly options: SelectionOptions) {}
 
   get pointerId(): number | null {
-    return this.gesture.pointerId;
+    return this.transformGesture.pointerId ?? this.gesture.pointerId;
   }
 
   get busy(): boolean {
-    return (
-      this.gesture.pointerId !== null || this.nudging || this.operation.busy
-    );
+    return this.pointerId !== null || this.nudging || this.operation.busy;
   }
 
   get moving(): boolean {
@@ -79,7 +81,12 @@ export class BoardSelection {
     return this.buffer.length > 0;
   }
 
-  get selected(): Stroke[] {
+  get selected(): BoardItem[] {
+    if (this.transformGesture.pointerId !== null)
+      return this.parts.map((part) =>
+        BoardTransforms.apply(part.selected, this.transformGesture.matrix),
+      );
+
     return this.parts.map((part) =>
       SelectionUtils.shifted(part.selected, this.delta),
     );
@@ -90,6 +97,8 @@ export class BoardSelection {
   }
 
   get outline(): ClipMask {
+    if (this.transformGesture.region) return this.transformGesture.region;
+
     if (this.operation.outline) return this.operation.outline;
 
     const draft = this.gesture.draftOutline;
@@ -123,7 +132,36 @@ export class BoardSelection {
     this.options.changed();
   }
 
+  handles() {
+    return this.hasSelection
+      ? this.transformGesture.handles(
+          this.outline,
+          this.options.viewport().zoom,
+        )
+      : [];
+  }
+
   down(event: PointerInput): boolean {
+    if (
+      !this.busy &&
+      this.hasSelection &&
+      this.options.writable() &&
+      event.isPrimary &&
+      event.button === 0 &&
+      event.buttons === 1 &&
+      this.transformGesture.down(
+        event.pointerId,
+        this.world(event),
+        this.region,
+        this.options.viewport().zoom,
+      )
+    ) {
+      this.message = "";
+      this.options.changed();
+
+      return true;
+    }
+
     if (this.busy || !this.gesture.down(event)) return false;
 
     this.delta = { ...SelectionConfig.ZERO };
@@ -135,6 +173,32 @@ export class BoardSelection {
   }
 
   move(event: PointerInput): boolean {
+    if (this.transformGesture.pointerId !== null) {
+      if (event.pointerId !== this.transformGesture.pointerId) return false;
+
+      if (event.buttons !== 1) {
+        this.cancel();
+
+        return true;
+      }
+
+      try {
+        const matrix = this.transformGesture.move(
+          this.world(event),
+          event.shiftKey,
+        );
+
+        if (matrix) this.previewTransform(matrix);
+
+        this.options.changed();
+      } catch (error) {
+        this.cancel();
+        this.report(error);
+      }
+
+      return true;
+    }
+
     const update = this.gesture.move(event);
 
     if (update.kind === "ignored") return false;
@@ -173,7 +237,17 @@ export class BoardSelection {
       clientY: event.clientY,
       pressure: event.pressure,
       timeStamp: event.timeStamp,
+      shiftKey: event.shiftKey,
     });
+
+    if (this.transformGesture.pointerId !== null) {
+      const matrix = this.transformGesture.matrix;
+
+      this.transformGesture.cancel();
+      this.commitTransform(matrix);
+
+      return true;
+    }
 
     const released = this.gesture.release();
 
@@ -181,6 +255,146 @@ export class BoardSelection {
     else if (released.kind === "region") this.selectRegion(released.input);
 
     return true;
+  }
+
+  private transformedCandidate(matrix: AffineMatrix) {
+    const candidate = SelectionCandidates.candidate(
+      this.options.scene.strokes,
+      this.parts,
+      SelectionConfig.ZERO,
+    );
+
+    const mapping = new Map(
+      candidate.selected.map((item) => [
+        item,
+        BoardTransforms.apply(item, matrix),
+      ]),
+    );
+
+    return {
+      strokes: candidate.strokes.map((item) => mapping.get(item) ?? item),
+      selected: candidate.selected.map((item) => mapping.get(item)!),
+    };
+  }
+
+  private previewTransform(matrix: AffineMatrix) {
+    if (!this.previewBase) this.previewMove();
+
+    const selected = this.previewBase!.selected.map((item) =>
+        BoardTransforms.apply(item, matrix),
+      ),
+      mapping = new Map(
+        this.previewBase!.selected.map((item, index) => [
+          item,
+          selected[index]!,
+        ]),
+      );
+
+    this.options.preview({
+      stationary: this.previewBase!.stationary,
+      selected,
+      ordered: this.previewBase!.ordered?.map((entry) =>
+        entry.selected
+          ? { item: mapping.get(entry.item)!, selected: true }
+          : entry,
+      ),
+      delta: { x: 0, y: 0 },
+      transformed: true,
+    });
+  }
+
+  private commitTransform(matrix: AffineMatrix) {
+    if (
+      matrix.every((v, i) => Math.abs(v - BoardTransforms.IDENTITY[i]!) < 1e-12)
+    ) {
+      this.options.preview(null);
+      this.options.changed();
+
+      return;
+    }
+
+    try {
+      this.apply(
+        this.transformedCandidate(matrix),
+        BoardTransforms.mask(this.region, matrix),
+        () => {
+          this.options.preview(null);
+          this.options.changed();
+        },
+      );
+    } catch (error) {
+      this.options.preview(null);
+      this.report(error);
+    }
+  }
+
+  transform(widthPercent: number, heightPercent: number, angle: number) {
+    if (this.busy || !this.options.writable() || !this.hasSelection) return;
+
+    const bounds = BoardRegions.maskBounds(this.region);
+
+    if (!bounds) return;
+
+    try {
+      this.commitTransform(
+        BoardTransforms.around(
+          {
+            x: (bounds.left + bounds.right) / 2,
+            y: (bounds.top + bounds.bottom) / 2,
+          },
+          widthPercent / 100,
+          heightPercent / 100,
+          angle,
+        ),
+      );
+    } catch (error) {
+      this.report(error);
+    }
+  }
+
+  insertItems(items: BoardItem[]): Promise<boolean> {
+    if (this.busy || !this.options.writable()) return Promise.resolve(false);
+
+    const bounds = BoardRegions.visibleBounds(items);
+
+    if (!bounds) return Promise.resolve(false);
+
+    return new Promise((resolve) =>
+      this.apply(
+        { strokes: [...this.options.scene.strokes, ...items], selected: items },
+        BoardRegions.rectangle(
+          { x: bounds.left, y: bounds.top },
+          { x: bounds.right, y: bounds.bottom },
+        ),
+        resolve,
+      ),
+    );
+  }
+
+  cropImages() {
+    if (this.busy || !this.options.writable()) return;
+
+    const images = new Map(
+      this.parts
+        .filter((p) => p.selected.kind === "image")
+        .map((p) => [p.original, p.selected]),
+    );
+
+    if (!images.size) return;
+
+    this.apply({
+      strokes: this.options.scene.strokes.map(
+        (item) => images.get(item) ?? item,
+      ),
+      selected: this.parts.map((p) => images.get(p.original) ?? p.selected),
+      parts: this.parts.map((part) => {
+        const image = images.get(part.original);
+
+        return image
+          ? { original: image, selected: image, remainder: null }
+          : part;
+      }),
+    });
   }
 
   private previewMove() {
@@ -196,6 +410,22 @@ export class BoardSelection {
           return part ? (part.remainder ? [part.remainder] : []) : [stroke];
         }),
         selected: this.parts.map((part) => part.selected),
+        ...(this.options.scene.strokes.some((item) => item.kind === "image")
+          ? {
+              ordered: this.options.scene.strokes.flatMap((item) => {
+                const part = byOriginal.get(item);
+
+                if (!part) return [{ item, selected: false }];
+
+                return [
+                  ...(part.remainder
+                    ? [{ item: part.remainder, selected: false }]
+                    : []),
+                  { item: part.selected, selected: true },
+                ];
+              }),
+            }
+          : {}),
       };
     }
 
@@ -239,8 +469,9 @@ export class BoardSelection {
 
   private apply(
     candidate: {
-      strokes: Stroke[];
-      selected: Stroke[];
+      strokes: BoardItem[];
+      selected: BoardItem[];
+      parts?: SelectedPart[];
     },
     region = this.region,
     finish: (success: boolean) => void = () => {},
@@ -279,11 +510,13 @@ export class BoardSelection {
 
         this.options.commit(candidate.strokes);
 
-        this.parts = candidate.selected.map((stroke) => ({
-          original: stroke,
-          selected: stroke,
-          remainder: null,
-        }));
+        this.parts =
+          candidate.parts ??
+          candidate.selected.map((stroke) => ({
+            original: stroke,
+            selected: stroke,
+            remainder: null,
+          }));
 
         this.region = region;
         this.previewBase = null;
@@ -326,6 +559,7 @@ export class BoardSelection {
 
     if (this.operation.busy) this.message = "";
 
+    this.transformGesture.cancel();
     this.operation.cancel();
     this.nudging = false;
     this.delta = { ...SelectionConfig.ZERO };

@@ -122,6 +122,8 @@ export class EraserInput {
       const previous = this.previous ?? point;
 
       for (const stroke of this.options.scene.strokes) {
+        if (stroke.kind === "image") continue;
+
         if (
           !this.preview.has(stroke) &&
           this.tester?.hits(stroke, previous, point)
