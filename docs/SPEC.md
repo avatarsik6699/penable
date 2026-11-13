@@ -12,7 +12,7 @@
 
 | Поле | Значение |
 |------|----------|
-| Версия | 0.9 — retained selection area and responsiveness correction authorized |
+| Версия | 0.9 — retained selection area and responsiveness shipped locally |
 | Дата | 2026-11-12 |
 | Архитектор / владелец | Пользователь |
 | Предметная область | Личные рукописные конспекты в браузере |

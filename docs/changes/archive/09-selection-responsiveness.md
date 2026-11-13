@@ -6,7 +6,7 @@
 |---|---|
 | Change |09|
 | Slug |selection-responsiveness|
-| Status |active|
+| Status |shipped locally; owner confirmed Wacom improvement|
 | Branch |feature/09-selection-responsiveness|
 
 ## Goal
@@ -99,6 +99,6 @@ pure selection10.5/14.5ms. Raw measurements in ignored .artifacts/change-09/base
 fix(change-09): retain selection area and remove interaction stalls
 ```
 
-Full Gate PASS: npm ci, both builds/typecheck,338tests/21files, HTTP smoke, lint, secrets scan, dependency audit0vulnerabilities; independent review0unresolved;62distinct browser assertions.
+Local implementation commit9ccc767. Full Gate PASS: npm ci, both builds/typecheck,338tests/21files, HTTP smoke, lint, secrets scan, dependency audit0vulnerabilities; independent review0unresolved;62distinct browser assertions.
 
 Final browser evidence: exact area/margins/clipboard/empty/lasso, PNG200x120 transparent area, worker cancel/failure/retry,2048vertexlasso, rapid penup→blur, schema1 save failure/retry/recovery, production base-correct worker asset and desktop/narrow console clean. 100k/500k/1M-point notes and final20k-visible-dot drag/save had no >=50ms main-thread Long Tasks. Quantified hardware latency and actual OS clipboard remain unverified; owner confirmed perceived improvement on Wacom.
