@@ -6,7 +6,7 @@
 |---|---|
 | Change |12|
 | Slug |code-spacing|
-| Status |active|
+| Status |shipped locally|
 | Branch |feature/12-code-spacing|
 
 ## Goal
@@ -83,3 +83,5 @@ Clean source snapshot; Pages HTML/JS/CSS/worker bytes match the browser-tested n
 | Architect Review Notes | PASS0 unresolved |
 | Backend / migrations / containers | n/a |
 | Release | Not requested; local ship only |
+
+Implementation commit f081a11; merged fast-forward to local main. No push/deploy.
