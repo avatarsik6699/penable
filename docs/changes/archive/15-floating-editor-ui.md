@@ -6,7 +6,7 @@
 |---|---|
 | Change |15|
 | Slug |floating-editor-ui|
-| Status |active|
+| Status |shipped locally|
 | Branch |feature/15-floating-editor-ui|
 
 ## Goal
@@ -121,3 +121,5 @@ Timed-out native automation runs excluded. Completed evidence used fresh reset s
 short native batches and disclosed1px screencast cadence; physical Wacom/OS clipboard unverified.
 Production DESIGN.md/sidecar extracted after independent review. Test tabs/sessions and owned
 preview/benchmark servers cleaned up; original localhost dev server retained.
+
+Implementation commit67d07b4; merged fast-forward to local main. No push/deploy.
