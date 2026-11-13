@@ -6,7 +6,7 @@
 |---|---|
 | Change |13|
 | Slug |fractal-modules|
-| Status |active|
+| Status |shipped locally|
 | Branch |feature/13-fractal-modules|
 
 ## Goal
@@ -102,3 +102,5 @@ Clean snapshot; final Pages HTML/JS/CSS/module-worker bytes match the browser-te
 | Secrets / dependency audit | PASS0 /0 |
 | Backend / migrations / containers | n/a |
 | Release | Not requested; local ship only |
+
+Implementation commit fa1e4ef; merged fast-forward to local main. No push/deploy.
