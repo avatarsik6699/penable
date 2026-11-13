@@ -6,7 +6,7 @@
 |---|---|
 | Change |19|
 | Slug |board-label-focus|
-| Status |ready for local ship|
+| Status |shipped locally|
 | Branch |feature/19-board-label-focus|
 
 ## Goal
@@ -31,7 +31,7 @@ button. Keep the chevron and long-title ellipsis. Reserve scroll-container inset
 ### Other
 
 - [x] T1 Add meaningful browser regression for rename focus clipping and title hierarchy; inspect desktop/compact Chrome states and run Fast Gate/LSP — _Depends on:_ F1,F2
-- [ ] T2 Full Gate, local ship/archive and cleanup; no public release — _Depends on:_ T1
+- [x] T2 Full Gate, local ship/archive and cleanup; no public release — _Depends on:_ T1
 
 ## Files
 
