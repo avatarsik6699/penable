@@ -12,11 +12,15 @@
     "build:pages": "npm run build -- --base=/penable/",
     "preview": "vite preview",
     "preview:pages": "vite preview --base=/penable/",
-    "lint": "oxlint src vite.config.ts --deny-warnings",
+    "lint": "oxlint src scripts/performance vite.config.ts --deny-warnings",
     "typecheck": "tsc --noEmit",
     "test:unit": "vitest run",
     "scan:secrets": "gitleaks dir . --config .gitleaks.toml --redact --no-banner",
-    "audit:deps": "npm audit --audit-level=moderate"
+    "audit:deps": "npm audit --audit-level=moderate",
+    "bench:build": "node scripts/performance/build.mjs",
+    "bench:serve": "vite preview --outDir .artifacts/performance --port 4180 --strictPort",
+    "bench:history": "node scripts/performance/history.mjs",
+    "bench:lifecycle": "node --expose-gc scripts/performance/lifecycle.mjs"
   },
   "dependencies": {
     "polygon-clipping": "0.15.7",

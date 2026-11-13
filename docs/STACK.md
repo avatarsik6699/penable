@@ -275,3 +275,40 @@ cancellation/generation guards; failure cannot commit or discard notes. Autosave
 transactions and closes its repository before the owning main-thread lease is released.
 No persistent schema/dependency change; normal Vite builds must emit base-correct worker assets.
 Explicit JSON import/export/load remain separately measured from selection/drag/save paths.
+
+## Change10 — Reproducible engine performance
+
+SPEC5.11 is authoritative. Live geometry consumes appended raw samples once, keeps the exact
+provisional tip, and strokes one combined native prefix+tail path. Batch geometry is the reference;
+new external documents still pass strict codec. Compact replacement history stores changed members,
+retains full undo semantics and shared scene identity. No new drawing library/schema/index.
+
+```
+npm run bench:build
+npm run bench:serve
+npm run bench:history
+npm run bench:lifecycle
+```
+
+Engine builds go to ignored `.artifacts/performance`, separate from Pages. Optional environment
+variables `PENABLE_BENCH_SOURCE` (default src) and `PENABLE_BENCH_OUT` select an immutable source
+snapshot and output. Serve baseline/candidate subfolders on127.0.0.1:4180 for comparison.
+Load playwriter skill, create one owned tab/session, navigate to the benchmark, then execute
+`scripts/performance/browser.js` using `playwriter -s ID -f ...`. Set `state.label` to baseline or
+candidate for artifacts. Runner saves evidence then fails on raster/scene/ordinary-long-task/console
+regressions. `compare.js` is a measurement collector: run with `state.pair=1/2/3` for alternating
+baseline/candidate pairs; it rejects idle RAF throttling, not timing variance. Warmup is excluded.
+
+Chrome may deliver1Hz RAF even when document.visibilityState is visible. Check an idle probe
+before timing. During this check, Page.startScreencast at1×1px with screencastFrame acknowledgements
+restored~7ms cadence in the owned Playwriter tab; stop the capture afterwards. Apply identical
+capture conditions to both builds and disclose capture overhead. Never infer FPS from task mode:
+`penBench.schedule('tasks')` is available only for main-thread work comparisons.
+
+Recorded metrics describe synchronous input+renderer batches paced by RAF and manual engine flush,
+not physical pen-to-photon latency or the app's whole compositor pipeline. Eraser fixture measures
+hit-testing only; actual erase-preview/commit needs app smoke. Browser GC is unavailable through
+this extension (heap snapshots are allocation observations, not retained-memory proof). The Node
+lifecycle check explicitly collects JS geometry-cache owners; it does not measure browser/GPU
+memory. History benchmark measures serialized reachable graph growth, not total heap bytes.
+Preserve existing bitmap budget. Hardware Wacom and multi-hour real use remain separate acceptance.

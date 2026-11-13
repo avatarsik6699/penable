@@ -2,7 +2,9 @@ import type { Stroke } from './types'
 
 type IndexedStroke = { stroke: Stroke; index: number }
 type DeltaOperation = { kind?: never; removed: IndexedStroke[]; inserted: IndexedStroke[] }
-type Replacement = { kind: 'replace'; before: Stroke[]; after: Stroke[] }
+// Contiguous changes store only their changed middle. Sparse equal-length edits
+// additionally carry indices, so moving two distant fragments retains no intervening ink.
+type Replacement = { kind: 'replace'; start: number; before: Stroke[]; after: Stroke[]; indices?: number[] }
 type Operation = DeltaOperation | Replacement
 
 export class StrokeHistory {
@@ -33,7 +35,7 @@ export class StrokeHistory {
   undo(): boolean {
     const operation = this.done.pop()
     if (!operation) return false
-    this.apply(operation.kind === 'replace' ? { kind: 'replace', before: operation.after, after: operation.before } : { removed: operation.inserted, inserted: operation.removed })
+    this.apply(operation, true)
     this.undone.push(operation)
     return true
   }
@@ -53,30 +55,63 @@ export class StrokeHistory {
   }
 
   replace(candidate: readonly Stroke[]): boolean {
-    if (candidate.length === this.strokes.length && candidate.every((stroke, index) => stroke === this.strokes[index])) return false
-    // Snapshots hold references, not copied geometry. Linear replacement preserves the
-    // scene array identity and exact ordering without repeated indexOf/splice scans.
-    this.record({ kind: 'replace', before: [...this.strokes], after: [...candidate] })
+    const current = this.strokes
+    let start = 0
+    while (start < current.length && start < candidate.length && current[start] === candidate[start]) start++
+    if (start === current.length && start === candidate.length) return false
+    let end = current.length, candidateEnd = candidate.length
+    while (end > start && candidateEnd > start && current[end - 1] === candidate[candidateEnd - 1]) { end--; candidateEnd-- }
+    if (current.length === candidate.length) {
+      let changed = 0
+      for (let index = start; index < end; index++) if (current[index] !== candidate[index]) changed++
+      if (changed < (end - start) / 2) {
+        const indices: number[] = [], before: Stroke[] = [], after: Stroke[] = []
+        for (let index = start; index < end; index++) {
+          if (current[index] === candidate[index]) continue
+          indices.push(index); before.push(current[index]!); after.push(candidate[index]!)
+        }
+        this.record({ kind: 'replace', start, indices, before, after })
+        return true
+      }
+    }
+    this.record({ kind: 'replace', start, before: current.slice(start, end), after: candidate.slice(start, candidateEnd) })
     return true
   }
 
-  private apply(operation: Operation) {
+  private apply(operation: Operation, reverse = false) {
     if (operation.kind === 'replace') {
-      this.strokes.length = operation.after.length
-      for (let index = 0; index < operation.after.length; index++) this.strokes[index] = operation.after[index]!
+      const before = reverse ? operation.after : operation.before
+      const after = reverse ? operation.before : operation.after
+      if (operation.indices) {
+        for (let index = 0; index < operation.indices.length; index++) this.strokes[operation.indices[index]!] = after[index]!
+        return
+      }
+      const { start } = operation
+      const offset = after.length - before.length
+      const oldLength = this.strokes.length
+      if (offset > 0) {
+        this.strokes.length = oldLength + offset
+        for (let index = oldLength - 1; index >= start + before.length; index--) this.strokes[index + offset] = this.strokes[index]!
+      } else if (offset < 0) {
+        for (let index = start + before.length; index < oldLength; index++) this.strokes[index + offset] = this.strokes[index]!
+        this.strokes.length = oldLength + offset
+      }
+      for (let index = 0; index < after.length; index++) this.strokes[start + index] = after[index]!
       return
     }
-    if (!operation.removed.length && operation.inserted.length === 1 && operation.inserted[0]!.index === this.strokes.length) {
-      this.strokes.push(operation.inserted[0]!.stroke)
+    const removedEntries = reverse ? operation.inserted : operation.removed
+    const insertedEntries = reverse ? operation.removed : operation.inserted
+    if (!removedEntries.length && insertedEntries.length === 1 && insertedEntries[0]!.index === this.strokes.length) {
+      this.strokes.push(insertedEntries[0]!.stroke)
       return
     }
-    const removed = new Set(operation.removed.map(entry => entry.stroke))
+    const removed = new Set(removedEntries.map(entry => entry.stroke))
     const remaining = this.strokes.filter(stroke => !removed.has(stroke))
-    const length = remaining.length + operation.inserted.length
+    const length = remaining.length + insertedEntries.length
     let read = 0, inserted = 0
     this.strokes.length = length
     for (let index = 0; index < length; index++) {
-      const entry = operation.inserted[inserted]
+      const entry = insertedEntries[inserted]
       if (entry && entry.index <= index) { this.strokes[index] = entry.stroke; inserted++ }
       else this.strokes[index] = remaining[read++]!
     }

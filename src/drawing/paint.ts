@@ -1,5 +1,5 @@
 import type { StrokeGeometry } from './geometry'
-import { sourceGeometry } from './source-geometry'
+import { liveGeometry, sourceGeometry } from './source-geometry'
 import { groupedStrokes, traceMask } from './regions'
 import type { Stroke } from './types'
 
@@ -35,9 +35,9 @@ export function paintStroke(ctx: CanvasRenderingContext2D, stroke: Stroke, activ
       ctx.fill()
       return
     }
-    if (!active && typeof Path2D !== 'undefined') {
-      let path = paths.get(geometry)
-      if (!path) { path = new Path2D(); traceGeometry(path, geometry); paths.set(geometry, path) }
+    if (typeof Path2D !== 'undefined') {
+      let path = active ? liveGeometry(stroke).path() : paths.get(geometry)
+      if (!path) { path = new Path2D(); traceGeometry(path, geometry); if (!active) paths.set(geometry, path) }
       ctx.stroke(path)
     } else { traceGeometry(ctx, geometry); ctx.stroke() }
   } finally { if (transformed) ctx.restore() }

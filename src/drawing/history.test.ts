@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { serialize } from 'node:v8'
 import { StrokeHistory } from './history'
 import { PenInput } from './input'
 import { INK, type PointerInput, type Scene, type Stroke } from './types'
@@ -182,5 +183,142 @@ describe('large ordered scene edits', () => {
     history.redo(); expect(scene[0]).toBe(candidate[0]); expect(scene.at(-1)).toBe(candidate.at(-1))
     expect(scan).not.toHaveBeenCalled(); expect(splice).not.toHaveBeenCalled()
     scan.mockRestore(); splice.mockRestore()
+  })
+})
+
+describe('compact replacement history', () => {
+  it('preserves same-length sparse updates, equal IDs and duplicate references in exact order', () => {
+    const a = stroke(1), b = stroke(2), c = stroke(3), d = stroke(4)
+    const aMoved = { ...a, translation: { x: 10, y: 20 } }
+    const initial = [a, b, b, c, d, a], scene = [...initial]
+    const history = new StrokeHistory(scene, scene.length)
+    const candidate = [aMoved, b, b, c, d, aMoved]
+    history.replace(candidate)
+    expect(scene).toEqual(candidate)
+    expect(scene[0]).toBe(aMoved); expect(scene[5]).toBe(aMoved)
+    history.undo()
+    expect(scene).toEqual(initial)
+    expect(scene[0]).toBe(a); expect(scene[5]).toBe(a)
+    history.redo()
+    expect(scene).toEqual(candidate)
+    expect(history.strokes).toBe(scene)
+  })
+
+  it('roundtrips changing lengths, shared tails, full deletions and insertion into an empty scene', () => {
+    const items = Array.from({ length: 10 }, (_, index) => stroke(index + 1))
+    const scene = [...items], history = new StrokeHistory(scene, scene.length)
+    const states = [items,
+      [items[0]!, items[1]!, stroke(11), ...items.slice(2)],
+      [items[0]!, items[8]!, items[9]!],
+      [], [items[9]!, items[9]!, items[0]!],
+      [items[0]!, ...items, items[0]!],
+    ]
+    for (const state of states.slice(1)) {
+      expect(history.replace(state)).toBe(true)
+      expect(scene).toEqual(state)
+    }
+    for (let index = states.length - 2; index >= 0; index--) {
+      expect(history.undo()).toBe(true)
+      expect(scene).toEqual(states[index])
+      states[index]!.forEach((item, position) => expect(scene[position]).toBe(item))
+    }
+    expect(history.undo()).toBe(false)
+    for (const state of states.slice(1)) {
+      expect(history.redo()).toBe(true)
+      expect(scene).toEqual(state)
+    }
+    expect(history.strokes).toBe(scene)
+  })
+
+  it('preserves redo on identical replacements and clears it only for a real mixed edit', () => {
+    const a = stroke(1), b = stroke(2), c = stroke(3)
+    const scene = [a, b], history = new StrokeHistory(scene, scene.length)
+    history.replace([b, a]); history.undo()
+    expect(history.replace([a, b])).toBe(false)
+    expect(history.replace(scene)).toBe(false)
+    expect(history.canRedo).toBe(true)
+    history.commit(c)
+    expect(history.canRedo).toBe(false)
+    history.erase(new Set([b]))
+    history.replace([c, a])
+    history.undo(); expect(scene).toEqual([a, c])
+    history.undo(); expect(scene).toEqual([a, b, c])
+    history.undo(); expect(scene).toEqual([a, b])
+    expect(history.undo()).toBe(false)
+    history.redo(); history.redo(); history.redo()
+    expect(scene).toEqual([c, a])
+  })
+
+  it('roundtrips deterministic mixed permutations and length changes with duplicate identities', () => {
+    const pool = Array.from({ length: 12 }, (_, index) => stroke(index + 1))
+    const scene = pool.slice(0, 8), history = new StrokeHistory(scene, scene.length)
+    const states = [[...scene]]
+    let seed = 1234567
+    const random = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed }
+    for (let step = 0; step < 200; step++) {
+      const candidate = Array.from({ length: random() % 40 }, () => pool[random() % pool.length]!)
+      if (history.replace(candidate)) states.push([...candidate])
+      expect(scene).toEqual(candidate)
+    }
+    for (let index = states.length - 2; index >= 0; index--) {
+      expect(history.undo()).toBe(true)
+      expect(scene).toEqual(states[index])
+      states[index]!.forEach((item, position) => expect(scene[position]).toBe(item))
+    }
+    expect(history.undo()).toBe(false)
+    for (const state of states.slice(1)) {
+      expect(history.redo()).toBe(true)
+      expect(scene).toEqual(state)
+      state.forEach((item, position) => expect(scene[position]).toBe(item))
+    }
+  })
+
+  it('does not rewrite untouched members while applying a sparse edit or its undo/redo', () => {
+    const raw = Array.from({ length: 20000 }, (_, index) => stroke(index + 1))
+    let writes = 0
+    const scene = new Proxy(raw, { set(target, key, value, receiver) {
+      if (typeof key === 'string' && /^\d+$/.test(key)) writes++
+      return Reflect.set(target, key, value, receiver)
+    } })
+    const history = new StrokeHistory(scene, scene.length)
+    const candidate = [...raw]
+    candidate[1] = { ...candidate[1]!, translation: { x: 3, y: 4 } }
+    candidate[19998] = { ...candidate[19998]!, translation: { x: 3, y: 4 } }
+    history.replace(candidate); expect(writes).toBe(2)
+    history.undo(); expect(writes).toBe(4)
+    history.redo(); expect(writes).toBe(6)
+    expect(scene).toEqual(candidate)
+  })
+
+  it('retains only edited members across many small changes on a large loaded scene', () => {
+    const scene = Array.from({ length: 20000 }, (_, index) => stroke(index + 1))
+    const history = new StrokeHistory(scene, scene.length)
+    // V8's retained object graph is deterministic here and includes private history
+    // payloads without adding a production-only inspection API or a wall-time budget.
+    const initialBytes = serialize(history).byteLength
+    for (let index = 0; index < 500; index++) {
+      const candidate = [...scene]
+      candidate[100] = { ...candidate[100]!, translation: { x: index + 1, y: 0 } }
+      history.replace(candidate)
+    }
+    expect(serialize(history).byteLength - initialBytes).toBeLessThan(200000)
+    for (let index = 0; index < 500; index++) expect(history.undo()).toBe(true)
+    expect(scene[100]?.translation).toBeUndefined()
+    expect(history.undo()).toBe(false)
+    for (let index = 0; index < 500; index++) expect(history.redo()).toBe(true)
+    expect(scene[100]?.translation).toEqual({ x: 500, y: 0 })
+  })
+
+  it('handles a very large insertion without variadic splice/argument limits', () => {
+    const original = [stroke(1), stroke(2)], scene = [...original]
+    const history = new StrokeHistory(scene, scene.length)
+    const inserted = Array.from({ length: 150000 }, (_, index) => stroke(index + 3))
+    const candidate = [original[0]!, ...inserted, original[1]!]
+    history.replace(candidate)
+    expect(scene.length).toBe(candidate.length)
+    expect(scene.at(-1)).toBe(original[1])
+    history.undo(); expect(scene).toEqual(original)
+    history.redo(); expect(scene.length).toBe(candidate.length)
+    expect(scene[1]).toBe(inserted[0]); expect(scene.at(-2)).toBe(inserted.at(-1))
   })
 })
