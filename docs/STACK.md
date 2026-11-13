@@ -1,21 +1,22 @@
 # Stack Guide
 
 > Source of truth for technologies, commands and required tools.
-> Status: CONFIGURED; changes 01–10 shipped locally; change07 published, changes08–10 await separate release.
+> Status: CONFIGURED; changes01–10 shipped locally; change11 under local gate; change07 published, changes08–11 await separate release.
 > SPEC approved 2026-11-12. Target device: Wacom One, Windows 11.
 
 ## Stack
 
 | Layer | Technology |
 |-------|------------|
-| Frontend | React + TypeScript, Vite SPA, plain CSS, Canvas 2D |
+| Frontend | React + TypeScript, Vite SPA, colocated CSS Modules, Canvas 2D |
 | Input | Pointer Events, world-coordinate controller outside React's rendering cycle |
 | Selection geometry | polygon-clipping0.15.7; normalized local vector clips and source lineage |
 | Background jobs | Native module Worker; bounded transferable point chunks for large selection/validation/save |
 | Backend | n/a — browser only |
 | Storage | Native IndexedDB, versioned one-board document; exclusive origin Web Lock; JSON backup |
 | Package manager | npm, package-lock.json |
-| Lint | Oxlint; native TypeScript/React rules including hooks; .oxlintrc.json |
+| Lint / format | Oxlint, TypeScript AST architecture policies/self-tests; Prettier3.9.6 / EditorConfig |
+| Browser regression | Playwright1.62.1 Chromium, domain fixtures + Page Objects, isolated contexts |
 | Unit tests | Vitest, node environment; src/**/*.test.ts |
 | Infra | Loopback Vite in WSL, ordinary Windows Chrome; public HTTPS static hosting |
 | CI / hosting | GitHub Actions; avatarsik6699/penable; https://avatarsik6699.github.io/penable/ |
@@ -44,8 +45,9 @@ Run applicable rows after each task, scoped to changed behavior. API generation 
 
 | Check | Command | Preconditions / notes |
 |-------|---------|-----------------------|
-| Lint | npm run lint | Oxlint checks src and vite.config.ts, including React hook rules |
-| Type-check (affected) | npm run typecheck | Strict TypeScript, no emit; includes tests and Vite config |
+| Lint | npm run lint | Oxlint, architecture/code-shape/platform/E2E policies and checker self-tests |
+| Formatting | npm run format:check | Repository Prettier configuration; npm run format to apply |
+| Type-check (affected) | npm run typecheck | Strict TypeScript, no emit; includes unit/E2E tests and Vite/Playwright configs |
 | Targeted / affected unit tests | npm run test:unit | Optional file argument scopes cases; no passing empty test suites |
 | LSP diagnostics | TypeScript LSP diagnostics | Tool exposed; run on changed TS files; disclose tool failure separately from tsc |
 | API type regen | n/a | No API |
@@ -63,8 +65,8 @@ A focused build is appropriate when establishing/changing build configuration.
 | Frontend build | npm run build | TypeScript followed by Vite static build |
 | Pages build | npm run build:pages | Separate production build with /penable/ asset base; final dist is Pages artifact |
 | Frontend unit tests | npm run test:unit | Includes input ownership/cancellation and coordinate transforms |
-| E2E lint / determinism | n/a | No automated E2E runner |
-| E2E suite | n/a | Interactive browser evidence required in Smoke |
+| E2E lint / determinism | npm run lint; npm run format:check | AST policies cover spec/fixture/Page Object ownership; self-tests included |
+| E2E suite | npm run test:e2e:run | After build:pages; owns strict4185 preview and isolated Chromium contexts; run test:e2e:install once |
 | Smoke | npm run dev; npm run preview:pages | Playwriter: active change scenarios; change07 verifies production /penable/ assets/input/storage at port4173; hardware acceptance is separate |
 | SAST | npm run lint | Correctness-focused static analysis; not a dedicated security audit |
 | Secrets scan | npm run scan:secrets | Gitleaks default rules; excludes only generated deps/build, Git internals and local artifacts; scans untracked files too |
@@ -90,7 +92,7 @@ Initial publication is explicitly owner-authorized. Create the empty public repo
 Enable Pages with build_type=workflow and HTTPS enforcement. Only built dist is deployed.
 The installed gh run list lacks --branch; match JSON headSha to the pushed commit.
 Actions use pinned official commit SHAs; build has contents:read, deploy alone has pages/id-token write.
-CI runs lint/typecheck/unit/audit/build:pages. Secrets scanning remains mandatory locally in Full
+CI runs lint/format/typecheck/unit/audit/build:pages, installs Chromium and runs E2E on that same dist artifact before upload. Secrets scanning remains mandatory locally in Full
 and Release Gates. No custom domain, cloud database, analytics or automatic note migration.
 
 ## Required Tooling
@@ -108,7 +110,7 @@ and Release Gates. No custom domain, cloud database, analytics or automatic note
 
 ```bash
 npm run test:unit
-npm run test:unit -- src/drawing/input.test.ts
+npm run test:unit -- src/entities/board/input.test.ts
 npm run lint
 npm run typecheck
 ```
@@ -119,12 +121,17 @@ pressure, driver behavior and the feeling of handwriting. Read README for the ha
 
 ## Project structure
 
-- src/components/: toolbar, diagnostics and writing surface.
-- src/drawing/: stroke model/input/history, world/viewport/background transforms, shared curve geometry, layered Canvas renderer.
-- src/document/: versioned codec, native IDB, writer lease and serialized save session.
-- src/App.tsx: owns slow interface/document lifecycle state, not high-frequency stroke geometry.
-- vite.config.ts, tsconfig.json, .oxlintrc.json: project configuration.
-- docs/SPEC.md: approved intent and quality contract; docs/changes/: active work; archived changes 01–10: input, ink quality, history/backgrounds, storage, eraser, board UX, GitHub Pages publication precise fragment selection and responsiveness.
+Binding composition and style rules: [FRONTEND.md](FRONTEND.md).
+
+- src/app/: bootstrap/composition, reset/theme/tokens.
+- src/widgets/board-workspace/: workspace model, React views, native renderer/paths and surface bindings/presenters.
+- src/features/board-document/: document DTO/codec/session, selection validation, IDB/lease/worker/file adapters and storage UI.
+- src/entities/board/: browser-free geometry, input, regions, viewport, selection and history; internal BoardSnapshot.
+- src/shared/: narrowly owned platform services and reused controls.
+- e2e/: fixture-owned contexts/data, Page Objects owning actions/assertions, domain-only specs.
+- scripts/architecture/: TypeScript AST dependency/platform/code-shape/E2E policies and positive/negative self-tests.
+- scripts/performance/: reproducible actual-engine and native raster measurements.
+- docs/SPEC.md, FRONTEND.md, STACK.md: intent, architecture, tooling; changes/archive/: shipped history.
 - docs/playbooks/, .agents/skills/, .claude/skills/, plugins/sdd-workflow/: installed workflow.
 
 ## Implementation conventions
@@ -312,3 +319,39 @@ this extension (heap snapshots are allocation observations, not retained-memory 
 lifecycle check explicitly collects JS geometry-cache owners; it does not measure browser/GPU
 memory. History benchmark measures serialized reachable graph growth, not total heap bytes.
 Preserve existing bitmap budget. Hardware Wacom and multi-hour real use remain separate acceptance.
+
+## Change11 — Architecture and executable contracts
+
+SPEC5.12 and FRONTEND are authoritative. Dependencies descend app→widgets→features→entities→shared
+through explicit public roots. No React/native canvas/codec/worker protocol in entities/board.
+Exact-file platform capability registry lives in scripts/architecture/policy.mjs; extending it
+requires inspecting concrete ownership. No folder-wide platform exemptions. AST checks include
+worker transitive graphs, import aliases/dynamic/type edges, cycles and component conventions.
+
+Internal BoardSnapshot has no format/schemaVersion; feature codec owns persisted schema1/2 and
+64MiB byte policy. Tab owns clipboard/document session/durable worker; editor generation owns
+renderer/selection worker/bindings. Import recreates editor without closing its durable writer.
+UI uses a cached coarse useSyncExternalStore projection; scene capture is an explicit separate API.
+
+```
+npm run format
+npm run format:check
+npm run lint:architecture
+npm run test:architecture
+npm run test:e2e:install
+npm run test:e2e
+```
+
+`test:e2e` builds Pages then runs the suite. `test:e2e:run` reuses only the already-built dist files,
+never an existing server. PENABLE_E2E_DIST can select an owned immutable Pages build for baseline
+comparison. Preview owns127.0.0.1:4185, strictPort and reuseExistingServer:false. Readiness uses
+Playwright webServer.wait.stdout (Vite Local line): this WSL host drops SYN to unbound ports, so
+URL preflight hangs before server startup. See KNOWN_GOTCHAS. Specs cannot directly access driver,
+assertions, constructors or test-data literals. Real IDB/lease/worker paths run in isolated contexts;
+normal smoke and intentional worker failure are separate. Interactive Playwriter remains required.
+
+Performance baseline for11 is5624f9e (change10 shipped), not change10's earlier baseline. Build
+legacy source via PENABLE_BENCH_SOURCE or current layered APIs through supported owner entrypoints;
+no engine copy. Preserve672 native raster comparisons. Run three alternating before/after pairs;
+per fixture median p95 must be <=max(1ms,baseline*1.2), with no attributable >=50ms ordinary tasks.
+These measurements describe CPU/RAF batches, not physical pen latency or GPU retained memory.

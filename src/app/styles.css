@@ -1,0 +1,40 @@
+:root {
+  font-family: "Segoe UI", system-ui, sans-serif;
+  color: #182230;
+  background: #ffffff;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  --text-muted: #526176;
+  --control-selected-border: #b8c9e1;
+  --control-selected-bg: #e6edf8;
+  --control-selected-text: #184b91;
+  --control-hover: #e6ecf4;
+  --control-disabled: #7a8798;
+  --panel-shadow: #18223012;
+  --dialog-backdrop: #18223055;
+  --selection-fill: #175cd30b;
+  --cursor-halo: white;
+  --paper: #ffffff;
+  --panel: #f3f6fa;
+  --ink: #182230;
+  --divider: #d6dee8;
+  --focus: #175cd3;
+  --error: #b42318;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+button,
+input,
+select,
+summary {
+  font: inherit;
+}
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 4px;
+}

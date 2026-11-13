@@ -165,3 +165,9 @@ These project conventions take precedence over generic tooling suggestions in th
   never delegate. The parent owns integration, shared checks, Git, and environment lifecycle.
 - Destructive database operations require the user's explicit instruction for the exact
   operation. Do not run broad unconditional deletes, drops, or truncation during routine work.
+
+## Frontend architecture contract
+
+Before writing or reviewing frontend source, read [docs/FRONTEND.md](docs/FRONTEND.md). It owns
+layer boundaries, composition, code shape, platform ownership, styles and browser-test structure.
+Its change11 adaptation preserves this repository's Full Gate and automatic local ship rules.

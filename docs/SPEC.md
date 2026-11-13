@@ -562,6 +562,23 @@ Undo не ограничивается автоматически. При изм
 атомарность save/cancel/error и восстановление сохраняют свои контракты. Физическая
 Wacom latency/ощущения остаются отдельной аппаратной приёмкой.
 
+### 5.12 Архитектура и композиция — change11
+
+Утверждено владельцем2026-11-13: перенос применимой архитектуры и кодового стиля infraegev2,
+включая браузерный регресс fixtures/Page Objects. Binding contract: [FRONTEND](FRONTEND.md).
+Целевые owners: app → widgets/board-workspace → features/board-document → entities/board → shared.
+Core не знает React/DOM/codec/worker protocol; DTO/strict validation/recovery принадлежат document
+feature, native Canvas/DOM — workspace. Scoped UI snapshot отделён от mutable scene и файлового
+DTO. Схема2/чтение1, IDB1, предыдущие копии, UI, geometry/stabilization и все guards неизменны.
+
+Рефакторинг включает типы/props/effects/kebab-case/CSS Modules/semantic tokens, явные factories,
+public APIs и исполняемые политики. Legacy директории после переноса удаляются; дублирующего
+старого движка в новой сборке нет. Baseline main5624f9e;672native raster cases и408unit assertions
+сохраняют смысл. Three paired warm performance runs: median p95 ≤ max(1ms,baseline×1.2), normal
+fixtures без attributable >=50ms tasks. Dedicated isolated Playwright smoke checks same Pages
+artifact on4185; interactive checks retain Playwriter. Local automatic ship after Full Gate/review;
+new product features and separate release are outside this change.
+
 ## 6. Auth & Access Model
 
 Авторизации нет. Доступ соответствует доступу к компьютеру и профилю браузера.

@@ -235,7 +235,7 @@ npm run preview
 ## Публикация
 
 GitHub Actions в [.github/workflows/pages.yml](.github/workflows/pages.yml) проверяет PR
-и изменения `main`: lint, TypeScript, unit tests, зависимости и production-сборку.
+и изменения `main`: lint и архитектурные политики, форматирование, TypeScript, unit tests, зависимости, production-сборку и изолированные браузерные регрессии.
 Успешная сборка `main` автоматически публикуется в GitHub Pages; PR не получают прав
 на deployment. В настройках Pages выбран источник **GitHub Actions**. Публикуется только
 содержимое `dist`, без исходников, SDD-документов и локальных артефактов.
@@ -307,3 +307,13 @@ Wacom. Нативный захват1×1px поддерживал~144Hz RAF од
 `ship --release` запускает проверки, отправляет `main` в origin и проверяет deployment
 согласно [STACK.md](docs/STACK.md). Локальные `.artifacts`, зависимости, сборки и `.env`
 исключены из Git; перед публикацией проверяются рабочие файлы и Git-история на секреты.
+
+
+Архитектура описана в [FRONTEND.md](docs/FRONTEND.md): `app → widgets → features → entities → shared`.
+Геометрия и история не зависят от React и браузера; документ, хранение и фоновые задачи отделены
+от нативного рендерера. Границы, платформенные зависимости и правила композиции проверяются автоматически.
+
+Для разработки доступны `npm run format`, `npm run format:check`, `npm run lint`.
+Браузерные регрессии: один раз `npm run test:e2e:install`, затем `npm run test:e2e`.
+Они собирают Pages-версию и используют отдельный порт4185 с изолированными данными, не записи
+в вашей обычной вкладке. Описание проверок и измерений — в [STACK.md](docs/STACK.md).

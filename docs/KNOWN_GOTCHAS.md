@@ -48,3 +48,12 @@
 - **Prevention**: [optional — how to avoid hitting it again]
 - **Links**: [optional — docs / issue / PR]
 -->
+
+
+## WSL: Playwright preview hangs before launch
+
+Symptom: URL-based webServer readiness hangs with no preview process, connection SYN-SENT to an
+unbound loopback port. This host can drop rather than reject SYN; the availability probe runs
+before Playwright's server launch timeout. Use documented webServer.wait.stdout for Vite's Local
+line, strictPort:true and reuseExistingServer:false. Do not reuse the user's dev server or raise
+all test timeouts. E2E owns4185 and isolated contexts; no browser profile cleanup is needed.

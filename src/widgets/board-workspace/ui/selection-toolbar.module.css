@@ -1,0 +1,81 @@
+.selection-toolbar {
+  position: absolute;
+  z-index: 1;
+  top: 12px;
+  left: 12px;
+  max-width: calc(100% - 24px);
+  padding: 8px;
+  border: 1px solid var(--divider);
+  border-radius: 6px;
+  background: var(--paper);
+  font-size: 13px;
+}
+.selection-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: min(380px, calc(100vw - 32px));
+  max-height: min(360px, 50dvh);
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 8px;
+  border: 1px solid var(--divider);
+  border-radius: 6px;
+  background: var(--paper);
+}
+.selection-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.selection-toolbar button {
+  min-height: 36px;
+  padding: 0 9px;
+  border: 1px solid var(--divider);
+  border-radius: 5px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+.selection-toolbar button:hover:enabled {
+  background: var(--panel);
+}
+.selection-toolbar button[aria-pressed="true"] {
+  border-color: var(--control-selected-border);
+  background: var(--control-selected-bg);
+  color: var(--control-selected-text);
+}
+.selection-toolbar button:disabled {
+  color: var(--control-disabled);
+  cursor: default;
+}
+.selection-help {
+  margin: 7px 2px 0;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+.selection-feedback {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: min(380px, calc(100vw - 32px));
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--divider);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--text-muted);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 580px) {
+  .selection-toolbar {
+    max-width: calc(100% - 16px);
+    top: 8px;
+    left: 8px;
+  }
+  .selection-toolbar button {
+    min-height: 36px;
+  }
+}

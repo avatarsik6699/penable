@@ -1,9 +1,11 @@
-import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vitest/config'
+import { fileURLToPath, URL } from "node:url";
+import react from "@vitejs/plugin-react";
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   plugins: [react()],
-  server: { host: '127.0.0.1', port: 5173, strictPort: true },
-  preview: { host: '127.0.0.1', port: 4173, strictPort: true },
-  test: { environment: 'node', include: ['src/**/*.test.ts'] },
-})
+  resolve: { alias: { "~": fileURLToPath(new URL("./src", import.meta.url)) } },
+  server: { host: "127.0.0.1", port: 5173, strictPort: true },
+  preview: { host: "127.0.0.1", port: 4173, strictPort: true },
+  test: { environment: "node", include: ["src/**/*.test.ts"] },
+});
