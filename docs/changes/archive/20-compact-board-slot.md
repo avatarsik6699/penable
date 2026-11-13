@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Change |20|
-| Status |ready for local ship|
+| Status |shipped locally|
 | Branch |feature/20-compact-board-slot|
 
 ## Goal
@@ -20,7 +20,7 @@ phone/tablet layouts, sidebar and rename focus treatment.
 - [x] F1 Compact desktop dock and align insertion feedback with its moved image trigger; refresh the exact width in SPEC/DESIGN — _Depends on:_ —
 - [x] F2 Owner screenshot follow-up: remove remaining blank space in both board and contextual-settings columns. Use 128px board and 190px context slots inside a 730px desktop dock, keeping fixed geometry across all tools — _Depends on:_ F1
 - [x] T1 Update existing invariant geometry acceptance, run scoped Fast Gate/LSP and desktop/mobile native visual smoke — _Depends on:_ F1,F2
-- [ ] T2 Full Gate and automatic local ship/archive; no release — _Depends on:_ T1
+- [x] T2 Full Gate and automatic local ship/archive; no release — _Depends on:_ T1
 
 ## Files
 
