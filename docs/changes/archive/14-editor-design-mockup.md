@@ -6,7 +6,7 @@
 |---|---|
 | Change |14|
 | Slug |editor-design-mockup|
-| Status |active|
+| Status |shipped locally|
 | Branch |feature/14-editor-design-mockup|
 
 ## Goal
@@ -104,3 +104,5 @@ and final Pages HTML, JS, CSS and module-worker bytes match the prior production
 | Backend / migrations / containers | n/a |
 | Architect Review Notes |0unresolved |
 | Release | Not requested; local ship only |
+
+Implementation commit0778d8d; merged fast-forward to local main. No push/deploy.
