@@ -1,6 +1,6 @@
 import { bitmapSize, validDpr } from './coordinates'
-import { strokeGeometry } from './geometry'
-import { stabilizedPositions } from './stabilization'
+import { paintStroke } from './paint'
+import { groupedStrokes } from './regions'
 import type { Scene, Stroke, Viewport } from './types'
 
 export interface CanvasLayer {
@@ -32,6 +32,7 @@ export class CanvasRenderer {
   private commits: Stroke[] = []
   private disposed = false
   private preview: ReadonlySet<Stroke> = new Set()
+  private selectionPreview: readonly Stroke[] | null = null
 
   constructor(
     private readonly completed: CanvasLayer,
@@ -86,6 +87,11 @@ export class CanvasRenderer {
     this.sceneChanged()
   }
 
+  setSelectionPreview(strokes: readonly Stroke[] | null) {
+    this.selectionPreview = strokes
+    this.sceneChanged()
+  }
+
   sceneChanged() {
     this.commits = []
     this.fullDirty = true
@@ -123,8 +129,8 @@ export class CanvasRenderer {
     }
     if (this.fullDirty) {
       this.clear(this.completed)
-      for (const stroke of this.scene.strokes) {
-        if (!this.preview.has(stroke)) this.drawStroke(this.completed.context, stroke)
+      for (const stroke of groupedStrokes((this.selectionPreview ?? this.scene.strokes).filter(stroke => !this.preview.has(stroke)))) {
+        this.drawStroke(this.completed.context, stroke)
       }
     } else {
       for (const stroke of this.commits) {
@@ -149,24 +155,6 @@ export class CanvasRenderer {
     const { scaleX, scaleY } = this.raster
     const { zoom, x, y } = this.viewport
     ctx.setTransform(scaleX * zoom, 0, 0, scaleY * zoom, scaleX * x, scaleY * y)
-    ctx.strokeStyle = stroke.color
-    ctx.fillStyle = stroke.color
-    ctx.lineWidth = stroke.width
-    ctx.lineCap = 'round'
-    ctx.lineJoin = 'round'
-    const geometry = strokeGeometry(stabilizedPositions(stroke.points, stroke.stabilization), stroke.width)
-    if (geometry.kind === 'empty') return
-    ctx.beginPath()
-    if (geometry.kind === 'dot') {
-      ctx.arc(geometry.x, geometry.y, geometry.radius, 0, Math.PI * 2)
-      ctx.fill()
-      return
-    }
-    for (const command of geometry.commands) {
-      if (command.kind === 'move') ctx.moveTo(command.x, command.y)
-      else if (command.kind === 'line') ctx.lineTo(command.x, command.y)
-      else ctx.quadraticCurveTo(command.cx, command.cy, command.x, command.y)
-    }
-    ctx.stroke()
+    paintStroke(ctx, stroke)
   }
 }

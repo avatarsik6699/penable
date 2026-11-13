@@ -48,21 +48,42 @@ export function openRepository(onInvalidated: (message: string) => void, factory
         void task.then(() => pending.delete(task), () => pending.delete(task))
         return task
       }
+      function preserveSchema1(store: IDBObjectStore, candidate: BoardDocument) {
+        if (candidate.schemaVersion !== 2) return
+        const main = store.get('main'), backupKey = store.getKey('before-schema2')
+        let mainReady = false, backupReady = false
+        const preserve = () => {
+          if (!mainReady || !backupReady) return
+          const raw: unknown = main.result
+          if (backupKey.result === undefined && raw && typeof raw === 'object'
+            && 'schemaVersion' in raw && raw.schemaVersion === 1) store.put(raw, 'before-schema2')
+        }
+        main.onsuccess = () => { mainReady = true; preserve() }
+        backupKey.onsuccess = () => { backupReady = true; preserve() }
+      }
       resolve({
         read: () => transaction('readonly', (store, result) => {
-          const values = { main: { exists: false, value: undefined as unknown }, beforeImport: { exists: false, value: undefined as unknown } }
+          const values = { main: { exists: false, value: undefined as unknown }, beforeImport: { exists: false, value: undefined as unknown }, beforeSchema2: { exists: false, value: undefined as unknown } }
           const main = store.get('main')
           const mainKey = store.getKey('main')
           const previous = store.get('before-import')
           const previousKey = store.getKey('before-import')
+          const upgrade = store.get('before-schema2')
+          const upgradeKey = store.getKey('before-schema2')
+          upgrade.onsuccess = () => { values.beforeSchema2.value = upgrade.result as unknown }
+          upgradeKey.onsuccess = () => { values.beforeSchema2.exists = upgradeKey.result !== undefined }
           main.onsuccess = () => { values.main.value = main.result as unknown }
           mainKey.onsuccess = () => { values.main.exists = mainKey.result !== undefined }
           previous.onsuccess = () => { values.beforeImport.value = previous.result as unknown }
           previousKey.onsuccess = () => { values.beforeImport.exists = previousKey.result !== undefined }
           result(values)
         }),
-        write: (document: BoardDocument) => transaction<void>('readwrite', (store, result) => { store.put(document, 'main'); result(undefined) }),
+        write: (document: BoardDocument) => transaction<void>('readwrite', (store, result) => {
+          preserveSchema1(store, document)
+          store.put(document, 'main'); result(undefined)
+        }),
         replace: (previous: unknown, candidate: BoardDocument) => transaction<void>('readwrite', (store, result) => {
+          preserveSchema1(store, candidate)
           store.put(previous, 'before-import')
           store.put(candidate, 'main')
           result(undefined)

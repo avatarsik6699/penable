@@ -276,3 +276,33 @@ describe('serialized document session', () => {
     await h.session.dispose()
   })
 })
+
+describe('schema2 session upgrade state', () => {
+  it('writes schema2 after loading schema1 and exposes the original upgrade copy only after transaction success', async () => {
+    const raw = { ...emptyDocument(), schemaVersion: 1, unknown: 'keep raw' }, h = setup({ exists: true, value: raw })
+    await h.session.start(); expect(h.session.state.hasUpgradeCopy).toBe(false)
+    const write = deferred<void>(); h.repository.write.mockReturnValueOnce(write.promise)
+    h.session.changed(true); const saving = h.session.flush(); await Promise.resolve()
+    expect(h.repository.write.mock.calls[0]![0].schemaVersion).toBe(2)
+    expect(h.session.state.hasUpgradeCopy).toBe(false)
+    write.resolve(); await saving
+    expect(h.session.upgradeRecord.value).toBe(raw); expect(h.session.state.hasUpgradeCopy).toBe(true)
+    await h.session.dispose()
+  })
+  it('failed upgrade keeps raw data and retry exposes copy on successful write', async () => {
+    const raw = { ...emptyDocument(), schemaVersion: 1 }, h = setup({ exists: true, value: raw })
+    await h.session.start(); h.repository.write.mockRejectedValueOnce(new Error('abort'))
+    h.session.changed(true); await h.session.flush(); expect(h.session.state.hasUpgradeCopy).toBe(false)
+    await h.session.retrySave(); expect(h.session.upgradeRecord.value).toBe(raw); await h.session.dispose()
+  })
+  it('import upgrades even schema1 candidates and keeps before-import independent', async () => {
+    const raw = { ...emptyDocument(), schemaVersion: 1, unknown: 'old' }, h = setup({ exists: true, value: raw })
+    await h.session.start(); const candidate = { ...emptyDocument(), schemaVersion: 1 as const }
+    await h.session.replace(candidate, () => false)
+    expect(h.repository.replace.mock.calls[0]![1].schemaVersion).toBe(2)
+    expect(h.session.upgradeRecord.value).toBe(raw)
+    expect(h.session.previousRecord.value).not.toBe(raw)
+    expect(h.session.state.hasPrevious).toBe(true); expect(h.session.state.hasUpgradeCopy).toBe(true)
+    await h.session.dispose()
+  })
+})

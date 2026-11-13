@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { allocateStrokeId } from './stroke-ids'
+import { allocateStrokeId, createStrokeIdAllocator } from './stroke-ids'
 import { decodeDocument, emptyDocument, MAX_STROKE_ID } from './codec'
 import { PenInput } from '../drawing/input'
 import { StrokeHistory } from '../drawing/history'
@@ -64,5 +64,21 @@ describe('supported stroke ID allocation', () => {
     expect(decodeDocument(document).strokes.map((ink) => ink.id)).toEqual([1, 2, MAX_STROKE_ID, 3, 4])
     expect(scene.strokes.slice(0, 3)).toEqual(base)
     expect(scene.strokes[2]).toBe(base[2])
+  })
+})
+
+describe('batch stroke ID reservation', () => {
+  it('reserves unique IDs and wraps through existing gaps at the format ceiling', () => {
+    const originals = [stroke(1), stroke(3), stroke(MAX_STROKE_ID - 1)]
+    const allocate = createStrokeIdAllocator(originals)
+    expect([allocate(), allocate(), allocate(), allocate()]).toEqual([MAX_STROKE_ID, 2, 4, 5])
+    expect(originals.map(ink => ink.id)).toEqual([1, 3, MAX_STROKE_ID - 1])
+  })
+  it('scans input IDs once for an entire batch', () => {
+    let reads = 0
+    const originals = Array.from({ length: 100 }, (_, i) => ({ ...stroke(i + 1), get id() { reads++; return i + 1 } }))
+    const allocate = createStrokeIdAllocator(originals), readsAfterSeed = reads
+    expect(Array.from({ length: 100 }, () => allocate())).toEqual(Array.from({ length: 100 }, (_, i) => i + 101))
+    expect(reads).toBe(readsAfterSeed)
   })
 })

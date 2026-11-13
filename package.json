@@ -19,6 +19,7 @@
     "audit:deps": "npm audit --audit-level=moderate"
   },
   "dependencies": {
+    "polygon-clipping": "0.15.7",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },

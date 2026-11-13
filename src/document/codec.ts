@@ -1,3 +1,5 @@
+import { cloneMask, normalizeMask, REGION_LIMITS, vertexCount } from '../drawing/regions'
+import type { ClipMask } from '../drawing/types'
 import { INK, type Point, type StabilizationProfile, type Stroke } from '../drawing/types'
 import type { BoardDocument } from './types'
 
@@ -6,13 +8,13 @@ export const MAX_STROKE_ID = Number.MAX_SAFE_INTEGER - 1_000_000
 const COORDINATE_LIMIT = 1e9
 
 export function emptyDocument(): BoardDocument {
-  return { format: 'penable-board', schemaVersion: 1, strokes: [], viewport: { zoom: 1, x: 0, y: 0 },
+  return { format: 'penable-board', schemaVersion: 2, strokes: [], viewport: { zoom: 1, x: 0, y: 0 },
     background: 'blank', tools: { width: 3, stabilization: 65 } }
 }
 
 export function cloneDocument(document: BoardDocument): BoardDocument {
   return {
-    format: 'penable-board', schemaVersion: 1,
+    format: 'penable-board', schemaVersion: document.schemaVersion,
     strokes: document.strokes.map((stroke) => {
       const result: Stroke = { id: stroke.id, color: stroke.color, width: stroke.width,
         points: stroke.points.map((point) => ({ x: point.x, y: point.y, pressure: point.pressure, time: point.time })) }
@@ -22,6 +24,9 @@ export function cloneDocument(document: BoardDocument): BoardDocument {
           ? { strength: profile.strength, captureZoom: profile.captureZoom }
           : { mode: profile.mode, captureZoom: profile.captureZoom }
       }
+      if (stroke.source !== undefined) result.source = stroke.source
+      if (stroke.translation) result.translation = { ...stroke.translation }
+      if (stroke.clip) result.clip = cloneMask(stroke.clip)
       return result
     }),
     viewport: { zoom: document.viewport.zoom, x: document.viewport.x, y: document.viewport.y },
@@ -52,12 +57,15 @@ function coordinate(value: unknown, field: string) { return number(value, -COORD
 
 export function decodeDocument(value: unknown, limits = DOCUMENT_LIMITS): BoardDocument {
   const root = object(value, 'document')
-  if (own(root, 'format') !== 'penable-board' || own(root, 'schemaVersion') !== 1) invalid('format/schemaVersion')
+  const schemaVersion = own(root, 'schemaVersion')
+  if (own(root, 'format') !== 'penable-board' || (schemaVersion !== 1 && schemaVersion !== 2)) invalid('format/schemaVersion')
   const strokes = own(root, 'strokes')
   if (!Array.isArray(strokes) || strokes.length > limits.strokes) invalid('strokes: превышен предел')
   for (let index = 0; index < strokes.length; index++) if (!Object.hasOwn(strokes, index)) invalid('strokes: пропущен элемент')
   let totalPoints = 0
   const ids = new Set<number>()
+  const sources = new Map<string, string>()
+  let totalVertices = 0
   const decoded: Stroke[] = strokes.map((entry: unknown) => {
     const stroke = object(entry, 'stroke')
     const id = number(own(stroke, 'id'), 1, MAX_STROKE_ID, 'stroke.id')
@@ -88,17 +96,63 @@ export function decodeDocument(value: unknown, limits = DOCUMENT_LIMITS): BoardD
       }
       result.stabilization = stabilization
     }
+    if (schemaVersion === 2) {
+      if (Object.hasOwn(stroke, 'source')) {
+        if (typeof stroke.source !== 'string' || !/^[a-zA-Z0-9_-]{1,160}$/.test(stroke.source)) invalid('stroke.source')
+        result.source = stroke.source as string
+      }
+      if (Object.hasOwn(stroke, 'translation')) {
+        const offset = object(stroke.translation, 'translation')
+        result.translation = { x: coordinate(own(offset, 'x'), 'translation.x'), y: coordinate(own(offset, 'y'), 'translation.y') }
+      }
+      if (Object.hasOwn(stroke, 'clip')) {
+        result.clip = decodeMask(stroke.clip)
+        totalVertices += vertexCount(result.clip)
+        if (totalVertices > REGION_LIMITS.document) invalid('clip: превышен общий предел 100000 вершин')
+      }
+      if ((result.clip || result.translation) && !result.source) invalid('stroke.source: требуется для фрагмента')
+      if (result.source) {
+        const signature = JSON.stringify({ color: result.color, width: result.width, points: result.points, stabilization: result.stabilization })
+        const previous = sources.get(result.source)
+        if (previous && previous !== signature) invalid('stroke.source: несовместимая исходная геометрия')
+        sources.set(result.source, signature)
+      }
+    }
     return result
   })
   const viewport = object(own(root, 'viewport'), 'viewport')
   const tools = object(own(root, 'tools'), 'tools')
   const background = own(root, 'background')
   if (background !== 'blank' && background !== 'dots' && background !== 'grid') invalid('background')
-  const result: BoardDocument = { format: 'penable-board', schemaVersion: 1, strokes: decoded,
+  const result: BoardDocument = { format: 'penable-board', schemaVersion: schemaVersion as 1 | 2, strokes: decoded,
     viewport: { zoom: number(own(viewport, 'zoom'), 0.25, 8, 'viewport.zoom'), x: coordinate(own(viewport, 'x'), 'viewport.x'), y: coordinate(own(viewport, 'y'), 'viewport.y') },
     background, tools: { width: number(own(tools, 'width'), 0.5, 12, 'tools.width'), stabilization: number(own(tools, 'stabilization'), 0, 100, 'tools.stabilization') } }
   if (new TextEncoder().encode(JSON.stringify(result)).byteLength > limits.bytes) invalid('размер документа превышает 64 MiB')
   return result
+}
+
+function decodeMask(value: unknown): ClipMask {
+  if (!Array.isArray(value) || !value.length) invalid('clip: пустая маска')
+  let vertices = 0
+  const mask: ClipMask = value.map((polygon: unknown) => {
+    if (!Array.isArray(polygon) || !polygon.length) invalid('clip.polygon')
+    return polygon.map((ring: unknown) => {
+      if (!Array.isArray(ring) || ring.length < 4) invalid('clip.ring')
+      vertices += ring.length
+      if (vertices > REGION_LIMITS.mask) invalid('clip: превышен предел 8192 вершин')
+      const points: [number, number][] = ring.map((pair: unknown) => {
+        if (!Array.isArray(pair) || pair.length !== 2) invalid('clip.point')
+        return [coordinate(pair[0], 'clip.x'), coordinate(pair[1], 'clip.y')]
+      })
+      if (points[0]![0] !== points.at(-1)![0] || points[0]![1] !== points.at(-1)![1]) invalid('clip: незамкнутая граница')
+      return points
+    })
+  })
+  // Normalized topology has closed, nonintersecting outer/hole rings. Reject malformed
+  // input, rather than silently repairing a backup and revealing hidden writing.
+  const normalized = normalizeMask(mask)
+  if (JSON.stringify(normalized) !== JSON.stringify(mask)) invalid('clip: требуется нормализованная топология')
+  return normalized
 }
 
 export function parseDocumentJSON(text: string): BoardDocument {

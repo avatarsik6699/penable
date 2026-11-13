@@ -5,10 +5,12 @@ import { CanvasRenderer, type FrameScheduler } from './renderer'
 import { INK, type ActiveStroke, type PointerInput, type Scene } from './types'
 import { initialViewport } from './viewport'
 import { BITMAP_PIXEL_BUDGET } from './coordinates'
+import { rectangle, selectParts } from './regions'
 import { StrokeHistory } from './history'
 
 function layer() {
   const context = {
+    save: vi.fn(), restore: vi.fn(), translate: vi.fn(), closePath: vi.fn(), clip: vi.fn(),
     setTransform: vi.fn(), clearRect: vi.fn(), beginPath: vi.fn(), arc: vi.fn(),
     fill: vi.fn(), moveTo: vi.fn(), lineTo: vi.fn(), quadraticCurveTo: vi.fn(), stroke: vi.fn(),
     lineWidth: 0, lineCap: '', lineJoin: '', fillStyle: '', strokeStyle: '',
@@ -312,5 +314,25 @@ describe('eraser preview rendering', () => {
     renderer.setEraserPreview(new Set([hidden]))
     clock.run()
     expect(completed.context.arc).toHaveBeenCalledExactlyOnceWith(99, 100, 1.5, 0, Math.PI * 2)
+  })
+})
+
+describe('fragment rendering transactions', () => {
+  it('paints complementary clips from one source once and balances clipping state', () => {
+    const original = stroke()
+    const [part] = selectParts([original], rectangle({ x: 8, y: 0 }, { x: 15, y: 25 }), () => 2)
+    const h = setup({ strokes: [part!.selected, part!.remainder!], active: null })
+    h.renderer.sceneChanged(); h.clock.run()
+    expect(h.completed.context.stroke).toHaveBeenCalledOnce()
+    expect(h.completed.context.clip).toHaveBeenCalledWith('nonzero')
+    expect(h.completed.context.save).toHaveBeenCalledOnce(); expect(h.completed.context.restore).toHaveBeenCalledOnce()
+  })
+  it('preview never mutates canonical scene and cancel restores it even before a queued frame', () => {
+    const original = stroke(), h = setup({ strokes: [original], active: null })
+    h.renderer.setSelectionPreview([{ ...original, source: 'source', translation: { x: 20, y: 10 } }])
+    h.clock.run(); expect(h.scene.strokes[0]).toBe(original)
+    expect(h.completed.context.translate).toHaveBeenCalledWith(20, 10)
+    vi.clearAllMocks(); h.renderer.setSelectionPreview(null); h.clock.run()
+    expect(h.completed.context.stroke).toHaveBeenCalledOnce(); expect(h.completed.context.translate).not.toHaveBeenCalled()
   })
 })

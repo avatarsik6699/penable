@@ -14,7 +14,7 @@ export interface Point extends Position {
   time: number
 }
 
-export type DrawingTool = 'pen' | 'eraser'
+export type DrawingTool = 'pen' | 'eraser' | 'selection'
 
 export type StabilizationMode = 'off' | 'light' | 'strong'
 
@@ -25,12 +25,20 @@ export type StabilizationProfile = {
   | { readonly mode: StabilizationMode; readonly strength?: never }
 )
 
+export type ClipMask = import('polygon-clipping').MultiPolygon
+export type SelectionShape = 'rectangle' | 'lasso'
+export type SelectionCommand = 'all' | 'clear' | 'copy' | 'cut' | 'paste' | 'delete' | 'duplicate' | 'image' | 'download'
+export interface SelectionState { selected: boolean; clipboard: boolean; busy: boolean; message: string; png: boolean }
+
 export interface Stroke {
   id: number
   color: typeof INK
   width: number
   points: Point[]
   stabilization?: StabilizationProfile
+  source?: string
+  clip?: ClipMask
+  translation?: Position
 }
 
 export interface ActiveStroke extends Stroke {
@@ -77,6 +85,9 @@ export interface SurfaceControls {
   zoomIn: () => void
   zoomOut: () => void
   reset: () => void
+  fitAll: () => void
+  selection: (command: SelectionCommand) => void
+  selectionShape: (shape: SelectionShape) => void
   undo: () => void
   redo: () => void
   snapshot: () => { strokes: Stroke[]; viewport: Viewport }

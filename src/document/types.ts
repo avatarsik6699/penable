@@ -3,7 +3,7 @@ import type { Stroke, Viewport } from '../drawing/types'
 
 export interface BoardDocument {
   format: 'penable-board'
-  schemaVersion: 1
+  schemaVersion: 1 | 2
   strokes: Stroke[]
   viewport: Viewport
   background: BackgroundMode
@@ -11,7 +11,7 @@ export interface BoardDocument {
 }
 
 export interface DocumentRepository {
-  read: () => Promise<{ main: StoredRecord; beforeImport: StoredRecord }>
+  read: () => Promise<{ main: StoredRecord; beforeImport: StoredRecord; beforeSchema2?: StoredRecord }>
   write: (document: BoardDocument) => Promise<void>
   replace: (previous: unknown, candidate: BoardDocument) => Promise<void>
   close: () => Promise<void>
@@ -38,6 +38,7 @@ export interface StorageState {
   canImport: boolean
   importing: boolean
   hasPrevious: boolean
+  hasUpgradeCopy?: boolean
   canReconnect: boolean
   message: string
 }

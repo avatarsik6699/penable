@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { historyShortcut } from './shortcuts'
+import { historyShortcut, selectionNudgeShortcut } from './shortcuts'
 
 type KeyEvent = Parameters<typeof historyShortcut>[0]
 const idle = { editable: false, inkPointerId: null, panPointerId: null }
@@ -40,5 +40,25 @@ describe('history keyboard intent', () => {
   ])('recognizes but blocks history during the actual active contact %j', (pointers) => {
     expect(historyShortcut(keyEvent(), { ...idle, ...pointers })).toEqual({ action: 'undo', blocked: true })
     expect(historyShortcut(keyEvent({ shiftKey: true }), { ...idle, ...pointers })).toEqual({ action: 'redo', blocked: true })
+  })
+})
+
+describe('selection nudge ownership', () => {
+  it.each([
+    { inkPointerId: 0, panPointerId: null },
+    { inkPointerId: null, panPointerId: 1 },
+    { inkPointerId: 2, panPointerId: null },
+  ])('blocks nudge during a synchronous input/pan owner %j', (pointers) => {
+    expect(selectionNudgeShortcut(keyEvent({ code: 'ArrowRight', ctrlKey: false }), { ...idle, ...pointers })).toEqual({ x: 1, y: 0, blocked: true })
+  })
+  it('permits autorepeated nudges with no pointer owner and honors Shift CSS steps', () => {
+    const key = keyEvent({ code: 'ArrowUp', ctrlKey: false })
+    expect(selectionNudgeShortcut(key, idle)).toEqual({ x: 0, y: -1, blocked: false })
+    expect(selectionNudgeShortcut({ ...key, repeat: true } as typeof key, idle)).toEqual({ x: 0, y: -1, blocked: false })
+    expect(selectionNudgeShortcut({ ...key, shiftKey: true }, idle)).toEqual({ x: 0, y: -10, blocked: false })
+  })
+  it('leaves editable controls and modified arrow shortcuts untouched', () => {
+    expect(selectionNudgeShortcut(keyEvent({ code: 'ArrowLeft', ctrlKey: false }), { ...idle, editable: true })).toBeNull()
+    expect(selectionNudgeShortcut(keyEvent({ code: 'ArrowRight' }), idle)).toBeNull()
   })
 })

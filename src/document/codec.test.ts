@@ -41,7 +41,7 @@ describe('versioned document codec', () => {
   })
 
   it.each([
-    { format: 'other' }, { schemaVersion: 2 }, { background: 'neon' },
+    { format: 'other' }, { schemaVersion: 3 }, { background: 'neon' },
     { viewport: { zoom: 0, x: 0, y: 0 } }, { viewport: { zoom: 1, x: 1e9 + 1, y: 0 } },
     { tools: { width: 0.4, stabilization: 65 } }, { tools: { width: 3, stabilization: NaN } },
   ])('rejects unsupported root data %j', (replacement) => {
@@ -153,5 +153,46 @@ describe('raw backup JSON compatibility', () => {
     expect(() => serializeRawBackup(getter)).toThrow()
     expect(() => serializeRawBackup({ toJSON: () => { calls++; return {} } })).toThrow()
     expect(calls).toBe(0)
+  })
+})
+
+describe('schema2 fragments and schema1 compatibility', () => {
+  const clip = [[[[0,0],[10,0],[10,10],[0,10],[0,0]]]]
+  it('reads schema1 without changing its original accepted source geometry', () => {
+    const original = { ...fixture(), schemaVersion: 1 }
+    expect(decodeDocument(original)).toEqual(original)
+  })
+  it('round-trips shared sources as independent JSON trees with masks and translations', () => {
+    const document = fixture(), original = document.strokes[0]!
+    document.strokes = [{ ...original, source: 'source1', clip: clip as Stroke['clip'], translation: { x: .25, y: -2 } }, { ...original, id: 8, source: 'source1', clip: clip as Stroke['clip'] }]
+    const result = parseDocumentJSON(serializeDocument(document).json)
+    expect(result).toEqual(document)
+    const [a,b] = result.strokes
+    expect(a!.points).not.toBe(b!.points)
+    expect(a!.clip).not.toBe(b!.clip)
+    a!.points[0]!.x = 90; a!.clip![0]![0]![0]![0] = 90
+    expect(b!.points[0]!.x).toBe(0); expect(document.strokes[0]!.clip![0]![0]![0]![0]).toBe(0)
+  })
+  it('rejects missing lineage, inconsistent source geometry, invalid offsets and malformed topology', () => {
+    const document = fixture(), original = document.strokes[0]!
+    for (const replacement of [{ clip }, { source: '../bad' }, { source: 'ok', translation: { x: NaN, y: 0 } }, { source: 'ok', clip: [[[[0,0],[0,10],[10,10],[10,0],[0,0]]]] }, { source: 'ok', clip: [[[[0,0],[10,0],[10,10],[0,10]]]] }]) {
+      expect(() => decodeDocument({ ...document, strokes: [{ ...original, ...replacement }] })).toThrow()
+    }
+    expect(() => decodeDocument({ ...document, strokes: [{ ...original, source: 'same' }, { ...original, id: 8, width: 4, source: 'same' }] })).toThrow('исходная геометрия')
+  })
+  it('counts repeated source points against document limits', () => {
+    const document = fixture(), original = document.strokes[0]!
+    document.strokes = [{ ...original, source: 'source' }, { ...original, id: 8, source: 'source' }]
+    expect(() => decodeDocument(document, { ...DOCUMENT_LIMITS, points: 5 })).toThrow('общий предел')
+  })
+  it('rejects mask and document vertex limits without truncating masks', () => {
+    const document = fixture(), original = document.strokes[0]!
+    const ring = Array.from({ length: 8192 }, (_, i) => [Math.cos(i * Math.PI / 4096) * 10, Math.sin(i * Math.PI / 4096) * 10])
+    ring.push([...ring[0]!])
+    expect(() => decodeDocument({ ...document, strokes: [{ ...original, source: 'source', clip: [[ring]] }] })).toThrow('8192')
+    expect(ring).toHaveLength(8193)
+    // Rectangular masks are normalized; many items still count every repeated vertex.
+    const strokes = Array.from({ length: 20_000 }, (_, i) => ({ ...original, id: i + 1, source: 'source', clip: [[...clip[0]!, [[2,2],[2,4],[4,4],[4,2],[2,2]]]] }))
+    expect(() => decodeDocument({ ...document, strokes })).toThrow('100000')
   })
 })

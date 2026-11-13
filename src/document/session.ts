@@ -26,6 +26,7 @@ export class DocumentSession {
   private phase: SavePhase = 'loading'
   private message = ''
   private rawMain: StoredRecord = { exists: false, value: undefined }
+  private upgrade: StoredRecord = { exists: false, value: undefined }
   private previous: StoredRecord = { exists: false, value: undefined }
   private revision = 0
   private savedRevision = 0
@@ -43,9 +44,10 @@ export class DocumentSession {
   get state(): StorageState {
     return { phase: this.phase, loaded: this.loaded, writable: this.canWrite,
       readOnly: !this.lease?.acquired || this.fatal, canImport: this.canImport, importing: this.importing,
-      hasPrevious: this.previous.exists, canReconnect: !this.canWrite && this.phase !== 'loading' && !this.hasUnsaved && !this.importing,
+      hasPrevious: this.previous.exists, hasUpgradeCopy: this.upgrade.exists, canReconnect: !this.canWrite && this.phase !== 'loading' && !this.hasUnsaved && !this.importing,
       message: this.message || this.lease?.message || '' }
   }
+  get upgradeRecord(): StoredRecord { return this.upgrade }
   get previousRecord(): StoredRecord { return this.previous }
 
   start(): Promise<void> {
@@ -72,6 +74,7 @@ export class DocumentSession {
       if (this.disposed || this.fatal) return
       this.rawMain = records.main
       this.previous = records.beforeImport
+      this.upgrade = records.beforeSchema2 ?? { exists: false, value: undefined }
       this.rawLoaded = true
       const document = records.main.exists ? decodeDocument(records.main.value) : emptyDocument()
       this.loaded = true
@@ -105,13 +108,14 @@ export class DocumentSession {
       if (!this.canWrite || this.paused || !this.repository || this.revision <= this.savedRevision) return
       const revision = this.revision
       try {
-        const snapshot = decodeDocument(this.options.snapshot())
+        const snapshot = { ...decodeDocument(this.options.snapshot()), schemaVersion: 2 as const }
         this.writing = true
         this.phase = 'saving'
         this.publish()
         await this.repository.write(snapshot)
         this.writing = false
         if (this.disposed || this.fatal) return
+        if (!this.upgrade.exists && this.rawMain.exists && isSchema1(this.rawMain.value)) this.upgrade = this.rawMain
         this.savedRevision = revision
         this.rawMain = { exists: true, value: snapshot }
         this.phase = this.revision === revision ? 'saved' : 'dirty'
@@ -140,7 +144,7 @@ export class DocumentSession {
   replace(candidate: BoardDocument, isBusy: () => boolean): Promise<void> {
     if (!this.canImport || isBusy()) return Promise.reject(new Error('Замена сейчас недоступна. Завершите письмо или перемещение.'))
     let document: BoardDocument
-    try { document = decodeDocument(candidate) } catch (error) { return Promise.reject(error) }
+    try { document = { ...decodeDocument(candidate), schemaVersion: 2 } } catch (error) { return Promise.reject(error) }
     this.importing = true
     this.clearTimers()
     this.publish()
@@ -152,6 +156,7 @@ export class DocumentSession {
         const previous = this.loaded ? this.options.snapshot() : this.rawMain.value
         await this.repository.replace(previous, document)
         if (this.disposed || this.fatal) return
+        if (!this.upgrade.exists && this.rawMain.exists && isSchema1(this.rawMain.value)) this.upgrade = this.rawMain
         this.previous = { exists: true, value: previous }
         this.rawMain = { exists: true, value: document }
         this.loaded = true
@@ -203,7 +208,7 @@ export class DocumentSession {
     if (previous && previous.phase === state.phase && previous.loaded === state.loaded
       && previous.writable === state.writable && previous.readOnly === state.readOnly
       && previous.canImport === state.canImport && previous.importing === state.importing
-      && previous.hasPrevious === state.hasPrevious && previous.canReconnect === state.canReconnect
+      && previous.hasUpgradeCopy === state.hasUpgradeCopy && previous.hasPrevious === state.hasPrevious && previous.canReconnect === state.canReconnect
       && previous.message === state.message) return
     this.lastPublished = state
     this.options.onState(state)
@@ -211,3 +216,5 @@ export class DocumentSession {
 }
 
 export function messageOf(error: unknown): string { return error instanceof Error ? error.message : 'Неизвестная ошибка хранилища.' }
+
+function isSchema1(value: unknown): boolean { return Boolean(value && typeof value === 'object' && 'schemaVersion' in value && value.schemaVersion === 1) }

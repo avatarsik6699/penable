@@ -1,3 +1,5 @@
+import { visibleBounds } from './regions'
+import type { Stroke } from './types'
 import type { PointerInput, Position, Viewport } from './types'
 
 export const MIN_ZOOM = 0.25
@@ -134,6 +136,8 @@ export class BoardNavigation {
     return true
   }
 
+  setViewport(viewport: Viewport): boolean { return this.apply(viewport) }
+
   private apply(viewport: Viewport): boolean {
     if (![viewport.zoom, viewport.x, viewport.y].every(Number.isFinite)) return false
     if (viewport.zoom === this.current.zoom && viewport.x === this.current.x && viewport.y === this.current.y) return false
@@ -141,4 +145,11 @@ export class BoardNavigation {
     this.options.onChange(viewport)
     return true
   }
+}
+
+export function fitAll(strokes: readonly Stroke[], width: number, height: number): Viewport {
+  const bounds = visibleBounds(strokes)
+  if (!bounds) return initialViewport()
+  const zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.min(Math.max(1, width - 96) / Math.max(0.01, bounds.right - bounds.left), Math.max(1, height - 96) / Math.max(0.01, bounds.bottom - bounds.top))))
+  return { zoom, x: width / 2 - (bounds.left + bounds.right) / 2 * zoom, y: height / 2 - (bounds.top + bounds.bottom) / 2 * zoom }
 }

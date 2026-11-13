@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { SelectionToolbar } from './components/SelectionToolbar'
 import { PenToolbar } from './components/PenToolbar'
 import { WritingSurface } from './components/WritingSurface'
 import { validDpr } from './drawing/coordinates'
-import type { DrawingTool, HistoryState, InputDiagnostics, SurfaceControls } from './drawing/types'
+import type { DrawingTool, SelectionShape, SelectionState, HistoryState, InputDiagnostics, SurfaceControls } from './drawing/types'
 import { DEFAULT_STABILIZATION_STRENGTH, normalizeStrength } from './drawing/stabilization'
 import type { BackgroundMode } from './drawing/background'
 import { StoragePanel } from './components/StoragePanel'
@@ -23,6 +24,8 @@ function downloadJSON(json: string, name: string) {
 }
 
 export default function App() {
+  const [selectionShape, setSelectionShape] = useState<SelectionShape>('rectangle')
+  const [selectionState, setSelectionState] = useState<SelectionState>({ selected: false, clipboard: false, busy: false, message: '', png: false })
   const [tool, setTool] = useState<DrawingTool>('pen')
   const toolRef = useRef<DrawingTool>('pen')
   const [width, setWidth] = useState(3)
@@ -36,6 +39,10 @@ export default function App() {
   const [board, setBoard] = useState<{ document: BoardDocument; generation: number } | null>(null)
   const [attempt, setAttempt] = useState(0)
   const [uiRevision, setUIRevision] = useState(0)
+  const cancelActiveInput = useCallback(() => {
+    const controls = controlsRef.current
+    if (controls?.isBusy()) controls.cancelInput()
+  }, [])
   const overlayChanged = useCallback(() => setUIRevision((value) => value + 1), [])
   const [dialogOpen, setDialogOpen] = useState(false)
   const dialogBlocked = useRef(false)
@@ -57,11 +64,12 @@ export default function App() {
     const initial = latestDocument.current
     if (!initial) throw new Error('Доска ещё не загружена.')
     const scene = controlsRef.current?.snapshot()
-    return cloneDocument({ format: 'penable-board', schemaVersion: 1, strokes: scene?.strokes ?? initial.strokes,
+    return cloneDocument({ format: 'penable-board', schemaVersion: 2, strokes: scene?.strokes ?? initial.strokes,
       viewport: scene?.viewport ?? initial.viewport, background: backgroundValue.current,
       tools: { width: toolsRef.current.width, stabilization: toolsRef.current.stabilization } })
   }, [])
   const canWrite = useCallback(() => Boolean(sessionRef.current?.canWrite && controlsRef.current && !dialogBlocked.current), [])
+  const activateSelection = useCallback(() => { toolRef.current = 'selection'; setTool('selection') }, [])
   const getTool = useCallback(() => toolRef.current, [])
   const interactionsBlocked = useCallback(() => dialogBlocked.current, [])
   const documentChanged = useCallback((urgent: boolean) => { sessionRef.current?.changed(urgent) }, [])
@@ -76,6 +84,7 @@ export default function App() {
         controlsRef.current = null
         toolRef.current = 'pen'
         setTool('pen')
+        setSelectionShape('rectangle')
         latestDocument.current = document
         toolsRef.current = { width: document.tools.width, stabilization: document.tools.stabilization }
         backgroundValue.current = document.background
@@ -117,7 +126,8 @@ export default function App() {
   }, [])
 
   const changeTool = (value: DrawingTool) => {
-    if (!canWrite() || controlsRef.current?.isBusy()) return
+    if (dialogBlocked.current || !board || unavailable || controlsRef.current?.isBusy() || (value !== 'selection' && !canWrite())) return
+    if (value !== 'selection') controlsRef.current?.selection('clear')
     toolRef.current = value
     setTool(value)
   }
@@ -142,6 +152,7 @@ export default function App() {
   const endImport = () => { dialogBlocked.current = false; setDialogOpen(false) }
   const beginImport = () => {
     if (!sessionRef.current?.canImport || controlsRef.current?.isBusy()) return 'Завершите письмо, стирание или перемещение перед импортом.'
+    controlsRef.current?.cancelInput()
     dialogBlocked.current = true
     setDialogOpen(true)
     return ''
@@ -167,6 +178,14 @@ export default function App() {
       return 'Копия до замены передана браузеру. Повреждённая исходная запись может не поддерживать обратный импорт.'
     } catch (error) { return messageOf(error) }
   }
+  const exportUpgrade = () => {
+    try {
+      const record = sessionRef.current?.upgradeRecord
+      if (!record?.exists) throw new Error('Копии до обновления пока нет.')
+      downloadJSON(serializeRawBackup(record.value), 'penable-before-schema2.json')
+      return 'Копия до обновления передана браузеру. Проверьте файл в загрузках.'
+    } catch (error) { return messageOf(error) }
+  }
   const retry = () => {
     const session = sessionRef.current
     if (session?.canWrite) { void session.retrySave(); return }
@@ -181,17 +200,24 @@ export default function App() {
         readOnly={!storage.writable || dialogOpen || !board || Boolean(unavailable)}
         onUndo={() => controlsRef.current?.undo()} onRedo={() => controlsRef.current?.redo()}
         onZoomIn={() => controlsRef.current?.zoomIn()} onZoomOut={() => controlsRef.current?.zoomOut()}
-        onResetView={() => controlsRef.current?.reset()} />
+        onResetView={() => controlsRef.current?.reset()} onFitAll={() => controlsRef.current?.fitAll()}
+        selectionDisabled={dialogOpen || !board || Boolean(unavailable)} />
       <StoragePanel state={storage} hasDocument={Boolean(board)} busy={historyState.busy} onExport={exportCurrent}
-        onOverlayChange={overlayChanged} onPrevious={exportPrevious} onRetry={retry} onBeginImport={beginImport} onEndImport={endImport} onConfirm={confirmImport} />
+        onUpgrade={exportUpgrade} onOverlayChange={overlayChanged} onPrevious={exportPrevious} onRetry={retry} onBeginImport={beginImport} onEndImport={endImport} onConfirm={confirmImport} />
+      <div className="board-stage">
+      {tool === 'selection' && board && !unavailable && <SelectionToolbar state={selectionState} shape={selectionShape} onOverlayChange={overlayChanged} onCancelActiveInput={cancelActiveInput}
+        readOnly={!storage.writable} blocked={dialogOpen || historyState.busy && !selectionState.busy}
+        onShape={(shape) => { controlsRef.current?.selectionShape(shape); setSelectionShape(shape) }}
+        onCommand={(command) => controlsRef.current?.selection(command)} />}
       {!board ? <div className="load-state" role="status">{storage.phase === 'loading' ? 'Загрузка доски…' : 'Доска не загружена. Повторите подключение или восстановите её из копии.'}</div> : unavailable ? (
         <div className="capability-error" role="alert">
           <h2>Не удалось открыть лист</h2>
           <p>{unavailable} Откройте страницу в актуальной версии Chrome или Edge.</p>
         </div>
-      ) : <WritingSurface key={board.generation} initialDocument={board.document} tool={tool} getTool={getTool} width={width} stabilization={stabilization}
+      ) : <WritingSurface key={board.generation} initialDocument={board.document} onSelectionState={setSelectionState} onActivateSelection={activateSelection} tool={tool} getTool={getTool} width={width} stabilization={stabilization}
         background={background} canWrite={canWrite} modalOpen={dialogOpen} uiRevision={uiRevision} interactionsBlocked={interactionsBlocked} onDocumentChange={documentChanged}
         onHistoryState={setHistoryState} controlsRef={controlsRef} onDiagnostics={setDiagnostics} onUnavailable={setUnavailable} />}
+      </div>
     </main>
   )
 }

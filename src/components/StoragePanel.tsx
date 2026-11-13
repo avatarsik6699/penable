@@ -8,6 +8,7 @@ interface StoragePanelProps {
   hasDocument: boolean
   busy: boolean
   onExport: () => string
+  onUpgrade: () => string
   onPrevious: () => string
   onRetry: () => void
   onBeginImport: () => string
@@ -18,7 +19,7 @@ interface StoragePanelProps {
 
 const phaseLabels = { loading: 'Загрузка', dirty: 'Есть изменения', saving: 'Сохранение', saved: 'Сохранено', error: 'Ошибка' }
 
-export function StoragePanel({ state, hasDocument, busy, onExport, onPrevious, onRetry, onBeginImport, onEndImport, onConfirm, onOverlayChange }: StoragePanelProps) {
+export function StoragePanel({ state, hasDocument, busy, onExport, onUpgrade, onPrevious, onRetry, onBeginImport, onEndImport, onConfirm, onOverlayChange }: StoragePanelProps) {
   const [popoverOpen, setPopoverOpen] = useState(false)
   const popoverRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
@@ -140,6 +141,7 @@ export function StoragePanel({ state, hasDocument, busy, onExport, onPrevious, o
         {state.message && <p className={state.phase === 'error' ? 'storage-error' : undefined}>{state.message}</p>}
         {notice && <p role="status">{notice}</p>}
         <div className="storage-recovery">
+          {state.hasUpgradeCopy && <button type="button" onClick={() => feedback(onUpgrade())}>Копия до обновления</button>}
           {state.hasPrevious && <button type="button" title="Скачать JSON-копию до последней замены доски" onClick={() => feedback(onPrevious())}>Копия до замены</button>}
           {state.phase === 'error' && state.writable
             ? <button type="button" onClick={onRetry}>Повторить сохранение</button>

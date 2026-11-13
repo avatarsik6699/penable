@@ -1,7 +1,7 @@
 # Stack Guide
 
 > Source of truth for technologies, commands and required tools.
-> Status: CONFIGURED; changes 01–07 shipped; GitHub Pages release verified.
+> Status: CONFIGURED; changes 01–07 shipped; change08 implements exact selection (local delivery only).
 > SPEC approved 2026-11-12. Target device: Wacom One, Windows 11.
 
 ## Stack
@@ -10,6 +10,7 @@
 |-------|------------|
 | Frontend | React + TypeScript, Vite SPA, plain CSS, Canvas 2D |
 | Input | Pointer Events, world-coordinate controller outside React's rendering cycle |
+| Selection geometry | polygon-clipping0.15.7; normalized local vector clips and source lineage |
 | Backend | n/a — browser only |
 | Storage | Native IndexedDB, versioned one-board document; exclusive origin Web Lock; JSON backup |
 | Package manager | npm, package-lock.json |
@@ -246,3 +247,15 @@ Change07 configures origin as https://github.com/avatarsik6699/penable.git and A
 - Busy UI follows immediate history state, guards remain synchronous. Read-only navigation does
   not persist. Keep schema1 and accepted stroke geometry. Physical Wacom/trackpad checks are
   reported separately; successful automated gates/review trigger owner-authorized local ship.
+
+
+## Change08 — Exact Selection Contract
+
+Approved SPEC5.9 is authoritative. Preserve raw geometry/profile, use clip+translation and
+lineage; union same-source/same-offset masks for seam-free rendering. Document schema2 reads
+schema1; IDB structure1 stays. First upgrade save preserves before-schema2 atomically without
+changing before-import; provide both downloads. Existing document limits plus2048lasso vertices,
+8192vertices/mask and100000mask vertices/document. Controls/PNG/edge-pan/fit-all per SPEC5.9.
+All previews are transient; canonical mutations are prepared/validated atomic history replacements.
+One source writer; final independent review and browser tests before local automatic ship.
+Actual Wacom and OS clipboard acceptance are separate. No push/release authorized for08.

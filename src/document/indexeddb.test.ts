@@ -69,7 +69,7 @@ describe('native IndexedDB adapter transaction boundary', () => {
     respond('key:before-import', undefined)
     respond('value:before-import', undefined)
     tx.oncomplete?.()
-    expect(await reading).toEqual({ main: { exists: true, value: undefined }, beforeImport: { exists: false, value: undefined } })
+    expect(await reading).toEqual({ main: { exists: true, value: undefined }, beforeImport: { exists: false, value: undefined }, beforeSchema2: { exists: false, value: undefined } })
     await repository.close()
   })
 
@@ -105,5 +105,30 @@ describe('native IndexedDB adapter transaction boundary', () => {
     await assertion
     h.opening.onsuccess?.()
     expect(h.db.close).toHaveBeenCalledOnce()
+  })
+})
+
+describe('atomic schema2 upgrade copy', () => {
+  it.each(['write', 'replace'] as const)('preserves exact schema1 main in the %s transaction separately from import backup', async (mode) => {
+    const h = fakeDatabase(); h.opening.onsuccess?.(); const repository = await h.opened
+    const raw = { ...emptyDocument(), schemaVersion: 1, originalUnknownField: { keep: true } }, candidate = emptyDocument()
+    const writing = mode === 'write' ? repository.write(candidate) : repository.replace({ current: 'memory' }, candidate)
+    const tx = h.transactions.at(-1)!
+    const main = tx.reads.get('value:main')!, key = tx.reads.get('key:before-schema2')!
+    main.result = raw; main.onsuccess?.(); expect(tx.puts.some(([, key]) => key === 'before-schema2')).toBe(false)
+    key.result = undefined; key.onsuccess?.()
+    const backup = tx.puts.find(([, key]) => key === 'before-schema2')!
+    expect(backup[0]).toBe(raw)
+    expect(tx.puts.find(([, key]) => key === 'main')![0]).toBe(candidate)
+    expect(tx.puts.some(([, key]) => key === 'before-import')).toBe(mode === 'replace')
+    tx.oncomplete?.(); await writing; await repository.close()
+  })
+  it('keeps an existing upgrade copy and rejects aborted upgrade writes', async () => {
+    const h = fakeDatabase(); h.opening.onsuccess?.(); const repository = await h.opened
+    const writing = repository.write(emptyDocument()), tx = h.transactions.at(-1)!
+    const main = tx.reads.get('value:main')!, key = tx.reads.get('key:before-schema2')!
+    main.result = { ...emptyDocument(), schemaVersion: 1 }; main.onsuccess?.(); key.result = 'before-schema2'; key.onsuccess?.()
+    expect(tx.puts.some(([, key]) => key === 'before-schema2')).toBe(false)
+    const failure = expect(writing).rejects.toThrow(); tx.onabort?.(); await failure; await repository.close()
   })
 })

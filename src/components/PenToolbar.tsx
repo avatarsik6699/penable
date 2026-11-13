@@ -18,11 +18,13 @@ interface PenToolbarProps {
   readOnly: boolean
   onZoomIn: () => void
   onZoomOut: () => void
+  onFitAll: () => void
+  selectionDisabled: boolean
   onResetView: () => void
 }
 
 export function PenToolbar({ tool, onToolChange, width, onWidthChange, diagnostics, stabilization, onStabilizationChange, background,
-  onBackgroundChange, historyState, onUndo, onRedo, readOnly, onZoomIn, onZoomOut, onResetView }: PenToolbarProps) {
+  onBackgroundChange, historyState, onUndo, onRedo, readOnly, onFitAll, selectionDisabled, onZoomIn, onZoomOut, onResetView }: PenToolbarProps) {
   return (
     <header className="pen-toolbar">
       <div className="toolbar-row">
@@ -32,6 +34,7 @@ export function PenToolbar({ tool, onToolChange, width, onWidthChange, diagnosti
             disabled={readOnly || historyState.busy}>Перо</button>
           <button type="button" aria-pressed={tool === 'eraser'} onClick={() => onToolChange('eraser')}
             title="Удаляет штрих целиком" disabled={readOnly || historyState.busy}>Ластик</button>
+          <button type="button" aria-pressed={tool === 'selection'} onClick={() => onToolChange('selection')} disabled={selectionDisabled || historyState.busy}>Выделение</button>
         </div>
         <div className="history-controls" role="group" aria-label="История штрихов">
           <button type="button" onClick={onUndo} aria-label="Отменить действие" title="Отменить действие (Ctrl+Z / ⌘Z)"
@@ -67,6 +70,7 @@ export function PenToolbar({ tool, onToolChange, width, onWidthChange, diagnosti
           <button type="button" onClick={onZoomIn} aria-label="Увеличить масштаб доски"
             title="Увеличить вокруг центра листа" disabled={historyState.busy || diagnostics.zoom >= 8}>+</button>
         </div>
+        <button className="fit-all" type="button" disabled={selectionDisabled || historyState.busy} onClick={onFitAll}>Показать все записи</button>
         <div className="background-control">
           <label htmlFor="board-background">Фон</label>
           <select id="board-background" value={background} disabled={readOnly}

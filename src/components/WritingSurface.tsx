@@ -3,18 +3,22 @@ import { BoardCursor } from '../drawing/cursor'
 import { validDpr } from '../drawing/coordinates'
 import { EraserInput } from '../drawing/eraser'
 import { PenInput } from '../drawing/input'
+import { BoardSelection } from '../drawing/selection'
+import { downloadPNG, selectionPNG, writePNG } from '../drawing/png'
 import { CanvasRenderer } from '../drawing/renderer'
-import type { DrawingTool, HistoryState, InputDiagnostics, Scene, SurfaceControls } from '../drawing/types'
-import { BoardNavigation, initialViewport } from '../drawing/viewport'
+import type { DrawingTool, HistoryState, InputDiagnostics, Scene, SelectionState, SelectionCommand, SurfaceControls } from '../drawing/types'
+import { BoardNavigation, fitAll, initialViewport } from '../drawing/viewport'
 import { StrokeHistory } from '../drawing/history'
-import { historyShortcut, type HistoryAction } from '../drawing/shortcuts'
+import { historyShortcut, selectionNudgeShortcut, type HistoryAction } from '../drawing/shortcuts'
 import { backgroundLayout, type BackgroundMode } from '../drawing/background'
-import { cloneDocument } from '../document/codec'
+import { cloneDocument, decodeDocument } from '../document/codec'
 import type { BoardDocument } from '../document/types'
 import { allocateStrokeId } from '../document/stroke-ids'
 
 interface WritingSurfaceProps {
   tool: DrawingTool
+  onActivateSelection: () => void
+  onSelectionState: (state: SelectionState) => void
   getTool: () => DrawingTool
   width: number
   stabilization: number
@@ -31,8 +35,10 @@ interface WritingSurfaceProps {
   controlsRef: RefObject<SurfaceControls | null>
 }
 
-export function WritingSurface({ tool, getTool, width, stabilization, background, initialDocument, canWrite, interactionsBlocked, modalOpen, uiRevision,
+export function WritingSurface({ onActivateSelection, onSelectionState, tool, getTool, width, stabilization, background, initialDocument, canWrite, interactionsBlocked, modalOpen, uiRevision,
   onDocumentChange, onHistoryState, onDiagnostics, onUnavailable, controlsRef }: WritingSurfaceProps) {
+  const selectionPathRef = useRef<SVGPathElement>(null)
+  const cancelRef = useRef<(() => void) | null>(null)
   const cursorRef = useRef<HTMLDivElement>(null)
   const focusBadgeRef = useRef<HTMLSpanElement>(null)
   const refreshCursorRef = useRef<(() => void) | null>(null)
@@ -47,7 +53,7 @@ export function WritingSurface({ tool, getTool, width, stabilization, background
   const viewportRef = useRef(initialViewport())
   const hydratedRef = useRef(false)
 
-  useEffect(() => { refreshCursorRef.current?.() }, [tool, modalOpen, uiRevision])
+  useEffect(() => { if (modalOpen) cancelRef.current?.(); refreshCursorRef.current?.() }, [tool, modalOpen, uiRevision])
 
   useEffect(() => { widthRef.current = width }, [width])
   useEffect(() => { stabilizationRef.current = stabilization }, [stabilization])
@@ -100,6 +106,7 @@ export function WritingSurface({ tool, getTool, width, stabilization, background
       onActiveChange: () => renderer.activeChanged(),
       onCommit: (stroke) => {
         if (!canWrite()) { renderer.activeChanged(); return }
+        selection.clear()
         history.commit(stroke)
         renderer.commit(stroke)
         publishHistoryState()
@@ -113,11 +120,12 @@ export function WritingSurface({ tool, getTool, width, stabilization, background
       onPreviewChange: () => renderer.setEraserPreview(eraser.preview),
       onCommit: (strokes) => {
         if (!canWrite() || interactionsBlocked()) return
+        selection.clear()
         if (history.erase(strokes)) onDocumentChange(true)
       },
     })
-    const drawingPointerId = () => input.pointerId ?? eraser.pointerId
-    const activeInput = () => eraser.pointerId !== null ? eraser : input
+    const drawingPointerId = (): number | null => input.pointerId ?? eraser.pointerId ?? selection.pointerId
+    const activeInput = () => selection.pointerId !== null ? selection : eraser.pointerId !== null ? eraser : input
     let diagnostics: InputDiagnostics = {
       pointerType: null, pressure: null, active: false,
       dpr: validDpr(window.devicePixelRatio),
@@ -147,22 +155,76 @@ export function WritingSurface({ tool, getTool, width, stabilization, background
     }
     const navigation = new BoardNavigation({
       viewport: viewportRef.current,
-      isDrawing: () => drawingPointerId() !== null,
+      isDrawing: () => drawingPointerId() !== null || selection.busy,
       onChange: (viewport) => {
         viewportRef.current = viewport
         renderer.setViewport(viewport)
         updateBackground()
+        paintSelection()
         diagnostics = { ...diagnostics, zoom: viewport.zoom }
         scheduleDiagnostics()
-        if (canWrite()) onDocumentChange(false)
+        if (canWrite() && !selection.busy) onDocumentChange(false)
       },
     })
     let disposed = false
+    let pngBusy = false
+    let pngBlob: Blob | null = null
+    let pngGeneration = 0
+    let previousSelectionState = ''
+    const paintSelection = () => {
+      const path = selectionPathRef.current
+      if (!path) return
+      const viewport = viewportRef.current
+      path.setAttribute('d', getTool() === 'selection' ? selection.outline.map(polygon => polygon.map(ring => ring.map(([x, y], index) => `${index ? 'L' : 'M'}${x * viewport.zoom + viewport.x},${y * viewport.zoom + viewport.y}`).join(' ') + 'Z').join(' ')).join(' ') : '')
+    }
+    const publishSelection = () => {
+      if (disposed) return
+      paintSelection()
+      const state = { selected: selection.hasSelection, clipboard: selection.hasClipboard, busy: selection.busy || pngBusy, message: selection.message, png: pngBlob !== null }
+      const encoded = JSON.stringify(state)
+      if (encoded !== previousSelectionState) { previousSelectionState = encoded; onSelectionState(state) }
+      publishHistoryState()
+    }
+    const selection = new BoardSelection({
+      scene, viewport: () => viewportRef.current, bounds: () => canvas.getBoundingClientRect(), writable: canWrite,
+      validate: (strokes) => { decodeDocument({ ...initialDocument, schemaVersion: 2, strokes, viewport: viewportRef.current }) },
+      commit: (strokes) => { if (history.replace(strokes)) { renderer.sceneChanged(); onDocumentChange(true) } },
+      preview: (strokes) => renderer.setSelectionPreview(strokes), changed: publishSelection,
+      setViewport: (viewport) => { navigation.setViewport(viewport) },
+    })
+    const selectionCommand = (command: SelectionCommand) => {
+      if (interactionsBlocked() || input.pointerId !== null || eraser.pointerId !== null || navigation.pointerId !== null) return
+      if (command === 'clear') { if (selection.busy) cancel(); else selection.clear(); return }
+      if (selection.busy) return
+      if (['all', 'paste', 'duplicate'].includes(command)) onActivateSelection()
+      if (command === 'all') selection.all()
+      if (command === 'copy') selection.copy()
+      if (command === 'cut') selection.remove(true)
+      if (command === 'delete') selection.remove()
+      if (command === 'paste') selection.insert()
+      if (command === 'duplicate') selection.insert(true)
+      if (command === 'download' && pngBlob) downloadPNG(pngBlob)
+      if (command === 'image' && selection.hasSelection && !pngBusy) {
+        pngBusy = true; publishSelection()
+        const generation = ++pngGeneration
+        const promise = selectionPNG(selection.selected)
+        // Invoke the clipboard API in the user gesture, passing a deferred PNG Blob.
+        const clipboard = writePNG(promise)
+        void Promise.allSettled([promise, clipboard]).then(([result, written]) => {
+          if (disposed || generation !== pngGeneration) return
+          pngBusy = false
+          if (result.status === 'fulfilled') pngBlob = result.value
+          selection.message = result.status === 'rejected' ? String(result.reason instanceof Error ? result.reason.message : result.reason)
+            : written.status === 'fulfilled' ? 'PNG передан в системный буфер.' : 'Не удалось записать PNG в системный буфер. Откройте «Действия» → «Скачать PNG».'
+          publishSelection()
+        })
+      }
+    }
     const publishHistoryState = () => {
       if (disposed) return
       const next = {
         canUndo: history.canUndo, canRedo: history.canRedo,
-        busy: drawingPointerId() !== null || navigation.pointerId !== null,
+        busy: drawingPointerId() !== null || navigation.pointerId !== null || selection.busy,
       }
       const previous = historyStateRef.current
       if (previous && previous.canUndo === next.canUndo && previous.canRedo === next.canRedo && previous.busy === next.busy) return
@@ -170,8 +232,9 @@ export function WritingSurface({ tool, getTool, width, stabilization, background
       onHistoryState(next)
     }
     const applyHistory = (action: HistoryAction) => {
-      if (!canWrite() || interactionsBlocked() || drawingPointerId() !== null || navigation.pointerId !== null) return
+      if (!canWrite() || interactionsBlocked() || drawingPointerId() !== null || navigation.pointerId !== null || selection.busy) return
       if (action === 'undo' ? history.undo() : history.redo()) {
+        selection.clear()
         renderer.sceneChanged()
         publishHistoryState()
         onDocumentChange(true)
@@ -195,7 +258,7 @@ export function WritingSurface({ tool, getTool, width, stabilization, background
     }
     const updateCursor = () => {
       const mode = navigation.pointerId !== null ? 'panning'
-        : spaceDown && drawingPointerId() === null ? 'pan-ready' : getTool()
+        : spaceDown && drawingPointerId() === null ? 'pan-ready' : getTool() === 'selection' && (selection.moving || (lastCursorEvent && selection.hit({ x: (lastCursorEvent.clientX - canvas.getBoundingClientRect().left - viewportRef.current.x) / viewportRef.current.zoom, y: (lastCursorEvent.clientY - canvas.getBoundingClientRect().top - viewportRef.current.y) / viewportRef.current.zoom }))) ? 'move' : getTool()
       const event = lastCursorEvent
       const overBoard = !event || document.elementFromPoint(event.clientX, event.clientY) === canvas
       cursor.configure(mode, focused && document.visibilityState !== 'hidden' && !interactionsBlocked() && overBoard)
@@ -209,6 +272,7 @@ export function WritingSurface({ tool, getTool, width, stabilization, background
       updateCursor()
     }
     const refreshCursor = () => {
+      paintSelection()
       if (lastCursorEvent) cursorSample(lastCursorEvent)
       else updateCursor()
     }
@@ -223,7 +287,7 @@ export function WritingSurface({ tool, getTool, width, stabilization, background
     const focusCanvas = () => {
       if (focusBadgeRef.current) focusBadgeRef.current.hidden = !keyboardEntry
     }
-    const blurCanvas = () => { if (focusBadgeRef.current) focusBadgeRef.current.hidden = true }
+    const blurCanvas = () => { selection.finishNudge(); if (focusBadgeRef.current) focusBadgeRef.current.hidden = true }
     const releaseCapture = (pointerId: number | null) => {
       if (pointerId === null) return
       try {
@@ -234,6 +298,7 @@ export function WritingSurface({ tool, getTool, width, stabilization, background
       const pointerId = drawingPointerId() ?? navigation.pointerId
       input.cancel()
       eraser.cancel()
+      selection.cancel()
       navigation.endPan()
       cursor.cancel()
       releaseCapture(pointerId)
@@ -241,13 +306,15 @@ export function WritingSurface({ tool, getTool, width, stabilization, background
       observeInput()
       publishHistoryState()
     }
+    cancelRef.current = cancel
     const down = (event: PointerEvent) => {
       if (interactionsBlocked()) return
       keyboardEntry = false
       blurCanvas()
       cursorSample(event)
+      selection.finishNudge()
       if (navigation.startPan(event, spaceDown)
-        || (canWrite() && navigation.pointerId === null && !spaceDown && (getTool() === 'eraser' ? eraser : input).down(event))) {
+        || (navigation.pointerId === null && !spaceDown && (getTool() === 'selection' ? selection.down(event) : canWrite() && (getTool() === 'eraser' ? eraser : input).down(event)))) {
         navigation.suspendWheel()
         cursor.begin(event.pointerId)
         event.preventDefault()
@@ -255,13 +322,14 @@ export function WritingSurface({ tool, getTool, width, stabilization, background
         try { canvas.setPointerCapture?.(event.pointerId) } catch { /* Window listeners are the fallback. */ }
       }
       if (event.button === 1) event.preventDefault()
+      startEdge()
       updateCursor()
       observeInput(event)
       publishHistoryState()
     }
     const move = (event: PointerEvent) => {
       cursorSample(event)
-      if ((!canWrite() && drawingPointerId() !== null) || interactionsBlocked()) { cancel(); return }
+      if ((!canWrite() && (input.pointerId !== null || eraser.pointerId !== null || selection.moving)) || interactionsBlocked()) { cancel(); return }
       const panPointer = navigation.pointerId
       if (navigation.movePan(event)) {
         event.preventDefault()
@@ -287,7 +355,7 @@ export function WritingSurface({ tool, getTool, width, stabilization, background
     const up = (event: PointerEvent) => {
       cursorSample(event)
       cursor.end(event.pointerId)
-      if ((!canWrite() && drawingPointerId() !== null) || interactionsBlocked()) { cancel(); return }
+      if ((!canWrite() && (input.pointerId !== null || eraser.pointerId !== null || selection.moving)) || interactionsBlocked()) { cancel(); return }
       if (navigation.endPan(event.pointerId)) {
         event.preventDefault()
         releaseCapture(event.pointerId)
@@ -314,7 +382,8 @@ export function WritingSurface({ tool, getTool, width, stabilization, background
       const panEnded = navigation.endPan(event.pointerId)
       const inkEnded = input.cancel(event.pointerId)
       const eraseEnded = eraser.cancel(event.pointerId)
-      if (panEnded || inkEnded || eraseEnded) {
+      const selectionEnded = selection.pointerId === event.pointerId && selection.cancel()
+      if (panEnded || inkEnded || eraseEnded || selectionEnded) {
         cursor.end(event.pointerId)
         updateCursor()
         observeInput(event)
@@ -335,6 +404,20 @@ export function WritingSurface({ tool, getTool, width, stabilization, background
       if (event.code === 'Tab') keyboardEntry = true
       if (interactionsBlocked()) return
       const target = event.target instanceof HTMLElement ? event.target : null
+      const editable = Boolean(target?.closest('input,textarea,select,[contenteditable],dialog'))
+      const boardContext = Boolean(target === canvas || target?.closest('.selection-toolbar'))
+      if (boardContext && !editable && !event.altKey && !event.isComposing && !event.defaultPrevented) {
+        const modifier = event.ctrlKey || event.metaKey
+        const commands: Record<string, SelectionCommand> = { KeyA: 'all', KeyC: 'copy', KeyX: 'cut', KeyV: 'paste', KeyD: 'duplicate' }
+        const command = modifier ? commands[event.code] : event.code === 'Escape' ? 'clear' : ['Delete', 'Backspace'].includes(event.code) ? 'delete' : undefined
+        if (command) { event.preventDefault(); if (command === 'clear' && (drawingPointerId() !== null || navigation.pointerId !== null)) cancel(); else selectionCommand(command); updateCursor(); return }
+        const nudge = selectionNudgeShortcut(event, { editable, inkPointerId: drawingPointerId(), panPointerId: navigation.pointerId })
+        if (nudge && getTool() === 'selection' && selection.hasSelection) {
+          event.preventDefault()
+          if (!nudge.blocked) selection.nudge(nudge.x, nudge.y)
+          return
+        }
+      }
       const shortcut = historyShortcut(event, {
         editable: Boolean(target?.closest('input:not([type="range"]),textarea,select') || target?.isContentEditable),
         inkPointerId: drawingPointerId(), panPointerId: navigation.pointerId,
@@ -351,6 +434,7 @@ export function WritingSurface({ tool, getTool, width, stabilization, background
       updateCursor()
     }
     const keyUp = (event: KeyboardEvent) => {
+      if (event.code.startsWith('Arrow')) selection.finishNudge()
       if (event.code !== 'Space') return
       spaceDown = false
       updateCursor()
@@ -372,14 +456,30 @@ export function WritingSurface({ tool, getTool, width, stabilization, background
     controlsRef.current = {
       zoomIn: () => { if (!interactionsBlocked()) navigation.setZoom(navigation.viewport.zoom * 2, center()) },
       zoomOut: () => { if (!interactionsBlocked()) navigation.setZoom(navigation.viewport.zoom / 2, center()) },
+      fitAll: () => { if (!interactionsBlocked() && !selection.busy && drawingPointerId() === null && navigation.pointerId === null) { const bounds = canvas.getBoundingClientRect(); navigation.setViewport(fitAll(scene.strokes, bounds.width, bounds.height)) } },
+      selection: (command) => { selectionCommand(command); refreshCursor() },
+      selectionShape: (shape) => { if (!selection.busy) { selection.shape = shape; publishSelection() } },
       reset: () => { if (!interactionsBlocked()) navigation.reset() },
       undo: () => { applyHistory('undo') },
       redo: () => { applyHistory('redo') },
       snapshot: () => ({ strokes: scene.strokes, viewport: viewportRef.current }),
-      isBusy: () => drawingPointerId() !== null || navigation.pointerId !== null,
+      isBusy: () => drawingPointerId() !== null || navigation.pointerId !== null || selection.busy,
       cancelInput: cancel,
     }
 
+    let edgeFrame: number | null = null
+    let edgeTime = performance.now()
+    const edgeTick = (time: number) => {
+      edgeFrame = null
+      if (disposed) return
+      if (selection.moving && lastCursorEvent) {
+        const bounds = canvas.getBoundingClientRect()
+        selection.edgePan({ x: lastCursorEvent.clientX - bounds.left, y: lastCursorEvent.clientY - bounds.top }, (time - edgeTime) / 1000)
+      }
+      edgeTime = time
+      if (selection.moving) edgeFrame = requestAnimationFrame(edgeTick)
+    }
+    const startEdge = () => { if (selection.moving && edgeFrame === null) { edgeTime = performance.now(); edgeFrame = requestAnimationFrame(edgeTick) } }
     let dprQuery: MediaQueryList | undefined
     let watchedDpr = -1
     const resize = () => {
@@ -437,11 +537,15 @@ export function WritingSurface({ tool, getTool, width, stabilization, background
       }
     }
     updateBackground()
+    publishSelection()
     publishHistoryState()
     resize()
 
     return () => {
       disposed = true
+      pngGeneration++
+      cancelRef.current = null
+      if (edgeFrame !== null) cancelAnimationFrame(edgeFrame)
       refreshCursorRef.current = null
       canvas.removeEventListener('pointerenter', cursorSample)
       canvas.removeEventListener('pointerleave', leave)
@@ -473,7 +577,7 @@ export function WritingSurface({ tool, getTool, width, stabilization, background
       controlsRef.current = null
       clearTimeout(diagnosticsTimer)
     }
-  }, [onDiagnostics, onUnavailable, onHistoryState, controlsRef, initialDocument, canWrite, interactionsBlocked, onDocumentChange, getTool])
+  }, [onDiagnostics, onUnavailable, onHistoryState, controlsRef, initialDocument, canWrite, interactionsBlocked, onDocumentChange, getTool, onSelectionState, onActivateSelection])
 
   return (
     <section className="writing-surface" aria-label="Лист для проверки пера">
@@ -482,7 +586,10 @@ export function WritingSurface({ tool, getTool, width, stabilization, background
       <canvas ref={canvasRef} className="live-canvas" data-tool={tool} data-layer="live" tabIndex={0} aria-label="Область письма и стирания пером или основной кнопкой мыши" aria-describedby="prototype-warning writing-help">
         Для письма нужен браузер с поддержкой Canvas 2D.
       </canvas>
+      <svg className="selection-outline" aria-hidden="true"><path ref={selectionPathRef} /></svg>
       <div ref={cursorRef} className="board-cursor" hidden aria-hidden="true">
+        <svg className="cursor-arrow" viewBox="0 0 24 28"><path d="M2 2v21l6-6 5 9 4-2-5-9h9Z" /></svg>
+        <svg className="cursor-move" viewBox="0 0 24 24"><path d="M12 1 8 5h3v6H5V8l-4 4 4 4v-3h6v6H8l4 4 4-4h-3v-6h6v3l4-4-4-4v3h-6V5h3Z" /></svg>
         <span className="cursor-dot" />
         <span className="cursor-eraser" />
         <svg className="cursor-hand cursor-hand-open" viewBox="0 0 24 24"><path d="M8 12V5a1.5 1.5 0 0 1 3 0v6-8a1.5 1.5 0 0 1 3 0v8-6a1.5 1.5 0 0 1 3 0v7-3a1.5 1.5 0 0 1 3 0v6c0 4-3 7-7 7h-1c-2 0-4-1-5-3l-4-6a1.5 1.5 0 0 1 2.4-1.8L8 14Z" /></svg>

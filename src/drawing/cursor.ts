@@ -1,6 +1,6 @@
 import type { DrawingTool, PointerInput, Position } from './types'
 
-export type CursorMode = DrawingTool | 'pan-ready' | 'panning'
+export type CursorMode = DrawingTool | 'move' | 'pan-ready' | 'panning'
 export interface CursorBounds { left: number; top: number; width: number; height: number }
 export interface CursorPresentation { position: Position | null; visible: boolean; mode: CursorMode }
 type CursorPointer = Pick<PointerInput, 'pointerId' | 'pointerType' | 'clientX' | 'clientY'>
