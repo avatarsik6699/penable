@@ -1,4 +1,5 @@
 import type { Stroke, Viewport, SelectionShape } from "~/entities/board";
+
 export type SelectionState = {
   selected: boolean;
   clipboard: boolean;
@@ -6,6 +7,7 @@ export type SelectionState = {
   message: string;
   png: boolean;
 };
+
 export type SelectionCommand =
   | "all"
   | "clear"
@@ -31,6 +33,7 @@ export type InputDiagnostics = {
   bitmapHeight: number;
   resolutionCapped: boolean;
 };
+
 export type SurfaceControls = {
   zoomIn: () => void;
   zoomOut: () => void;

@@ -7,13 +7,16 @@ import { PenToolbar } from "./pen-toolbar";
 import { SelectionToolbar } from "./selection-toolbar";
 import { WritingSurface } from "./writing-surface";
 import type { BoardWorkspaceTypes } from "./board-workspace.types";
+
 export const BoardWorkspace: React.FC<BoardWorkspaceTypes.Props> = () => {
   const [model] = useState(WorkspacePlatform.create);
   const ui = useSyncExternalStore(model.subscribe, model.getSnapshot);
+
   useEffect(
     function documentSessionFx() {
       const stop = model.start();
       const unbind = DocumentBindings.bind(model);
+
       return () => {
         unbind();
         stop();
@@ -21,6 +24,7 @@ export const BoardWorkspace: React.FC<BoardWorkspaceTypes.Props> = () => {
     },
     [model],
   );
+
   return (
     <main className={styles["app"]}>
       <PenToolbar

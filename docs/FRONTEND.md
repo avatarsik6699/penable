@@ -64,6 +64,16 @@ The reference checkout is read-only. Existing visual direction and schema1/2 beh
   are presenter-owned data, not a token override.
 - Preserve keyboard/pointer ownership, text-input shortcuts, focus return, dialog and read-only
   behavior; controls/status cannot resize the canvas unexpectedly.
+- Use one blank line after the import group; between types/functions and other module sections;
+  between constructors, methods, accessors and arrow actions; around guards, loops, try blocks,
+  multiline operations and the final return. Keep related simple declarations/assignments,
+  import/barrel groups, type/object data properties and overload signatures compact. Retain extra
+  semantic grouping where useful; do not insert a blank line between every statement. Own-line
+  comments remain attached to the following block, inline comments to their statement.
+- Separate CSS rules with one blank line; keep declarations inside a rule together.
+- npm run format applies Prettier, the syntax-aware JS/TS spacing pass, then Prettier again.
+  npm run lint and format:check reject missing structural spacing. The pass adds whitespace only;
+  strings/templates/JSX text and comment contents are never rewritten.
 - Repository Prettier/EditorConfig commands own formatting; exclude generated data/artifacts and
   Markdown. Architecture policies have positive/negative fixtures and no blanket disables.
 

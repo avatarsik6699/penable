@@ -2,12 +2,15 @@ import path from "node:path";
 import ts from "typescript";
 
 export const normalized = (file) => file.replaceAll("\\", "/");
+
 export const visit = (node, callback) => {
   callback(node);
   ts.forEachChild(node, (child) => visit(child, callback));
 };
+
 export const hasJsx = (node) => {
   let found = false;
+
   visit(node, (child) => {
     if (
       ts.isJsxElement(child) ||
@@ -16,6 +19,7 @@ export const hasJsx = (node) => {
     )
       found = true;
   });
+
   return found;
 };
 
@@ -26,6 +30,7 @@ export function sourceProgram(files, root) {
       text,
     ]),
   );
+
   const options = {
     target: ts.ScriptTarget.ES2022,
     module: ts.ModuleKind.ESNext,
@@ -38,32 +43,42 @@ export function sourceProgram(files, root) {
     paths: { "~/*": [normalized(path.resolve(root, "src/*"))] },
     lib: ["lib.es2022.d.ts", "lib.dom.d.ts", "lib.dom.iterable.d.ts"],
   };
+
   const host = ts.createCompilerHost(options);
+
   const original = {
     readFile: host.readFile.bind(host),
     fileExists: host.fileExists.bind(host),
     getSourceFile: host.getSourceFile.bind(host),
   };
+
   host.readFile = (file) =>
     sources.get(normalized(file)) ?? original.readFile(file);
+
   host.fileExists = (file) =>
     sources.has(normalized(file)) || original.fileExists(file);
+
   host.directoryExists = (dir) =>
     [...sources.keys()].some((file) =>
       file.startsWith(`${normalized(dir)}/`),
     ) || ts.sys.directoryExists(dir);
+
   host.getSourceFile = (file, languageVersion, onError, fresh) => {
     const text = sources.get(normalized(file));
+
     return text === undefined
       ? original.getSourceFile(file, languageVersion, onError, fresh)
       : ts.createSourceFile(file, text, languageVersion, true);
   };
+
   const program = ts.createProgram([...sources.keys()], options, host);
+
   return { program, checker: program.getTypeChecker(), options, host };
 }
 
 export function imports(source) {
   const entries = [];
+
   visit(source, (node) => {
     if (
       (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
@@ -104,25 +119,30 @@ export function imports(source) {
       entries.push({ node, argument: node.arguments[0], kind: "worker" });
     }
   });
+
   return entries;
 }
 
 export function resolveImport(specifier, file, context, files, root) {
   if (!specifier.startsWith(".") && !specifier.startsWith("~/"))
     return undefined;
+
   const resolved = ts.resolveModuleName(
     specifier,
     path.resolve(root, file),
     context.options,
     context.host,
   ).resolvedModule;
+
   if (resolved)
     return normalized(path.relative(root, resolved.resolvedFileName));
+
   const base = normalized(
     specifier.startsWith("~/")
       ? `src/${specifier.slice(2)}`
       : path.join(path.dirname(file), specifier),
   );
+
   return [
     base,
     `${base}.ts`,

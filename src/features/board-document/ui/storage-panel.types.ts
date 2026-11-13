@@ -1,4 +1,5 @@
 import type { BoardDocument, StorageState } from "../model/types";
+
 export namespace StoragePanelTypes {
   export type Props = {
     state: StorageState;

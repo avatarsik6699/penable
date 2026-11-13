@@ -1,11 +1,16 @@
 import type { BoardDocument } from "../model/types";
 import type { ClipMask, Point, Stroke } from "~/entities/board";
+
 export type DocumentJobKind = "select" | "validate" | "save";
+
 import type { RegionInput } from "~/entities/board";
+
 export type StrokeMetadata = Omit<Stroke, "points"> & {
   geometry: number;
 };
+
 export type FragmentMetadata = Omit<Stroke, "points">;
+
 export type SelectionResult = {
   region: ClipMask;
   parts: Array<{
@@ -15,6 +20,7 @@ export type SelectionResult = {
     remainder: FragmentMetadata | null;
   }>;
 };
+
 export type JobRequest =
   | {
       type: "start";
@@ -44,14 +50,17 @@ export type JobRequest =
       type: "close";
       id: number;
     };
+
 export type JobResponse = {
   id: number;
   error?: string;
   selection?: SelectionResult;
   chunk?: SelectionResult["parts"];
 };
+
 function pointsFromChunk(values: Float64Array): Point[] {
   const points: Point[] = [];
+
   for (let i = 0; i < values.length; i += 4)
     points.push({
       x: values[i]!,
@@ -59,6 +68,7 @@ function pointsFromChunk(values: Float64Array): Point[] {
       pressure: values[i + 2]!,
       time: values[i + 3]!,
     });
+
   return points;
 }
 

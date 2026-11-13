@@ -10,6 +10,7 @@
   background: var(--paper);
   font-size: 13px;
 }
+
 .selection-menu {
   position: absolute;
   top: calc(100% + 6px);
@@ -23,11 +24,13 @@
   border-radius: 6px;
   background: var(--paper);
 }
+
 .selection-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
 }
+
 .selection-toolbar button {
   min-height: 36px;
   padding: 0 9px;
@@ -38,23 +41,28 @@
   font: inherit;
   cursor: pointer;
 }
+
 .selection-toolbar button:hover:enabled {
   background: var(--panel);
 }
+
 .selection-toolbar button[aria-pressed="true"] {
   border-color: var(--control-selected-border);
   background: var(--control-selected-bg);
   color: var(--control-selected-text);
 }
+
 .selection-toolbar button:disabled {
   color: var(--control-disabled);
   cursor: default;
 }
+
 .selection-help {
   margin: 7px 2px 0;
   color: var(--text-muted);
   line-height: 1.45;
 }
+
 .selection-feedback {
   position: absolute;
   top: calc(100% + 6px);
@@ -69,12 +77,14 @@
   line-height: 1.45;
   overflow-wrap: anywhere;
 }
+
 @media (max-width: 580px) {
   .selection-toolbar {
     max-width: calc(100% - 16px);
     top: 8px;
     left: 8px;
   }
+
   .selection-toolbar button {
     min-height: 36px;
   }

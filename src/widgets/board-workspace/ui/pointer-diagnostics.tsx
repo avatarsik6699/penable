@@ -1,6 +1,7 @@
 import styles from "./pointer-diagnostics.module.css";
 import type React from "react";
 import type { PointerDiagnosticsTypes } from "./pointer-diagnostics.types";
+
 export const PointerDiagnostics: React.FC<PointerDiagnosticsTypes.Props> = (
   props,
 ) => {

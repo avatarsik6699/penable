@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const output = process.env.PENABLE_E2E_DIST ?? "dist";
+
 if (!/^[\w./-]+$/.test(output))
   throw new Error("Invalid owned E2E output directory");
 

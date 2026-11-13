@@ -4,7 +4,9 @@ test("ink commits exactly, persists, supports undo/redo and a protected reload b
   board,
 }) => {
   await board.drawAndExpectExactCommitRaster();
+
   const original = (await board.storage.records()).main!.strokes;
+
   await board.undo();
   await board.storage.expectStrokeCount(0);
   await board.redo();
@@ -20,12 +22,16 @@ test("partial selection retains margins, clips and restores the exact scene", as
 }) => {
   await board.drawStroke();
   await board.storage.expectStrokeCount(1);
+
   const original = (await board.storage.records()).main!.strokes;
+
   await board.selectRectangle(samples.selectionStart, samples.selectionEnd);
   await board.expectSelectionSize(130, 120);
   await board.moveSelection(samples.moveStart, samples.moveEnd);
   await board.expectPartialMove(40, 30);
+
   const moved = (await board.storage.records()).main!.strokes;
+
   await board.undo();
   await board.storage.expectScene(original);
   await board.redo();
@@ -38,7 +44,9 @@ test("eraser is undoable and cancelled pen input never commits", async ({
 }) => {
   await board.drawStroke();
   await board.storage.expectStrokeCount(1);
+
   const original = (await board.storage.records()).main!.strokes;
+
   await board.cancelStroke();
   await board.storage.expectScene(original);
   await board.erase(samples.eraseStart, samples.eraseEnd);
@@ -53,7 +61,9 @@ test("JSON import/export and invalid import preserve recoverability", async ({
 }) => {
   await board.drawStroke();
   await board.storage.expectStrokeCount(1);
+
   const previous = (await board.storage.records()).main!;
+
   await board.storage.expectExportMatchesSaved();
   await board.storage.rejectInvalidImport();
   await board.storage.importDocument(documents.empty);
@@ -101,13 +111,17 @@ test("large selection crosses editor and durable worker boundaries", async ({
 }) => {
   await board.storage.importDocument(documents.heavy);
   await board.storage.expectScene(documents.heavy.strokes);
+
   const original = await board.storage.sceneFingerprint();
+
   await board.selectRectangle(samples.selectionStart, samples.selectionEnd);
   await board.expectSelectionSize(130, 120);
   await board.moveSelection(samples.moveStart, samples.moveEnd);
   await board.expectPartialMove(40, 30);
   await board.expectDistinctWorkerPaths();
+
   const moved = await board.storage.sceneFingerprint();
+
   await board.undo();
   await board.storage.expectFingerprint(original);
   await board.redo();

@@ -22,18 +22,22 @@
   --focus: #175cd3;
   --error: #b42318;
 }
+
 * {
   box-sizing: border-box;
 }
+
 body {
   margin: 0;
 }
+
 button,
 input,
 select,
 summary {
   font: inherit;
 }
+
 :focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 4px;

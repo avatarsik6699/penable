@@ -2,6 +2,7 @@ import { DocumentSession, type SessionOptions } from "../model/session";
 import { DocumentRepositoryAdapter } from "./indexeddb";
 import { DocumentWriterLease } from "./writer-lock";
 import { DocumentJobs } from "./jobs";
+
 function create(
   options: Omit<SessionOptions, "persistence" | "acquire" | "open">,
 ): DocumentSession {
@@ -12,4 +13,5 @@ function create(
     open: DocumentRepositoryAdapter.openRepository,
   });
 }
+
 export const DocumentSessions = { create };

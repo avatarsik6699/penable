@@ -12,15 +12,18 @@ import type {
   Stroke,
   Viewport,
 } from "./types";
+
 export type SelectionPreview = {
   stationary: readonly Stroke[];
   selected: readonly Stroke[];
   delta: Position;
 };
+
 export type SelectionClipboard = {
   strokes: Stroke[];
   region?: ClipMask;
 };
+
 type SelectionOptions = {
   scene: Scene;
   clipboard?: SelectionClipboard;
@@ -50,6 +53,7 @@ type SelectionOptions = {
   changed: () => void;
   setViewport: (viewport: Viewport) => void;
 };
+
 type Contact = {
   pointerId: number;
   start: Position;
@@ -58,19 +62,25 @@ type Contact = {
   viewport: Viewport;
   moving: boolean;
 };
+
 const ZERO = { x: 0, y: 0 };
+
 function shifted(stroke: Stroke, delta: Position): Stroke {
   if (!delta.x && !delta.y) return stroke;
+
   const offset = stroke.translation ?? ZERO;
+
   return {
     ...stroke,
     source: BoardRegions.sourceOf(stroke),
     translation: { x: offset.x + delta.x, y: offset.y + delta.y },
   };
 }
+
 function copy(strokes: readonly Stroke[]): Stroke[] {
   return [...strokes];
 }
+
 function prepareSelection(
   strokes: readonly Stroke[],
   input: RegionInput,
@@ -80,6 +90,7 @@ function prepareSelection(
 } {
   const bounds =
     input.shape === "all" ? BoardRegions.visibleBounds(strokes) : null;
+
   const region =
     input.shape === "all"
       ? bounds
@@ -91,6 +102,7 @@ function prepareSelection(
       : input.shape === "rectangle"
         ? BoardRegions.rectangle(input.points[0]!, input.points.at(-1)!)
         : BoardRegions.lasso(input.points);
+
   const parts =
     input.shape === "all"
       ? strokes.map((original) => ({
@@ -103,8 +115,10 @@ function prepareSelection(
           region,
           BoardIds.createStrokeIdAllocator(strokes),
         );
+
   return { region, parts };
 }
+
 // Membership and geometry previews live here; the canonical scene is changed only after
 // the complete replacement has passed the document limits and topology checks.
 export class BoardSelection {
@@ -117,36 +131,48 @@ export class BoardSelection {
   private region: ClipMask = [];
   private previewBase: Omit<SelectionPreview, "delta"> | null = null;
   private readonly localClipboard: SelectionClipboard = { strokes: [] };
+
   private get clipboard(): SelectionClipboard {
     return this.options.clipboard ?? this.localClipboard;
   }
+
   private get buffer(): Stroke[] {
     return this.clipboard.strokes;
   }
+
   private delta: Position = { ...ZERO };
   private nudging = false;
   message = "";
+
   constructor(private readonly options: SelectionOptions) {}
+
   get pointerId(): number | null {
     return this.contact?.pointerId ?? null;
   }
+
   get busy(): boolean {
     return this.contact !== null || this.nudging || this.pending !== null;
   }
+
   get moving(): boolean {
     return Boolean(this.contact?.moving);
   }
+
   get hasClipboard(): boolean {
     return this.buffer.length > 0;
   }
+
   get selected(): Stroke[] {
     return this.parts.map((part) => shifted(part.selected, this.delta));
   }
+
   get hasSelection(): boolean {
     return this.parts.length > 0;
   }
+
   get outline(): ClipMask {
     if (this.pendingOutline) return this.pendingOutline;
+
     if (this.contact && !this.contact.moving) {
       // The live path needs no Boolean normalization on every pen sample.
       return this.shape === "rectangle"
@@ -161,30 +187,38 @@ export class BoardSelection {
               ],
             ];
     }
+
     return this.delta.x || this.delta.y
       ? BoardRegions.translateMask(this.region, this.delta)
       : this.region;
   }
+
   hit(point: Position): boolean {
     return this.hasSelection && BoardRegions.contains(this.outline, point);
   }
+
   private world(event: Pick<PointerInput, "clientX" | "clientY">): Position {
     const bounds = this.options.bounds();
+
     return BoardViewport.screenToWorld(
       { x: event.clientX - bounds.left, y: event.clientY - bounds.top },
       this.options.viewport(),
     );
   }
+
   private report(error: unknown) {
     this.message =
       error instanceof Error
         ? error.message
         : "Не удалось обработать выделение.";
+
     this.options.changed();
   }
+
   private allocate() {
     return BoardIds.createStrokeIdAllocator(this.options.scene.strokes);
   }
+
   down(event: PointerInput): boolean {
     if (
       this.busy ||
@@ -196,8 +230,10 @@ export class BoardSelection {
       !Number.isFinite(event.clientY)
     )
       return false;
+
     const point = this.world(event);
     const moving = this.options.writable() && this.hit(point);
+
     this.contact = {
       pointerId: event.pointerId,
       start: point,
@@ -206,30 +242,41 @@ export class BoardSelection {
       viewport: { ...this.options.viewport() },
       moving,
     };
+
     this.delta = { ...ZERO };
     this.previewBase = null;
     this.message = "";
     this.options.changed();
+
     return true;
   }
+
   move(event: PointerInput): boolean {
     const contact = this.contact;
+
     if (!contact || contact.pointerId !== event.pointerId) return false;
+
     if (event.buttons !== 1) {
       this.cancel();
+
       return true;
     }
+
     if (!Number.isFinite(event.clientX) || !Number.isFinite(event.clientY))
       return true;
+
     contact.current = this.world(event);
+
     if (contact.moving) {
       this.delta = {
         x: contact.current.x - contact.start.x,
         y: contact.current.y - contact.start.y,
       };
+
       this.previewMove();
     } else if (this.shape === "lasso") {
       const last = contact.points.at(-1)!;
+
       if (
         Math.hypot(last.x - contact.current.x, last.y - contact.current.y) *
           this.options.viewport().zoom >=
@@ -237,23 +284,31 @@ export class BoardSelection {
       ) {
         if (contact.points.length >= BoardRegions.REGION_LIMITS.lasso) {
           this.cancel();
+
           this.report(
             new Error(
               "Лассо: предел 2048 вершин. Попробуйте более короткую границу.",
             ),
           );
+
           return true;
         }
+
         contact.points.push(contact.current);
       }
     }
+
     this.options.changed();
+
     return true;
   }
+
   up(event: PointerInput): boolean {
     const contact = this.contact;
+
     if (!contact || contact.pointerId !== event.pointerId || event.button !== 0)
       return false;
+
     // Pointer-up commonly has buttons=0; capture its final position without cancelling.
     this.move({
       pointerId: event.pointerId,
@@ -266,8 +321,11 @@ export class BoardSelection {
       pressure: event.pressure,
       timeStamp: event.timeStamp,
     });
+
     if (!this.contact) return true;
+
     this.contact = null;
+
     if (contact.moving) this.finishMove(contact.viewport);
     else
       this.selectRegion({
@@ -277,8 +335,10 @@ export class BoardSelection {
             ? [contact.start, contact.current]
             : contact.points,
       });
+
     return true;
   }
+
   private candidate(
     delta: Position,
     remove = false,
@@ -288,35 +348,48 @@ export class BoardSelection {
   } {
     const byOriginal = new Map(this.parts.map((part) => [part.original, part]));
     const selected: Stroke[] = [];
+
     const strokes = this.options.scene.strokes.flatMap((stroke) => {
       const part = byOriginal.get(stroke);
+
       if (!part) return [stroke];
+
       const result: Stroke[] = [];
+
       if (part.remainder) result.push(part.remainder);
+
       if (!remove) {
         const moved = shifted(part.selected, delta);
+
         selected.push(moved);
         result.push(moved);
       }
+
       return result;
     });
+
     return { strokes, selected };
   }
+
   private previewMove() {
     if (!this.previewBase) {
       const byOriginal = new Map(
         this.parts.map((part) => [part.original, part]),
       );
+
       this.previewBase = {
         stationary: this.options.scene.strokes.flatMap((stroke) => {
           const part = byOriginal.get(stroke);
+
           return part ? (part.remainder ? [part.remainder] : []) : [stroke];
         }),
         selected: this.parts.map((part) => part.selected),
       };
     }
+
     this.options.preview({ ...this.previewBase, delta: this.delta });
   }
+
   private perform<T>(
     prepare: (signal: AbortSignal) => T | Promise<T>,
     accept: (value: T) => void,
@@ -324,11 +397,15 @@ export class BoardSelection {
     outline: ClipMask | null = null,
   ) {
     const pending = new AbortController();
+
     this.pending = pending;
+
     const complete = (success: boolean, value?: T, error?: unknown) => {
       if (this.pending !== pending || pending.signal.aborted) return;
+
       this.pending = null;
       this.pendingOutline = null;
+
       if (success) {
         try {
           accept(value as T);
@@ -337,16 +414,22 @@ export class BoardSelection {
           error = failure;
         }
       }
+
       finish(success);
+
       if (!success) this.report(error);
+
       this.options.changed();
     };
+
     try {
       const result = prepare(pending.signal);
+
       if (result && typeof (result as Promise<T>).then === "function") {
         this.pendingOutline = outline;
         this.message = "Подготовка выделения… Esc — отмена.";
         this.options.changed();
+
         void Promise.resolve(result).then(
           (value) => complete(true, value),
           (error) => complete(false, undefined, error),
@@ -356,6 +439,7 @@ export class BoardSelection {
       complete(false, undefined, error);
     }
   }
+
   private selectRegion(input: RegionInput) {
     const outline =
       input.shape === "all"
@@ -371,9 +455,11 @@ export class BoardSelection {
                     .map(({ x, y }) => [x, y]),
                 ],
               ] as ClipMask);
+
     this.perform(
       (signal) => {
         if (this.options.select) return this.options.select(input, signal);
+
         return prepareSelection(this.options.scene.strokes, input);
       },
       (result) => {
@@ -385,6 +471,7 @@ export class BoardSelection {
       outline,
     );
   }
+
   private apply(
     candidate: {
       strokes: Stroke[];
@@ -395,19 +482,24 @@ export class BoardSelection {
   ) {
     if (candidate.strokes.length > BoardLimits.SCENE_LIMITS.strokes) {
       finish(false);
+
       const reason =
         this.options.scene.strokes.length >= BoardLimits.SCENE_LIMITS.strokes
           ? "На доске достигнут предел 20 000 фрагментов."
           : "Действие превысит предел 20 000 фрагментов.";
+
       this.report(
         new Error(
           reason +
             " Перенос части штриха создаёт дополнительные фрагменты. Выделите штрихи целиком или удалите ненужные записи.",
         ),
       );
+
       return;
     }
+
     const before = [...this.options.scene.strokes];
+
     this.perform(
       (signal) => this.options.validate(candidate.strokes, signal),
       () => {
@@ -419,12 +511,15 @@ export class BoardSelection {
           )
         )
           throw new Error("Доска изменилась. Повторите действие.");
+
         this.options.commit(candidate.strokes);
+
         this.parts = candidate.selected.map((stroke) => ({
           original: stroke,
           selected: stroke,
           remainder: null,
         }));
+
         this.region = region;
         this.previewBase = null;
         this.message = "";
@@ -432,9 +527,11 @@ export class BoardSelection {
       finish,
     );
   }
+
   private finishMove(viewport?: Viewport) {
     const finish = (success: boolean) => {
       if (!success && viewport) this.options.setViewport(viewport);
+
       this.rollbackViewport = null;
       this.delta = { ...ZERO };
       this.previewBase = null;
@@ -442,8 +539,10 @@ export class BoardSelection {
       this.options.preview(null);
       this.options.changed();
     };
+
     if (this.delta.x || this.delta.y) {
       this.rollbackViewport = viewport ?? null;
+
       this.apply(
         this.candidate(this.delta),
         BoardRegions.translateMask(this.region, this.delta),
@@ -451,10 +550,13 @@ export class BoardSelection {
       );
     } else finish(true);
   }
+
   cancel(): boolean {
     const contact = this.contact;
     const active = this.busy;
+
     if (this.pending) this.message = "";
+
     this.pending?.abort();
     this.pending = null;
     this.pendingOutline = null;
@@ -463,27 +565,35 @@ export class BoardSelection {
     this.delta = { ...ZERO };
     this.previewBase = null;
     this.options.preview(null);
+
     if (contact?.moving || this.rollbackViewport)
       this.options.setViewport(
         contact?.moving ? contact.viewport : this.rollbackViewport!,
       );
+
     this.rollbackViewport = null;
     this.options.changed();
+
     return active;
   }
+
   clear() {
     if (this.busy) {
       this.cancel();
+
       return;
     }
+
     this.parts = [];
     this.region = [];
     this.message = "";
     this.options.changed();
   }
+
   all() {
     if (!this.busy) this.selectRegion({ shape: "all", points: [] });
   }
+
   copy(): void {
     if (!this.busy && this.hasSelection) {
       this.clipboard.strokes = copy(this.selected);
@@ -492,12 +602,15 @@ export class BoardSelection {
       this.options.changed();
     }
   }
+
   remove(cut = false): void {
     if (this.busy || !this.options.writable() || !this.hasSelection) return;
+
     try {
       const candidate = this.candidate(ZERO, true);
       const buffer = cut ? copy(this.selected) : null;
       const region = BoardRegions.cloneMask(this.outline);
+
       this.apply(candidate, [], (success) => {
         if (success && buffer) {
           this.clipboard.strokes = buffer;
@@ -507,13 +620,18 @@ export class BoardSelection {
     } catch (error) {
       this.report(error);
     }
+
     this.options.changed();
   }
+
   insert(duplicate = false): void {
     if (this.busy || !this.options.writable()) return;
+
     try {
       const originals = duplicate ? this.selected : this.buffer;
+
       if (!originals.length) return;
+
       if (
         this.options.scene.strokes.length + originals.length >
         BoardLimits.SCENE_LIMITS.strokes
@@ -521,8 +639,10 @@ export class BoardSelection {
         throw new Error(
           "Вставка превышает предел 20 000 фрагментов. Выделите меньше записей.",
         );
+
       const points = (strokes: readonly Stroke[]) =>
         strokes.reduce((sum, stroke) => sum + stroke.points.length, 0);
+
       if (
         points(this.options.scene.strokes) + points(originals) >
         BoardLimits.SCENE_LIMITS.points
@@ -530,34 +650,45 @@ export class BoardSelection {
         throw new Error(
           "Вставка превышает предел 1 000 000 точек. Выделите меньше записей.",
         );
+
       const region = duplicate ? this.outline : (this.clipboard.region ?? []);
+
       const bounds =
         BoardRegions.maskBounds(region) ??
         BoardRegions.visibleBounds(originals);
+
       if (!bounds) return;
+
       const viewport = this.options.viewport(),
         size = this.options.bounds();
+
       const center = BoardViewport.screenToWorld(
         { x: size.width / 2, y: size.height / 2 },
         viewport,
       );
+
       const delta = duplicate
         ? { x: 24 / viewport.zoom, y: 24 / viewport.zoom }
         : {
             x: center.x - (bounds.left + bounds.right) / 2,
             y: center.y - (bounds.top + bounds.bottom) / 2,
           };
+
       const allocate = this.allocate(),
         sources = new Map<string | Stroke, string>();
+
       const selected = copy(originals).map((stroke, index) => {
         const key = originals[index]!.source ?? originals[index]!;
         let source = sources.get(key);
+
         if (!source) {
           source = BoardRegions.newSource();
           sources.set(key, source);
         }
+
         return { ...shifted(stroke, delta), id: allocate(), source };
       });
+
       this.apply(
         { strokes: [...this.options.scene.strokes, ...selected], selected },
         BoardRegions.translateMask(
@@ -573,8 +704,10 @@ export class BoardSelection {
     } catch (error) {
       this.report(error);
     }
+
     this.options.changed();
   }
+
   nudge(x: number, y: number): void {
     if (
       this.contact ||
@@ -583,37 +716,49 @@ export class BoardSelection {
       !this.hasSelection
     )
       return;
+
     this.nudging = true;
+
     this.delta = {
       x: this.delta.x + x / this.options.viewport().zoom,
       y: this.delta.y + y / this.options.viewport().zoom,
     };
+
     this.previewMove();
     this.options.changed();
   }
+
   finishNudge() {
     if (this.nudging && !this.pending) this.finishMove();
   }
+
   edgePan(screen: Position, elapsed: number): boolean {
     if (!this.contact?.moving) return false;
+
     const bounds = this.options.bounds(),
       viewport = this.options.viewport();
+
     const speed = (p: number, size: number) =>
       p < 32
         ? 600 * Math.min(1, (32 - p) / 32) ** 2
         : p > size - 32
           ? -600 * Math.min(1, (p - size + 32) / 32) ** 2
           : 0;
+
     const x =
       speed(screen.x, bounds.width) * Math.min(0.05, Math.max(0, elapsed));
+
     const y =
       speed(screen.y, bounds.height) * Math.min(0.05, Math.max(0, elapsed));
+
     if (!x && !y) return false;
+
     this.options.setViewport({
       ...viewport,
       x: viewport.x + x,
       y: viewport.y + y,
     });
+
     this.move({
       pointerId: this.contact.pointerId,
       pointerType: "mouse",
@@ -625,6 +770,7 @@ export class BoardSelection {
       pressure: 0,
       timeStamp: 0,
     });
+
     return true;
   }
 }

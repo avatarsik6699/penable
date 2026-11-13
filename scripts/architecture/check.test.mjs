@@ -3,15 +3,20 @@ import test from "node:test";
 import { checkFiles } from "./check.mjs";
 
 const root = "/architecture-policy-fixtures";
+
 const check = (files, options = {}) => checkFiles(files, { root, ...options });
+
 const rejects = (files, rule, options) => {
   const diagnostics = check(files, options);
+
   assert.ok(
     diagnostics.some((diagnostic) => diagnostic.rule === rule),
     `Expected ${rule}: ${JSON.stringify(diagnostics)}`,
   );
 };
+
 const accepts = (files, options) => assert.deepEqual(check(files, options), []);
+
 const board = {
   "src/entities/board/index.ts": "export type Board = { id: string };",
 };
@@ -41,6 +46,7 @@ test("upward, sibling, deep relative and alias private imports fail", () => {
     "src/app/main.ts":
       "import { value } from '~/entities/board/value'; export const app = value;",
   };
+
   for (const rule of [
     "upward-import",
     "sibling-import",
@@ -56,6 +62,7 @@ test("own barrels, internal aliases, wildcard exports and cycles fail", () => {
     "src/entities/board/value.ts":
       "import type { X } from '~/entities/board'; export type X = { next: X };",
   };
+
   for (const rule of [
     "own-barrel",
     "internal-alias",
@@ -91,6 +98,7 @@ test("dynamic module paths cannot hide graph edges; lexical require shadows are 
     },
     "dynamic-module",
   );
+
   accepts({
     "src/entities/board/model.ts":
       "export const model = (require: (name: string) => string) => require('not/a/module');",
@@ -114,10 +122,13 @@ test("browser globals and DOM types need exact capability owners", () => {
     "src/widgets/board-workspace/native/owner.ts":
       'export const owner = () => document.createElement("canvas"); export type Surface = HTMLCanvasElement;',
   };
+
   rejects(files, "platform-owner");
+
   accepts(files, {
     owners: { "src/widgets/board-workspace/native/owner.ts": ["dom"] },
   });
+
   rejects(files, "platform-owner", {
     owners: { "src/widgets/board-workspace/native/neighbor.ts": ["dom"] },
   });
@@ -136,14 +147,17 @@ test("lexical shadows, fields, parameter types and model document names pass", (
 
 test("timers, RAF, worker creation and storage require separate capabilities", () => {
   const file = "src/features/board-document/adapters/platform.ts";
+
   const files = {
     [file]:
       'setTimeout(() => {}, 10); queueMicrotask(() => {}); globalThis.scheduler?.yield(); requestAnimationFrame(() => {}); new Worker(new URL("./worker.ts", import.meta.url)); indexedDB.open("x");',
     "src/features/board-document/adapters/worker.ts": "export {};",
   };
+
   accepts(files, {
     owners: { [file]: ["timers", "frames", "worker", "url", "storage"] },
   });
+
   rejects(files, "platform-owner", { owners: { [file]: ["dom"] } });
 });
 
@@ -165,10 +179,12 @@ test("entities support portable cancellation but reject browser, React and proto
     "src/entities/board/model.ts":
       "export const cancel = (signal: AbortSignal) => new AbortController().signal.aborted || signal.aborted;",
   });
+
   rejects(
     { "src/entities/board/model.ts": "export const drawing = new Path2D();" },
     "entity-platform",
   );
+
   rejects(
     {
       "src/entities/board/model.ts":
@@ -176,6 +192,7 @@ test("entities support portable cancellation but reject browser, React and proto
     },
     "entity-dependency",
   );
+
   rejects(
     {
       "src/entities/board/model.ts": "import type { Job } from './protocol';",
@@ -187,6 +204,7 @@ test("entities support portable cancellation but reject browser, React and proto
 
 test("worker URL entrypoints form separate execution edges without own-barrel false positives", () => {
   const file = "src/features/board-document/adapters/jobs.ts";
+
   accepts(
     {
       [file]:
@@ -200,6 +218,7 @@ test("worker URL entrypoints form separate execution edges without own-barrel fa
 
 test("transitive worker graphs reject DOM, native Canvas and React even when file is an allowed browser owner", () => {
   const file = "src/features/board-document/adapters/jobs.ts";
+
   const files = {
     [file]: 'new Worker(new URL("./jobs-worker.ts", import.meta.url));',
     "src/features/board-document/adapters/jobs-worker.ts":
@@ -207,12 +226,14 @@ test("transitive worker graphs reject DOM, native Canvas and React even when fil
     "src/features/board-document/adapters/paint.ts":
       'export const paint = () => document.createElement("canvas");',
   };
+
   rejects(files, "worker-platform", {
     owners: {
       [file]: ["worker", "url"],
       "src/features/board-document/adapters/paint.ts": ["dom"],
     },
   });
+
   rejects(
     {
       ...files,
@@ -222,6 +243,7 @@ test("transitive worker graphs reject DOM, native Canvas and React even when fil
     "worker-react",
     { owners: { [file]: ["worker", "url"] } },
   );
+
   rejects(
     {
       ...files,
@@ -240,6 +262,7 @@ const props = {
   "src/widgets/example/ui/example.types.ts":
     "export namespace ExampleTypes { export type Props = { title: string }; }",
 };
+
 const view = (body) => ({
   ...props,
   "src/widgets/example/ui/example.tsx": `import type React from 'react'; import type { ExampleTypes } from './example.types'; ${body}`,
@@ -258,25 +281,30 @@ test("component syntax, root props, nesting and one component per file are check
     view("export function Example() { return <span />; }"),
     "component-arrow",
   );
+
   rejects(view("export const Example = () => <span />;"), "component-fc");
+
   rejects(
     view(
       "export const Example: React.FC<{title:string}> = (props) => <span>{props.title}</span>;",
     ),
     "component-props",
   );
+
   rejects(
     view(
       "export const Example: React.FC<ExampleTypes.Props> = (props) => { const Nested: React.FC = () => <b />; return <Nested />; };",
     ),
     "nested-component",
   );
+
   rejects(
     view(
       "export const Example: React.FC = () => <span />; export const Other: React.FC = () => <b />;",
     ),
     "one-component",
   );
+
   rejects(
     {
       "src/widgets/example/ui/example.tsx":
@@ -293,12 +321,14 @@ test("object props and hook results stay named, while useState tuples and defaul
     ),
     "props-destructure",
   );
+
   rejects(
     view(
       "export const Example: React.FC = () => { const { data } = useBoard(); return <span>{data}</span>; };",
     ),
     "hook-destructure",
   );
+
   accepts(
     view(
       'export const Example: React.FC<ExampleTypes.Props> = ({title = "default"}) => { const [value, setValue] = useState(1); const board = useBoard(); return <span>{title}{board.data}{value}</span>; };',
@@ -312,6 +342,7 @@ test("thin purpose-named forwarding props are the only rest exception", () => {
       "export const Example: React.FC<ExampleTypes.Props> = ({...buttonProps}) => <button {...buttonProps} />;",
     ),
   );
+
   rejects(
     view(
       "export const Example: React.FC<ExampleTypes.Props> = ({...props}) => <button {...props} />;",
@@ -327,16 +358,19 @@ test("anonymous effects, JSX helper constants, interfaces and non-kebab paths fa
     ),
     "effect-name",
   );
+
   rejects(
     view(
       "const content = <span />; export const Example: React.FC = () => content;",
     ),
     "jsx-helper",
   );
+
   rejects(
     { "src/entities/board/model.ts": "export interface Board { id: string }" },
     "interface",
   );
+
   rejects(
     { "src/entities/board/BoardModel.ts": "export type Board = string;" },
     "kebab-path",
@@ -351,6 +385,7 @@ test("shared helpers expose namespace objects; stateful domain classes remain cl
     },
     "helper-namespace",
   );
+
   rejects(
     {
       "src/shared/lib/math/math.ts":
@@ -358,6 +393,7 @@ test("shared helpers expose namespace objects; stateful domain classes remain cl
     },
     "helper-namespace",
   );
+
   accepts({
     "src/entities/board/history.ts":
       "export class BoardHistory { private value = 0; add() { this.value++; } }",
@@ -366,6 +402,7 @@ test("shared helpers expose namespace objects; stateful domain classes remain cl
 
 test("views cannot acquire browser ownership by allowlisting themselves", () => {
   const file = "src/widgets/example/ui/example.tsx";
+
   rejects(
     { [file]: "export const read = () => window.innerWidth;" },
     "platform-owner",
@@ -386,6 +423,7 @@ test("specs reject direct Playwright imports, built-in fixtures, low-level calls
     "e2e/board.spec.ts":
       "import { test, expect } from '@playwright/test'; test('bad', async ({ page, context, request }, testInfo) => { const board = new BoardPage(page); await page.goto('/'); expect(board).toBeTruthy(); });",
   };
+
   for (const rule of [
     "e2e-fixtures",
     "e2e-domain-fixture",
@@ -407,13 +445,16 @@ test("test scaffolding can use platform mocks; declaration files can describe ge
 
 test("qualified globals and shorthand references retain capability ownership", () => {
   const file = "src/features/document/adapters/platform.ts";
+
   rejects({ [file]: 'window.indexedDB.open("x");' }, "platform-owner", {
     owners: { [file]: ["dom"] },
   });
+
   rejects(
     { "src/entities/board/model.ts": "export const globals = { document };" },
     "entity-platform",
   );
+
   accepts({
     "src/entities/board/model.ts":
       'export const maximum = globalThis["Math"].max(1, 2);',
@@ -423,6 +464,7 @@ test("qualified globals and shorthand references retain capability ownership", (
 test("worker DOM access through self and uninspectable worker entrypoints fail", () => {
   const file = "src/features/document/adapters/jobs.ts";
   const worker = "src/features/document/adapters/worker.ts";
+
   rejects(
     {
       [file]: 'new Worker(new URL("./worker.ts", import.meta.url));',
@@ -431,6 +473,7 @@ test("worker DOM access through self and uninspectable worker entrypoints fail",
     "worker-platform",
     { owners: { [file]: ["worker", "url"], [worker]: ["worker-scope"] } },
   );
+
   rejects(
     { [file]: 'new Worker("./worker.ts");', [worker]: "export {};" },
     "worker-entry",
@@ -458,6 +501,7 @@ test("body props destructuring and null-returning untyped components fail", () =
     ),
     "props-destructure",
   );
+
   rejects(
     view("export function Example() { return null; }"),
     "component-arrow",
@@ -472,6 +516,7 @@ test("specs cannot hide built-in fixtures or construct domain data inline", () =
     },
     "e2e-domain-fixture",
   );
+
   rejects(
     {
       "e2e/board.spec.ts":
@@ -511,6 +556,7 @@ test("JSX is kept in views rather than model files", () => {
 
 test("bracket access retains exact storage, clipboard and locks ownership", () => {
   const file = "src/widgets/workspace/native/presenter.ts";
+
   const expressions = [
     'window["localStorage"].getItem("note")',
     'window[`sessionStorage`].getItem("note")',
@@ -522,10 +568,12 @@ test("bracket access retains exact storage, clipboard and locks ownership", () =
     'const browser = window; browser["localStorage"].getItem("note")',
     'const browserNavigator = navigator; browserNavigator["clipboard"].readText()',
   ];
+
   for (const expression of expressions)
     rejects({ [file]: `${expression}; export {};` }, "platform-owner", {
       owners: { [file]: ["dom", "worker-scope"] },
     });
+
   accepts(
     {
       [file]:
@@ -533,6 +581,7 @@ test("bracket access retains exact storage, clipboard and locks ownership", () =
     },
     { owners: { [file]: ["dom", "storage", "clipboard", "locks"] } },
   );
+
   accepts(
     {
       [file]:
@@ -544,6 +593,7 @@ test("bracket access retains exact storage, clipboard and locks ownership", () =
 
 test("global binding aliases and nested destructuring retain capability checks", () => {
   const file = "src/widgets/workspace/native/presenter.ts";
+
   for (const expression of [
     'const { localStorage: storage } = window; storage.getItem("note")',
     "const { clipboard } = navigator; clipboard.readText()",
@@ -554,6 +604,7 @@ test("global binding aliases and nested destructuring retain capability checks",
     rejects({ [file]: `${expression}; export {};` }, "platform-owner", {
       owners: { [file]: ["dom"] },
     });
+
   accepts(
     {
       [file]:
@@ -565,6 +616,7 @@ test("global binding aliases and nested destructuring retain capability checks",
 
 test("computed access, namespace rest, spread and assignment cannot hide native capabilities", () => {
   const file = "src/widgets/workspace/native/presenter.ts";
+
   for (const expression of [
     'const key: string = "localStorage"; window[key]',
     "const {...browser} = window",

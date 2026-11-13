@@ -5,6 +5,7 @@ import type React from "react";
 import type { PenToolbarTypes } from "./pen-toolbar.types";
 import { PointerDiagnostics } from "./pointer-diagnostics";
 import type { BackgroundMode } from "~/entities/board";
+
 export const PenToolbar: React.FC<PenToolbarTypes.Props> = (props) => {
   return (
     <header className={styles["pen-toolbar"]}>

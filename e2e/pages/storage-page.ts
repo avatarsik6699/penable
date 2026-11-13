@@ -17,25 +17,31 @@ export class StoragePage {
       () =>
         new Promise((resolve, reject) => {
           const request = indexedDB.open("penable");
+
           request.onerror = () => reject(request.error);
+
           request.onsuccess = () => {
             const db = request.result;
             const tx = db.transaction("documents", "readonly");
             const result: Record<string, unknown> = {};
+
             for (const [key, name] of [
               ["main", "main"],
               ["before-import", "previous"],
               ["before-schema2", "upgrade"],
             ]) {
               const read = tx.objectStore("documents").get(key!);
+
               read.onsuccess = () => {
                 result[name!] = read.result;
               };
             }
+
             tx.oncomplete = () => {
               db.close();
               resolve(result);
             };
+
             tx.onabort = () => {
               db.close();
               reject(tx.error);
@@ -49,6 +55,7 @@ export class StoragePage {
     await expect
       .poll(async () => (await this.records()).main?.strokes.length ?? 0)
       .toBe(count);
+
     await this.expectSaved();
   }
 
@@ -56,21 +63,26 @@ export class StoragePage {
     return this.page.evaluate(async () => {
       const strokes = await new Promise<unknown>((resolve, reject) => {
         const request = indexedDB.open("penable");
+
         request.onerror = () => reject(request.error);
+
         request.onsuccess = () => {
           const db = request.result;
           const transaction = db.transaction("documents", "readonly");
           const read = transaction.objectStore("documents").get("main");
+
           transaction.oncomplete = () => {
             db.close();
             resolve(read.result?.strokes ?? []);
           };
+
           transaction.onabort = () => {
             db.close();
             reject(transaction.error);
           };
         };
       });
+
       const canonical = (value: unknown): unknown =>
         Array.isArray(value)
           ? value.map(canonical)
@@ -81,19 +93,23 @@ export class StoragePage {
                   .map(([key, entry]) => [key, canonical(entry)]),
               )
             : value;
+
       const digest = await crypto.subtle.digest(
         "SHA-256",
         new TextEncoder().encode(JSON.stringify(canonical(strokes))),
       );
+
       return [...new Uint8Array(digest)]
         .map((byte) => byte.toString(16).padStart(2, "0"))
         .join("");
     });
   }
+
   async expectFingerprint(fingerprint: string) {
     await expect.poll(() => this.sceneFingerprint()).toBe(fingerprint);
     await this.expectSaved();
   }
+
   async expectScene(strokes: TestBoardTypes.Stroke[]) {
     const canonical = (value: unknown): unknown =>
       Array.isArray(value)
@@ -105,6 +121,7 @@ export class StoragePage {
                 .map(([key, entry]) => [key, canonical(entry)]),
             )
           : value;
+
     await this.expectFingerprint(
       createHash("sha256")
         .update(JSON.stringify(canonical(strokes)))
@@ -126,6 +143,7 @@ export class StoragePage {
       name: "Закрыть сведения о хранении",
       exact: true,
     });
+
     if (await close.isVisible()) await close.click();
   }
 
@@ -133,19 +151,25 @@ export class StoragePage {
     await this.page
       .getByRole("button", { name: "Импорт", exact: true })
       .click();
+
     const dialog = this.page.getByRole("dialog");
+
     await expect(dialog).toBeVisible();
+
     await dialog.locator("input[type=file]").setInputFiles({
       name: "owned-board.json",
       mimeType: "application/json",
       buffer: Buffer.from(JSON.stringify(document)),
     });
+
     await expect(
       dialog.getByRole("button", { name: "Заменить доску", exact: true }),
     ).toBeEnabled();
+
     await dialog
       .getByRole("button", { name: "Заменить доску", exact: true })
       .click();
+
     await expect(dialog).toBeHidden();
     await this.expectSaved();
     await this.closeDetails();
@@ -153,41 +177,56 @@ export class StoragePage {
 
   async rejectInvalidImport() {
     const previous = (await this.records()).main;
+
     await this.page
       .getByRole("button", { name: "Импорт", exact: true })
       .click();
+
     const dialog = this.page.getByRole("dialog");
+
     await dialog.locator("input[type=file]").setInputFiles({
       name: "bad-board.json",
       mimeType: "application/json",
       buffer: Buffer.from('{"schemaVersion":99}'),
     });
+
     await expect(dialog.getByRole("alert")).toBeVisible();
+
     await expect(
       dialog.getByRole("button", { name: "Заменить доску", exact: true }),
     ).toBeDisabled();
+
     await dialog.getByRole("button", { name: "Отмена", exact: true }).click();
     expect((await this.records()).main).toEqual(previous);
   }
 
   async exportDocument(): Promise<TestBoardTypes.Document> {
     const pending = this.page.waitForEvent("download");
+
     await this.page
       .getByRole("button", { name: "Скачать копию", exact: true })
       .click();
+
     const download = await pending;
+
     expect(download.suggestedFilename()).toBe("penable-board.json");
+
     const path = await download.path();
+
     expect(path).toBeTruthy();
+
     const document = JSON.parse(
       await readFile(path!, "utf8"),
     ) as TestBoardTypes.Document;
+
     await this.closeDetails();
+
     return document;
   }
 
   async expectExportMatchesSaved() {
     const exported = await this.exportDocument();
+
     expect(exported).toEqual((await this.records()).main);
     expect(exported.format).toBe("penable-board");
     expect(exported.schemaVersion).toBe(2);
@@ -197,9 +236,11 @@ export class StoragePage {
     await expect(
       this.page.getByText("Только просмотр", { exact: true }),
     ).toBeVisible();
+
     await expect(
       this.page.getByRole("button", { name: "Перо", exact: true }),
     ).toBeDisabled();
+
     await expect(
       this.page.getByRole("button", { name: "Импорт", exact: true }),
     ).toBeDisabled();
@@ -213,15 +254,18 @@ export class StoragePage {
     await this.page
       .getByRole("button", { name: "Хранение", exact: true })
       .click();
+
     await expect(
       this.page.getByRole("button", {
         name: "Повторить сохранение",
         exact: true,
       }),
     ).toBeVisible();
+
     await this.page
       .getByRole("button", { name: "Повторить сохранение", exact: true })
       .click();
+
     await this.expectSaved();
     await this.closeDetails();
   }

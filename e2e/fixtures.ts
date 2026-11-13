@@ -9,25 +9,31 @@ function monitor(
   expectedWorkerFailure: () => boolean = () => false,
 ) {
   const unexpected: string[] = [];
+
   const consoleMessage = (message: {
     type: () => string;
     text: () => string;
     location: () => { url: string };
   }) => {
     if (!["error", "warning"].includes(message.type())) return;
+
     if (
       expectedWorkerFailure() &&
       /\/assets\/.*worker.*\.js/i.test(message.location().url) &&
       /Failed to load resource.*ERR_FAILED/.test(message.text())
     )
       return;
+
     unexpected.push(message.text());
   };
+
   const pageError = (error: Error) => {
     unexpected.push(error.message);
   };
+
   page.on("console", consoleMessage);
   page.on("pageerror", pageError);
+
   return () => {
     page.off("console", consoleMessage);
     page.off("pageerror", pageError);
@@ -37,6 +43,7 @@ function monitor(
 
 async function seedLegacy(page: Page) {
   const url = "http://127.0.0.1:4185/__e2e_seed";
+
   await page.route(url, (route) =>
     route.fulfill({
       status: 200,
@@ -44,24 +51,32 @@ async function seedLegacy(page: Page) {
       body: "<!doctype html><title>Owned test seed</title>",
     }),
   );
+
   await page.goto(url);
+
   await page.evaluate(
     ({ main, previous }) =>
       new Promise<void>((resolve, reject) => {
         const request = indexedDB.open("penable", 1);
+
         request.onupgradeneeded = () => {
           request.result.createObjectStore("documents");
         };
+
         request.onerror = () => reject(request.error);
+
         request.onsuccess = () => {
           const db = request.result,
             tx = db.transaction("documents", "readwrite");
+
           tx.objectStore("documents").put(main, "main");
           tx.objectStore("documents").put(previous, "before-import");
+
           tx.oncomplete = () => {
             db.close();
             resolve();
           };
+
           tx.onabort = () => {
             db.close();
             reject(tx.error);
@@ -70,6 +85,7 @@ async function seedLegacy(page: Page) {
       }),
     { main: testBoards.legacy(), previous: testBoards.previous() },
   );
+
   await page.unroute(url);
 }
 
@@ -83,6 +99,7 @@ type Samples = {
   extraStart: TestBoardTypes.Position;
   extraEnd: TestBoardTypes.Position;
 };
+
 type Fixtures = {
   documents: {
     empty: TestBoardTypes.Document;
@@ -96,6 +113,7 @@ type Fixtures = {
   legacyBoard: BoardPage;
   saveFailureBoard: BoardPage;
 };
+
 export const test = base.extend<Fixtures>({
   documents: async ({ baseURL: _baseURL }, use) => {
     await use({
@@ -105,6 +123,7 @@ export const test = base.extend<Fixtures>({
       previous: testBoards.previous(),
     });
   },
+
   samples: async ({ baseURL: _baseURL }, use) => {
     await use({
       selectionStart: { x: 130, y: 80 },
@@ -117,9 +136,11 @@ export const test = base.extend<Fixtures>({
       extraEnd: { x: 500, y: 240 },
     });
   },
+
   board: async ({ page }, use) => {
     const verify = monitor(page);
     const board = new BoardPage(page, new StoragePage(page));
+
     try {
       await board.open();
       await use(board);
@@ -127,10 +148,13 @@ export const test = base.extend<Fixtures>({
       verify();
     }
   },
+
   secondBoard: async ({ board: _board, context }, use) => {
     const page = await context.newPage(),
       verify = monitor(page);
+
     const board = new BoardPage(page, new StoragePage(page));
+
     try {
       await page.goto("/penable/");
       await board.storage.expectReadOnly();
@@ -140,9 +164,11 @@ export const test = base.extend<Fixtures>({
       await page.close();
     }
   },
+
   legacyBoard: async ({ page }, use) => {
     const verify = monitor(page);
     const board = new BoardPage(page, new StoragePage(page));
+
     try {
       await seedLegacy(page);
       await board.open();
@@ -151,24 +177,32 @@ export const test = base.extend<Fixtures>({
       verify();
     }
   },
+
   saveFailureBoard: async ({ page }, use) => {
     let active = true,
       blocked = 0;
+
     const verify = monitor(page, () => active);
     const worker = /\/assets\/[^/]*worker[^/]*\.js$/i;
+
     await page.route(worker, (route) => {
       blocked++;
+
       return route.abort("failed");
     });
+
     const release = async () => {
       expect(
         blocked,
         "The actual worker request must have failed",
       ).toBeGreaterThan(0);
+
       await page.unroute(worker);
       active = false;
     };
+
     const board = new BoardPage(page, new StoragePage(page), release);
+
     try {
       await board.open();
       await use(board);

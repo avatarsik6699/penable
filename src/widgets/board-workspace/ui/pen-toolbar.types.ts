@@ -1,6 +1,7 @@
 import type { InputDiagnostics } from "../model/types";
 import type { DrawingTool, HistoryState } from "~/entities/board";
 import type { BackgroundMode } from "~/entities/board";
+
 export namespace PenToolbarTypes {
   export type Props = {
     tool: DrawingTool;

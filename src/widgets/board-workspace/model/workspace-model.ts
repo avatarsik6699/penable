@@ -20,6 +20,7 @@ import {
   DocumentErrors,
   DocumentCodec,
 } from "~/features/board-document";
+
 type WorkspaceState = Readonly<{
   selectionShape: SelectionShape;
   selection: Readonly<SelectionState>;
@@ -36,6 +37,7 @@ type WorkspaceState = Readonly<{
   dialogOpen: boolean;
   uiRevision: number;
 }>;
+
 export type WorkspaceDependencies = {
   diagnostics: InputDiagnostics;
   session: (options: {
@@ -45,6 +47,7 @@ export type WorkspaceDependencies = {
   }) => DocumentSession;
   download: (json: string, name: string) => void;
 };
+
 // One tab owns the durable session, clipboard and coarse UI projection. Editor
 // generations own their scene/renderer and may be replaced without releasing either.
 export class WorkspaceModel {
@@ -60,6 +63,7 @@ export class WorkspaceModel {
     starting: Promise<void>;
   } | null = null;
   private state: WorkspaceState;
+
   constructor(private readonly dependencies: WorkspaceDependencies) {
     this.state = Object.freeze({
       selectionShape: "rectangle",
@@ -94,13 +98,17 @@ export class WorkspaceModel {
       uiRevision: 0,
     });
   }
+
   readonly subscribe = (listener: () => void) => {
     this.listeners.add(listener);
+
     return () => {
       this.listeners.delete(listener);
     };
   };
+
   readonly getSnapshot = (): WorkspaceState => this.state;
+
   private patch(patch: Partial<WorkspaceState>) {
     if (
       Object.entries(patch).every(
@@ -108,16 +116,22 @@ export class WorkspaceModel {
       )
     )
       return;
+
     this.state = Object.freeze({ ...this.state, ...patch });
+
     for (const listener of this.listeners) listener();
   }
+
   readInitialBoard(): BoardSnapshot {
     if (!this.initialBoard) throw new Error("Доска ещё не загружена.");
+
     return this.initialBoard;
   }
+
   readonly readBoardSnapshot = (): BoardSnapshot => {
     const initial = this.readInitialBoard(),
       scene = this.controls.current?.snapshot();
+
     return {
       strokes: scene?.strokes ?? initial.strokes,
       viewport: { ...(scene?.viewport ?? initial.viewport) },
@@ -128,36 +142,51 @@ export class WorkspaceModel {
       },
     };
   };
+
   readonly canWrite = () =>
     Boolean(
       this.session?.canWrite && this.controls.current && !this.state.dialogOpen,
     );
+
   readonly getTool = () => this.state.tool;
+
   readonly interactionsBlocked = () => this.state.dialogOpen;
+
   readonly documentChanged = (urgent: boolean) => {
     this.session?.changed(urgent);
   };
+
   readonly activateSelection = () => this.patch({ tool: "selection" });
+
   readonly selectionChanged = (state: SelectionState) =>
     this.patch({ selection: Object.freeze({ ...state }) });
+
   readonly historyChanged = (state: HistoryState) =>
     this.patch({ history: Object.freeze({ ...state }) });
+
   readonly diagnosticsChanged = (state: InputDiagnostics) =>
     this.patch({ diagnostics: Object.freeze({ ...state }) });
+
   readonly unavailable = (unavailable: string) => this.patch({ unavailable });
+
   readonly overlayChanged = () =>
     this.patch({ uiRevision: this.state.uiRevision + 1 });
+
   readonly cancelActiveInput = () => {
     if (this.controls.current?.isBusy()) this.controls.current.cancelInput();
   };
+
   start(): () => void {
     const session = this.dependencies.session({
       snapshot: this.readBoardSnapshot,
+
       onHydrate: (board) => {
         if (!lifetime.active || this.session !== session) return;
+
         this.controls.current?.cancelInput();
         this.controls.current = null;
         this.initialBoard = board;
+
         this.patch({
           hasBoard: true,
           tool: "pen",
@@ -176,32 +205,45 @@ export class WorkspaceModel {
           generation: this.state.generation + 1,
         });
       },
+
       onState: (state) => {
         if (!lifetime.active || this.session !== session) return;
+
         if (!state.writable) this.controls.current?.cancelInput();
+
         this.patch({ storage: Object.freeze({ ...state }) });
       },
     });
+
     const lifetime = { active: true, session, starting: Promise.resolve() };
+
     this.lifetime = lifetime;
     this.session = session;
+
     lifetime.starting = this.priorDisposal.then(async () => {
       if (lifetime.active) await session.start();
     });
+
     return () => {
       this.stop();
     };
   }
+
   private stop(lifetime = this.lifetime) {
     if (!lifetime?.active) return;
+
     lifetime.active = false;
+
     this.priorDisposal = Promise.allSettled([
       lifetime.starting,
       lifetime.session.dispose(),
     ]).then(() => {});
   }
+
   readonly flush = () => this.session?.flush();
+
   readonly hasUnsaved = () => this.session?.hasUnsaved ?? false;
+
   readonly changeTool = (tool: DrawingTool) => {
     if (
       this.state.dialogOpen ||
@@ -211,52 +253,67 @@ export class WorkspaceModel {
       (tool !== "selection" && !this.canWrite())
     )
       return;
+
     if (tool !== "selection") this.controls.current?.selection("clear");
+
     this.patch({ tool });
   };
+
   readonly changeWidth = (width: number) => {
     if (this.canWrite()) {
       this.patch({ width });
       this.documentChanged(false);
     }
   };
+
   readonly changeStabilization = (stabilization: number) => {
     if (this.canWrite()) {
       this.patch({ stabilization });
       this.documentChanged(false);
     }
   };
+
   readonly changeBackground = (background: BackgroundMode) => {
     if (this.canWrite()) {
       this.patch({ background });
       this.documentChanged(false);
     }
   };
+
   readonly changeShape = (selectionShape: SelectionShape) => {
     this.controls.current?.selectionShape(selectionShape);
     this.patch({ selectionShape });
   };
+
   readonly beginImport = () => {
     if (!this.session?.canImport || this.controls.current?.isBusy())
       return "Завершите письмо, стирание или перемещение перед импортом.";
+
     this.controls.current?.cancelInput();
     this.patch({ dialogOpen: true });
+
     return "";
   };
+
   readonly endImport = () => this.patch({ dialogOpen: false });
+
   readonly confirmImport = async (candidate: BoardDocument) => {
     if (!this.session) throw new Error("Хранилище ещё не открыто.");
+
     await this.session.replace(
       candidate,
       () => this.controls.current?.isBusy() ?? false,
     );
   };
+
   readonly exportCurrent = () => {
     try {
       const result = DocumentCodec.serializeDocument(
         DocumentSnapshots.fromSnapshot(this.readBoardSnapshot()),
       );
+
       this.dependencies.download(result.json, "penable-board.json");
+
       return (
         result.warning ||
         "Копия передана браузеру для скачивания. Проверьте файл в загрузках."
@@ -265,21 +322,25 @@ export class WorkspaceModel {
       return DocumentErrors.messageOf(error);
     }
   };
+
   private backup(upgrade: boolean): string {
     try {
       const record = upgrade
         ? this.session?.upgradeRecord
         : this.session?.previousRecord;
+
       if (!record?.exists)
         throw new Error(
           upgrade
             ? "Копии до обновления пока нет."
             : "Копии до замены пока нет.",
         );
+
       this.dependencies.download(
         DocumentCodec.serializeRawBackup(record.value),
         upgrade ? "penable-before-schema2.json" : "penable-before-import.json",
       );
+
       return upgrade
         ? "Копия до обновления передана браузеру. Проверьте файл в загрузках."
         : "Копия до замены передана браузеру. Повреждённая исходная запись может не поддерживать обратный импорт.";
@@ -287,13 +348,18 @@ export class WorkspaceModel {
       return DocumentErrors.messageOf(error);
     }
   }
+
   readonly exportPrevious = () => this.backup(false);
+
   readonly exportUpgrade = () => this.backup(true);
+
   readonly retry = () => {
     if (this.session?.canWrite) {
       void this.session.retrySave();
+
       return;
     }
+
     if (!this.session?.hasUnsaved && this.session?.state.canReconnect) {
       this.stop();
       this.start();

@@ -11,6 +11,7 @@ import type {
   HistoryState,
   SelectionClipboard,
 } from "~/entities/board";
+
 export namespace WritingSurfaceTypes {
   export type Props = {
     clipboard: SelectionClipboard;

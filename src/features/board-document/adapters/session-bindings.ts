@@ -8,14 +8,18 @@ function bind(session: {
       event.returnValue = "";
     }
   };
+
   const visibility = () => {
     if (document.visibilityState === "hidden") void session.flush();
   };
+
   window.addEventListener("beforeunload", beforeUnload);
   document.addEventListener("visibilitychange", visibility);
+
   return () => {
     window.removeEventListener("beforeunload", beforeUnload);
     document.removeEventListener("visibilitychange", visibility);
   };
 }
+
 export const DocumentBindings = { bind };

@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { BoardShortcuts } from "./shortcuts";
+
 type KeyEvent = Parameters<typeof BoardShortcuts.historyShortcut>[0];
+
 const idle = { editable: false, inkPointerId: null, panPointerId: null };
+
 function keyEvent(overrides: Partial<KeyEvent> = {}): KeyEvent {
   return {
     code: "KeyZ",
@@ -14,6 +17,7 @@ function keyEvent(overrides: Partial<KeyEvent> = {}): KeyEvent {
     ...overrides,
   };
 }
+
 describe("history keyboard intent", () => {
   it.each([
     [true, false, false, "undo"],
@@ -31,13 +35,17 @@ describe("history keyboard intent", () => {
       ).toEqual({ action, blocked: false });
     },
   );
+
   it("uses physical KeyZ independently of the character produced by the layout", () => {
     const event = { ...keyEvent(), key: "я" };
+
     expect(BoardShortcuts.historyShortcut(event, idle)?.action).toBe("undo");
+
     expect(
       BoardShortcuts.historyShortcut(keyEvent({ code: "KeyY" }), idle),
     ).toBeNull();
   });
+
   it.each([
     { ctrlKey: false },
     { altKey: true },
@@ -48,10 +56,12 @@ describe("history keyboard intent", () => {
       BoardShortcuts.historyShortcut(keyEvent(overrides), idle),
     ).toBeNull();
   });
+
   it("leaves native undo and redo in editable controls untouched", () => {
     expect(
       BoardShortcuts.historyShortcut(keyEvent(), { ...idle, editable: true }),
     ).toBeNull();
+
     expect(
       BoardShortcuts.historyShortcut(keyEvent({ shiftKey: true }), {
         ...idle,
@@ -59,6 +69,7 @@ describe("history keyboard intent", () => {
       }),
     ).toBeNull();
   });
+
   it.each([
     { inkPointerId: 0, panPointerId: null },
     { inkPointerId: null, panPointerId: 2 },
@@ -69,6 +80,7 @@ describe("history keyboard intent", () => {
       expect(
         BoardShortcuts.historyShortcut(keyEvent(), { ...idle, ...pointers }),
       ).toEqual({ action: "undo", blocked: true });
+
       expect(
         BoardShortcuts.historyShortcut(keyEvent({ shiftKey: true }), {
           ...idle,
@@ -78,6 +90,7 @@ describe("history keyboard intent", () => {
     },
   );
 });
+
 describe("selection nudge ownership", () => {
   it.each([
     { inkPointerId: 0, panPointerId: null },
@@ -91,23 +104,28 @@ describe("selection nudge ownership", () => {
       ),
     ).toEqual({ x: 1, y: 0, blocked: true });
   });
+
   it("permits autorepeated nudges with no pointer owner and honors Shift CSS steps", () => {
     const key = keyEvent({ code: "ArrowUp", ctrlKey: false });
+
     expect(BoardShortcuts.selectionNudgeShortcut(key, idle)).toEqual({
       x: 0,
       y: -1,
       blocked: false,
     });
+
     expect(
       BoardShortcuts.selectionNudgeShortcut(
         { ...key, repeat: true } as typeof key,
         idle,
       ),
     ).toEqual({ x: 0, y: -1, blocked: false });
+
     expect(
       BoardShortcuts.selectionNudgeShortcut({ ...key, shiftKey: true }, idle),
     ).toEqual({ x: 0, y: -10, blocked: false });
   });
+
   it("leaves editable controls and modified arrow shortcuts untouched", () => {
     expect(
       BoardShortcuts.selectionNudgeShortcut(
@@ -115,6 +133,7 @@ describe("selection nudge ownership", () => {
         { ...idle, editable: true },
       ),
     ).toBeNull();
+
     expect(
       BoardShortcuts.selectionNudgeShortcut(
         keyEvent({ code: "ArrowRight" }),

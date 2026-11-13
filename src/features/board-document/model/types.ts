@@ -1,5 +1,6 @@
 import type { BackgroundMode } from "~/entities/board";
 import type { Stroke, Viewport } from "~/entities/board";
+
 export type BoardDocument = {
   format: "penable-board";
   schemaVersion: 1 | 2;
@@ -11,6 +12,7 @@ export type BoardDocument = {
     stabilization: number;
   };
 };
+
 export type DocumentRepository = {
   read: () => Promise<{
     main: StoredRecord;
@@ -21,16 +23,20 @@ export type DocumentRepository = {
   replace: (previous: unknown, candidate: BoardDocument) => Promise<void>;
   close: () => Promise<void>;
 };
+
 export type StoredRecord = {
   exists: boolean;
   value: unknown;
 };
+
 export type WriterLease = {
   acquired: boolean;
   message: string;
   release: () => Promise<void>;
 };
+
 export type SavePhase = "loading" | "dirty" | "saving" | "saved" | "error";
+
 export type StorageState = {
   phase: SavePhase;
   loaded: boolean;
@@ -43,6 +49,7 @@ export type StorageState = {
   canReconnect: boolean;
   message: string;
 };
+
 export type DocumentPersistence = {
   write: (document: BoardDocument) => Promise<void>;
   close: () => Promise<void>;

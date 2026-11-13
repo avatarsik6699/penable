@@ -70,13 +70,16 @@ const driverMethods = new Set([
 export function checkE2e(context, report) {
   for (const [file, source] of context.sources) {
     if (!file.startsWith("e2e/") || !file.endsWith(".spec.ts")) continue;
+
     for (const entry of imports(source)) {
       const specifier =
         entry.argument && ts.isStringLiteralLike(entry.argument)
           ? entry.argument.text
           : "";
+
       if (ts.isImportDeclaration(entry.node)) {
         const bindings = entry.node.importClause?.namedBindings;
+
         if (
           entry.node.importClause?.name ||
           (bindings && !ts.isNamedImports(bindings))
@@ -87,6 +90,7 @@ export function checkE2e(context, report) {
             "e2e-fixtures",
             "Specs consume named domain fixtures only.",
           );
+
         if (bindings && ts.isNamedImports(bindings)) {
           for (const binding of bindings.elements) {
             if (
@@ -99,6 +103,7 @@ export function checkE2e(context, report) {
                 "e2e-fixtures",
                 "Specs import test only from their fixtures.",
               );
+
             if (binding.name.text !== "test")
               report(
                 file,
@@ -116,6 +121,7 @@ export function checkE2e(context, report) {
           "Specs use fixture imports, not dynamic module loading.",
         );
     }
+
     visit(source, (node) => {
       if (ts.isCallExpression(node)) {
         if (
@@ -123,6 +129,7 @@ export function checkE2e(context, report) {
           node.expression.text === "test"
         ) {
           const callback = node.arguments.at(-1);
+
           if (
             callback &&
             (ts.isArrowFunction(callback) ||
@@ -137,11 +144,13 @@ export function checkE2e(context, report) {
               "Consume domain fixtures through an explicit fixture binding.",
             );
         }
+
         if (
           ts.isIdentifier(node.expression) &&
           node.expression.text === "expect"
         )
           report(file, node, "e2e-assertion", "Page Objects own assertions.");
+
         if (
           ts.isPropertyAccessExpression(node.expression) &&
           driverMethods.has(node.expression.name.text)
@@ -153,6 +162,7 @@ export function checkE2e(context, report) {
             "Page Objects own low-level browser actions.",
           );
       }
+
       if (ts.isNewExpression(node))
         report(
           file,
@@ -160,6 +170,7 @@ export function checkE2e(context, report) {
           "e2e-construction",
           "Fixtures own Page Objects, contexts and data construction.",
         );
+
       if (
         ts.isObjectLiteralExpression(node) ||
         ts.isArrayLiteralExpression(node)
@@ -170,6 +181,7 @@ export function checkE2e(context, report) {
           "e2e-data",
           "Fixtures own domain test data construction.",
         );
+
       if (ts.isParameter(node) && ts.isObjectBindingPattern(node.name)) {
         for (const element of node.name.elements) {
           if (
@@ -191,6 +203,7 @@ export function checkE2e(context, report) {
             );
         }
       }
+
       if (
         (ts.isArrowFunction(node) || ts.isFunctionExpression(node)) &&
         node.parameters.length > 1

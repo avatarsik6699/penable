@@ -11,6 +11,7 @@ import {
 } from "~/entities/board";
 import { BoardCursor } from "./cursor";
 import type { SurfaceElements } from "./surface-elements";
+
 type BindingOptions = {
   elements: SurfaceElements;
   canvas: HTMLCanvasElement;
@@ -30,6 +31,7 @@ type BindingOptions = {
   applyHistory: (action: HistoryAction) => void;
   paintSelection: () => void;
 };
+
 function bind(options: BindingOptions) {
   const {
     elements,
@@ -50,6 +52,7 @@ function bind(options: BindingOptions) {
     applyHistory,
     paintSelection,
   } = options;
+
   let disposed = false;
   let spaceDown = false;
   let focused = true;
@@ -58,16 +61,23 @@ function bind(options: BindingOptions) {
   let lastCursorEvent: PointerEvent | null = null;
   const cursor = new BoardCursor();
   const cursorLayer = elements.cursor;
+
   const paintCursor = () => {
     cursorFrame = null;
+
     if (disposed || !cursorLayer) return;
+
     const { visible, mode, position } = cursor.presentation;
+
     cursorLayer.hidden = !visible;
     cursorLayer.dataset.mode = mode;
+
     if (position)
       cursorLayer.style.transform = `translate(${position.x}px, ${position.y}px)`;
+
     canvas.dataset.appCursorReady = String(visible);
   };
+
   const updateCursor = () => {
     const mode =
       navigation.pointerId !== null
@@ -91,10 +101,13 @@ function bind(options: BindingOptions) {
                   })))
             ? "move"
             : getTool();
+
     const event = lastCursorEvent;
+
     const overBoard =
       !event ||
       document.elementFromPoint(event.clientX, event.clientY) === canvas;
+
     cursor.configure(
       mode,
       focused &&
@@ -102,25 +115,33 @@ function bind(options: BindingOptions) {
         !interactionsBlocked() &&
         overBoard,
     );
+
     if (cursorFrame === null) cursorFrame = requestAnimationFrame(paintCursor);
   };
+
   const cursorSample = (event: PointerEvent) => {
     const owner = drawingPointerId() ?? navigation.pointerId;
+
     if (
       (event.pointerType !== "mouse" && event.pointerType !== "pen") ||
       (owner !== null && owner !== event.pointerId)
     )
       return;
+
     lastCursorEvent = event;
+
     cursor.move(
       event,
       canvas.getBoundingClientRect(),
       document.elementFromPoint(event.clientX, event.clientY) === canvas,
     );
+
     updateCursor();
   };
+
   const refreshCursor = () => {
     paintSelection();
+
     if (lastCursorEvent) cursorSample(lastCursorEvent);
     else updateCursor();
   };
@@ -129,18 +150,24 @@ function bind(options: BindingOptions) {
     cursor.leave(event, event.relatedTarget instanceof Element);
     updateCursor();
   };
+
   const over = (event: PointerEvent) => {
     if (event.target !== canvas) cursorSample(event);
   };
+
   const focusCanvas = () => {
     if (elements.focusBadge) elements.focusBadge.hidden = !keyboardEntry;
   };
+
   const blurCanvas = () => {
     selection.finishNudge();
+
     if (elements.focusBadge) elements.focusBadge.hidden = true;
   };
+
   const releaseCapture = (pointerId: number | null) => {
     if (pointerId === null) return;
+
     try {
       if (canvas.hasPointerCapture?.(pointerId))
         canvas.releasePointerCapture(pointerId);
@@ -148,8 +175,10 @@ function bind(options: BindingOptions) {
       /* Synthetic events have no native pointer to capture or release. */
     }
   };
+
   const cancel = () => {
     const pointerId = drawingPointerId() ?? navigation.pointerId;
+
     input.cancel();
     eraser.cancel();
     selection.cancel();
@@ -163,10 +192,12 @@ function bind(options: BindingOptions) {
 
   const down = (event: PointerEvent) => {
     if (interactionsBlocked()) return;
+
     keyboardEntry = false;
     blurCanvas();
     cursorSample(event);
     selection.finishNudge();
+
     if (
       navigation.startPan(event, spaceDown) ||
       (navigation.pointerId === null &&
@@ -180,20 +211,25 @@ function bind(options: BindingOptions) {
       cursor.begin(event.pointerId);
       event.preventDefault();
       canvas.focus({ preventScroll: true });
+
       try {
         canvas.setPointerCapture?.(event.pointerId);
       } catch {
         /* Window listeners are the fallback. */
       }
     }
+
     if (event.button === 1) event.preventDefault();
+
     startEdge();
     updateCursor();
     observeInput(event);
     publishHistoryState();
   };
+
   const move = (event: PointerEvent) => {
     cursorSample(event);
+
     if (
       (!canWrite() &&
         (input.pointerId !== null ||
@@ -202,34 +238,47 @@ function bind(options: BindingOptions) {
       interactionsBlocked()
     ) {
       cancel();
+
       return;
     }
+
     const panPointer = navigation.pointerId;
+
     if (navigation.movePan(event)) {
       event.preventDefault();
+
       if (navigation.pointerId === null) {
         cursor.end(panPointer ?? undefined);
         releaseCapture(panPointer);
         publishHistoryState();
       }
+
       updateCursor();
       observeInput(event);
+
       return;
     }
+
     const pointerId = drawingPointerId();
+
     if (activeInput().move(event)) event.preventDefault();
+
     if (pointerId !== null && drawingPointerId() === null) {
       cursor.end(pointerId);
       releaseCapture(pointerId);
       publishHistoryState();
     }
+
     updateCursor();
+
     if (event.target === canvas || event.pointerId === pointerId)
       observeInput(event);
   };
+
   const up = (event: PointerEvent) => {
     cursorSample(event);
     cursor.end(event.pointerId);
+
     if (
       (!canWrite() &&
         (input.pointerId !== null ||
@@ -238,41 +287,53 @@ function bind(options: BindingOptions) {
       interactionsBlocked()
     ) {
       cancel();
+
       return;
     }
+
     if (navigation.endPan(event.pointerId)) {
       event.preventDefault();
       releaseCapture(event.pointerId);
       updateCursor();
       observeInput(event);
       publishHistoryState();
+
       return;
     }
+
     const pointerId = drawingPointerId();
+
     if (activeInput().up(event)) {
       event.preventDefault();
       releaseCapture(event.pointerId);
       publishHistoryState();
     }
+
     updateCursor();
+
     if (event.target === canvas || event.pointerId === pointerId)
       observeInput(event);
   };
+
   const pointerCancel = (event: PointerEvent) => {
     if (
       event.pointerId !== drawingPointerId() &&
       event.pointerId !== navigation.pointerId
     )
       return;
+
     cancel();
     observeInput(event);
   };
+
   const lostCapture = (event: PointerEvent) => {
     const panEnded = navigation.endPan(event.pointerId);
     const inkEnded = input.cancel(event.pointerId);
     const eraseEnded = eraser.cancel(event.pointerId);
+
     const selectionEnded =
       selection.pointerId === event.pointerId && selection.cancel();
+
     if (panEnded || inkEnded || eraseEnded || selectionEnded) {
       cursor.end(event.pointerId);
       updateCursor();
@@ -280,12 +341,18 @@ function bind(options: BindingOptions) {
       publishHistoryState();
     }
   };
+
   const contextMenu = (event: MouseEvent) => event.preventDefault();
+
   const wheel = (event: WheelEvent) => {
     if (!event.cancelable) return;
+
     event.preventDefault();
+
     if (interactionsBlocked()) return;
+
     const bounds = canvas.getBoundingClientRect();
+
     navigation.wheel({
       deltaX: event.deltaX,
       deltaY: event.deltaY,
@@ -297,16 +364,22 @@ function bind(options: BindingOptions) {
       height: bounds.height,
     });
   };
+
   const keyDown = (event: KeyboardEvent) => {
     if (event.code === "Tab") keyboardEntry = true;
+
     if (interactionsBlocked()) return;
+
     const target = event.target instanceof HTMLElement ? event.target : null;
+
     const editable = Boolean(
       target?.closest("input,textarea,select,[contenteditable],dialog"),
     );
+
     const boardContext = Boolean(
       target === canvas || target?.closest("[data-board-selection-toolbar]"),
     );
+
     if (
       boardContext &&
       !editable &&
@@ -315,6 +388,7 @@ function bind(options: BindingOptions) {
       !event.defaultPrevented
     ) {
       const modifier = event.ctrlKey || event.metaKey;
+
       const commands: Record<string, SelectionCommand> = {
         KeyA: "all",
         KeyC: "copy",
@@ -322,6 +396,7 @@ function bind(options: BindingOptions) {
         KeyV: "paste",
         KeyD: "duplicate",
       };
+
       const command = modifier
         ? commands[event.code]
         : event.code === "Escape"
@@ -329,28 +404,37 @@ function bind(options: BindingOptions) {
           : ["Delete", "Backspace"].includes(event.code)
             ? "delete"
             : undefined;
+
       if (command) {
         event.preventDefault();
+
         if (
           command === "clear" &&
           (drawingPointerId() !== null || navigation.pointerId !== null)
         )
           cancel();
         else selectionCommand(command);
+
         updateCursor();
+
         return;
       }
+
       const nudge = BoardShortcuts.selectionNudgeShortcut(event, {
         editable,
         inkPointerId: drawingPointerId(),
         panPointerId: navigation.pointerId,
       });
+
       if (nudge && getTool() === "selection" && selection.hasSelection) {
         event.preventDefault();
+
         if (!nudge.blocked) selection.nudge(nudge.x, nudge.y);
+
         return;
       }
     }
+
     const shortcut = BoardShortcuts.historyShortcut(event, {
       editable: Boolean(
         target?.closest('input:not([type="range"]),textarea,select') ||
@@ -359,11 +443,15 @@ function bind(options: BindingOptions) {
       inkPointerId: drawingPointerId(),
       panPointerId: navigation.pointerId,
     });
+
     if (shortcut) {
       event.preventDefault();
+
       if (!shortcut.blocked) applyHistory(shortcut.action);
+
       return;
     }
+
     if (
       event.code !== "Space" ||
       event.ctrlKey ||
@@ -371,43 +459,57 @@ function bind(options: BindingOptions) {
       event.altKey
     )
       return;
+
     if (
       target?.closest(
         'input:not([type="range"]),textarea,select,[contenteditable]',
       )
     )
       return;
+
     if (!target?.closest('button,summary,input[type="range"]'))
       event.preventDefault();
+
     spaceDown = true;
     updateCursor();
   };
+
   const keyUp = (event: KeyboardEvent) => {
     if (event.code.startsWith("Arrow")) selection.finishNudge();
+
     if (event.code !== "Space") return;
+
     spaceDown = false;
     updateCursor();
   };
+
   const blur = () => {
     focused = false;
     spaceDown = false;
     cancel();
   };
+
   const focus = () => {
     focused = true;
     refreshCursor();
   };
+
   const visibility = () => {
     if (document.visibilityState === "hidden") blur();
     else focus();
   };
+
   let edgeFrame: number | null = null;
   let edgeTime = performance.now();
+
   const edgeTick = (time: number) => {
     edgeFrame = null;
+
     if (disposed) return;
+
     if (selection.moving && lastCursorEvent) {
       const bounds = canvas.getBoundingClientRect();
+
       selection.edgePan(
         {
           x: lastCursorEvent.clientX - bounds.left,
@@ -416,15 +518,19 @@ function bind(options: BindingOptions) {
         (time - edgeTime) / 1000,
       );
     }
+
     edgeTime = time;
+
     if (selection.moving) edgeFrame = requestAnimationFrame(edgeTick);
   };
+
   const startEdge = () => {
     if (selection.moving && edgeFrame === null) {
       edgeTime = performance.now();
       edgeFrame = requestAnimationFrame(edgeTick);
     }
   };
+
   canvas.addEventListener("pointerenter", cursorSample);
   canvas.addEventListener("pointerleave", leave);
   canvas.addEventListener("focus", focusCanvas);
@@ -448,6 +554,7 @@ function bind(options: BindingOptions) {
   return {
     cancel,
     refresh: refreshCursor,
+
     dispose: () => {
       disposed = true;
       canvas.removeEventListener("pointerenter", cursorSample);
@@ -470,11 +577,16 @@ function bind(options: BindingOptions) {
       window.removeEventListener("keyup", keyUp);
 
       cancel();
+
       if (edgeFrame !== null) cancelAnimationFrame(edgeFrame);
+
       if (cursorFrame !== null) cancelAnimationFrame(cursorFrame);
+
       delete canvas.dataset.appCursorReady;
+
       if (cursorLayer) cursorLayer.hidden = true;
     },
   };
 }
+
 export const SurfaceBindings = { bind };

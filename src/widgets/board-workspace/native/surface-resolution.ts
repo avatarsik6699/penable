@@ -1,6 +1,7 @@
 import type { InputDiagnostics } from "../model/types";
 import { BoardCoordinates } from "~/entities/board";
 import type { CanvasRenderer } from "./renderer";
+
 function bind(
   canvas: HTMLCanvasElement,
   renderer: CanvasRenderer,
@@ -10,15 +11,19 @@ function bind(
   const visualViewport = window.visualViewport;
   let dprQuery: MediaQueryList | undefined;
   let watchedDpr = -1;
+
   const resize = () => {
     const bounds = canvas.getBoundingClientRect();
     const dpr = BoardCoordinates.validDpr(window.devicePixelRatio);
     const nativeScale = BoardCoordinates.validDpr(visualViewport?.scale ?? 1);
+
     if (renderer.needsResize(bounds.width, bounds.height, dpr, nativeScale)) {
       cancel();
       renderer.resize(bounds.width, bounds.height, dpr, nativeScale);
     }
+
     const resolution = renderer.resolution;
+
     resolved({
       dpr,
       nativeScale,
@@ -28,6 +33,7 @@ function bind(
       bitmapHeight: resolution.height,
       resolutionCapped: resolution.capped,
     });
+
     if (watchedDpr !== dpr && typeof window.matchMedia === "function") {
       dprQuery?.removeEventListener("change", resize);
       watchedDpr = dpr;
@@ -35,6 +41,7 @@ function bind(
       dprQuery.addEventListener("change", resize);
     }
   };
+
   const observer =
     typeof ResizeObserver === "function" ? new ResizeObserver(resize) : null;
 
@@ -47,6 +54,7 @@ function bind(
       const devicePixels =
         typeof ResizeObserverEntry !== "undefined" &&
         "devicePixelContentBoxSize" in ResizeObserverEntry.prototype;
+
       observer.observe(canvas, {
         box: devicePixels ? "device-pixel-content-box" : "content-box",
       });
@@ -54,7 +62,9 @@ function bind(
       observer.observe(canvas);
     }
   }
+
   resize();
+
   return () => {
     window.removeEventListener("resize", resize);
     visualViewport?.removeEventListener("resize", resize);
@@ -62,4 +72,5 @@ function bind(
     dprQuery?.removeEventListener("change", resize);
   };
 }
+
 export const SurfaceResolution = { bind };

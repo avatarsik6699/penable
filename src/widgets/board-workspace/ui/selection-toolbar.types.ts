@@ -1,5 +1,6 @@
 import type { SelectionCommand, SelectionState } from "../model/types";
 import type { SelectionShape } from "~/entities/board";
+
 export namespace SelectionToolbarTypes {
   export type Props = {
     state: SelectionState;

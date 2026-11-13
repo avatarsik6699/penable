@@ -4,6 +4,7 @@ import type React from "react";
 import { useEffect, useRef } from "react";
 import { EditorRuntime, type EditorHandle } from "../native/editor-runtime";
 import type { WritingSurfaceTypes } from "./writing-surface.types";
+
 export const WritingSurface: React.FC<WritingSurfaceTypes.Props> = (props) => {
   const elements = useRef<SurfaceElements>({
     canvas: null,
@@ -13,32 +14,40 @@ export const WritingSurface: React.FC<WritingSurfaceTypes.Props> = (props) => {
     cursor: null,
     focusBadge: null,
   });
+
   const settings = useRef(props);
   const runtime = useRef<EditorHandle | null>(null);
+
   useEffect(
     function settingsFx() {
       settings.current = props;
     },
     [props],
   );
+
   useEffect(function editorGenerationFx() {
     const editor = EditorRuntime.create(
       elements.current,
       () => settings.current,
     );
+
     runtime.current = editor;
+
     return () => {
       editor.dispose();
       runtime.current = null;
     };
   }, []);
+
   useEffect(
     function presentationFx() {
       if (props.modalOpen) runtime.current?.cancel();
+
       runtime.current?.refresh();
     },
     [props.tool, props.modalOpen, props.uiRevision],
   );
+
   return (
     <section
       data-testid="board-surface"

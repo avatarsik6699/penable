@@ -8,6 +8,7 @@ export const SelectionToolbar: React.FC<SelectionToolbarTypes.Props> = (
   props,
 ) => {
   const toolbar = useSelectionToolbar(props);
+
   return (
     <div
       ref={(node) => {

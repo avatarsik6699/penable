@@ -1,5 +1,6 @@
 import { BoardRegions } from "./regions";
 import type { BoardSnapshot, Stroke } from "./types";
+
 function empty(): BoardSnapshot {
   return {
     strokes: [],
@@ -8,6 +9,7 @@ function empty(): BoardSnapshot {
     tools: { width: 3, stabilization: 65 },
   };
 }
+
 function clone(document: BoardSnapshot): BoardSnapshot {
   return {
     strokes: document.strokes.map((stroke) => {
@@ -22,16 +24,22 @@ function clone(document: BoardSnapshot): BoardSnapshot {
           time: point.time,
         })),
       };
+
       if (stroke.stabilization) {
         const profile = stroke.stabilization;
+
         result.stabilization =
           profile.strength !== undefined
             ? { strength: profile.strength, captureZoom: profile.captureZoom }
             : { mode: profile.mode, captureZoom: profile.captureZoom };
       }
+
       if (stroke.source !== undefined) result.source = stroke.source;
+
       if (stroke.translation) result.translation = { ...stroke.translation };
+
       if (stroke.clip) result.clip = BoardRegions.cloneMask(stroke.clip);
+
       return result;
     }),
     viewport: {
@@ -46,4 +54,5 @@ function clone(document: BoardSnapshot): BoardSnapshot {
     },
   };
 }
+
 export const BoardSnapshots = { empty, clone };

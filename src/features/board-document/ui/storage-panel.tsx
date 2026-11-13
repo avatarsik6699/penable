@@ -4,6 +4,7 @@ import type React from "react";
 import type { StoragePanelTypes } from "./storage-panel.types";
 import { useStoragePanel } from "../model/storage-panel-model";
 import { DocumentCodec } from "../model/codec";
+
 const phaseLabels = {
   loading: "Загрузка",
   dirty: "Есть изменения",
@@ -11,8 +12,10 @@ const phaseLabels = {
   saved: "Сохранено",
   error: "Ошибка",
 };
+
 export const StoragePanel: React.FC<StoragePanelTypes.Props> = (props) => {
   const panel = useStoragePanel(props);
+
   return (
     <section
       className={styles["storage-panel"]}

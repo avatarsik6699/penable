@@ -4,8 +4,10 @@ import { DocumentCodec } from "./codec";
 import { type Point, type Stroke, BoardConstants } from "~/entities/board";
 import { BoardGeometry } from "~/entities/board";
 import { BoardStabilization } from "~/entities/board";
+
 function fixture() {
   const document = DocumentCodec.emptyDocument();
+
   document.strokes = [
     {
       id: 7,
@@ -19,23 +21,33 @@ function fixture() {
       ],
     },
   ];
+
   document.viewport = { zoom: 4, x: -50, y: 75 };
   document.background = "grid";
+
   return document;
 }
+
 describe("versioned document codec", () => {
   it.each(["numeric", "legacy", "missing"] as const)(
     "round-trips %s stabilization without changing accepted geometry",
     (profile) => {
       const document = fixture();
+
       if (profile === "legacy")
         document.strokes[0]!.stabilization = { mode: "strong", captureZoom: 2 };
+
       if (profile === "missing") delete document.strokes[0]!.stabilization;
+
       const result = DocumentCodec.serializeDocument(document);
+
       expect(result.warning).toBe("");
+
       const decoded = DocumentCodec.parseDocumentJSON(result.json);
+
       expect(decoded).toEqual(document);
       expect(decoded.strokes[0]).not.toBe(document.strokes[0]);
+
       const path = (stroke: Stroke) =>
         BoardGeometry.strokeGeometry(
           BoardStabilization.stabilizedPositions(
@@ -44,23 +56,31 @@ describe("versioned document codec", () => {
           ),
           stroke.width,
         );
+
       expect(path(decoded.strokes[0]!)).toEqual(path(document.strokes[0]!));
     },
   );
+
   it("reconstructs known fields and strips active pointer metadata from memory snapshots and exports", () => {
     const document = fixture();
+
     Object.assign(document.strokes[0]!, {
       pointerId: 42,
       diagnostics: { pressure: 1 },
     });
+
     const clone = DocumentCodec.cloneDocument(document);
+
     expect(Object.hasOwn(clone.strokes[0]!, "pointerId")).toBe(false);
+
     const json = DocumentCodec.serializeDocument(document).json;
+
     expect(json).not.toContain("pointerId");
     expect(json).not.toContain("diagnostics");
     clone.strokes[0]!.points[0]!.x = 50;
     expect(document.strokes[0]!.points[0]!.x).toBe(0);
   });
+
   it.each([
     { format: "other" },
     { schemaVersion: 3 },
@@ -74,6 +94,7 @@ describe("versioned document codec", () => {
       DocumentCodec.decodeDocument({ ...fixture(), ...replacement }),
     ).toThrow();
   });
+
   it.each([
     { x: NaN },
     { y: Infinity },
@@ -83,28 +104,37 @@ describe("versioned document codec", () => {
     { pressure: 1.1 },
   ])("rejects invalid raw samples %j", (replacement) => {
     const document = fixture();
+
     Object.assign(document.strokes[0]!.points[0]!, replacement);
     expect(() => DocumentCodec.decodeDocument(document)).toThrow();
   });
+
   it("rejects duplicate, noninteger and near-overflow stroke IDs with reserved input headroom", () => {
     const document = fixture();
+
     document.strokes.push(DocumentCodec.cloneDocument(document).strokes[0]!);
     expect(() => DocumentCodec.decodeDocument(document)).toThrow();
+
     for (const id of [0, -1, 1.5, Number.MAX_SAFE_INTEGER - 1]) {
       document.strokes = [{ ...document.strokes[0]!, id }];
       expect(() => DocumentCodec.decodeDocument(document)).toThrow();
     }
+
     document.strokes[0]!.id = BoardLimits.MAX_STROKE_ID;
+
     expect(DocumentCodec.decodeDocument(document).strokes[0]?.id).toBe(
       BoardLimits.MAX_STROKE_ID,
     );
+
     expect(Number.isSafeInteger(BoardLimits.MAX_STROKE_ID + 1000000)).toBe(
       true,
     );
   });
+
   it("rejects ambiguous/out-of-range profiles and empty/sparse arrays from IndexedDB", () => {
     const document = fixture();
     const stroke = document.strokes[0]!;
+
     for (const stabilization of [
       { strength: 65, mode: "light", captureZoom: 1 },
       { strength: 101, captureZoom: 1 },
@@ -118,18 +148,21 @@ describe("versioned document codec", () => {
         }),
       ).toThrow();
     }
+
     expect(() =>
       DocumentCodec.decodeDocument({
         ...document,
         strokes: [{ ...stroke, points: [] }],
       }),
     ).toThrow();
+
     expect(() =>
       DocumentCodec.decodeDocument({
         ...document,
         strokes: new Array<Stroke>(1),
       }),
     ).toThrow();
+
     expect(() =>
       DocumentCodec.decodeDocument({
         ...document,
@@ -137,82 +170,107 @@ describe("versioned document codec", () => {
       }),
     ).toThrow();
   });
+
   it("rejects prototype keys/inherited records instead of assigning untrusted fields", () => {
     const document = fixture();
+
     for (const key of ["__proto__", "constructor", "prototype"]) {
       const payload = JSON.parse(JSON.stringify(document)) as Record<
         string,
         unknown
       >;
+
       Object.defineProperty(payload, key, {
         value: { polluted: true },
         enumerable: true,
       });
+
       expect(() => DocumentCodec.decodeDocument(payload)).toThrow();
     }
+
     expect(() =>
       DocumentCodec.decodeDocument(Object.create(document) as unknown),
     ).toThrow();
+
     expect(Object.hasOwn(Object.prototype, "polluted")).toBe(false);
   });
+
   it("enforces count and byte boundaries without silently truncating the source", () => {
     const document = fixture();
+
     expect(() =>
       DocumentCodec.decodeDocument(document, {
         ...DocumentCodec.DOCUMENT_LIMITS,
         strokes: 0,
       }),
     ).toThrow();
+
     expect(() =>
       DocumentCodec.decodeDocument(document, {
         ...DocumentCodec.DOCUMENT_LIMITS,
         points: 2,
       }),
     ).toThrow();
+
     expect(() =>
       DocumentCodec.decodeDocument(document, {
         ...DocumentCodec.DOCUMENT_LIMITS,
         pointsPerStroke: 2,
       }),
     ).toThrow();
+
     expect(() =>
       DocumentCodec.decodeDocument(document, {
         ...DocumentCodec.DOCUMENT_LIMITS,
         bytes: 10,
       }),
     ).toThrow();
+
     expect(document.strokes[0]?.points).toHaveLength(3);
   });
+
   it("exports all memory with an explicit unsupported-round-trip warning when outside format limits", () => {
     const document = fixture();
+
     document.strokes[0]!.points[0]!.x = 1e9 + 1;
+
     const exported = DocumentCodec.serializeDocument(document);
+
     expect(exported.warning).toContain("Обратный импорт");
+
     const raw = JSON.parse(exported.json) as typeof document;
+
     expect(raw.strokes[0]?.points).toHaveLength(3);
     expect(raw.strokes[0]?.points[0]?.x).toBe(1e9 + 1);
     expect(() => DocumentCodec.parseDocumentJSON(exported.json)).toThrow();
   });
 });
+
 describe("raw backup JSON compatibility", () => {
   it("downloads valid documents and JSON-compatible corrupt records without rewriting their values", () => {
     const document = fixture();
+
     expect(JSON.parse(DocumentCodec.serializeRawBackup(document))).toEqual(
       document,
     );
+
     const raw = {
       format: "foreign",
       values: [null, true, 4.5, "text", { nested: "value" }],
     };
+
     expect(JSON.parse(DocumentCodec.serializeRawBackup(raw))).toEqual(raw);
+
     const nullPrototype = Object.assign(
       Object.create(null) as Record<string, unknown>,
       { value: 12 },
     );
+
     expect(JSON.parse(DocumentCodec.serializeRawBackup(nullPrototype))).toEqual(
       { value: 12 },
     );
   });
+
   it.each([
     ["undefined", undefined],
     ["NaN", NaN],
@@ -233,43 +291,60 @@ describe("raw backup JSON compatibility", () => {
       );
     },
   );
+
   it("refuses cycles/aliases and JSON-dropped own data while leaving the original raw graph intact", () => {
     const cycle: Record<string, unknown> = { value: 1 };
+
     cycle.self = cycle;
     expect(() => DocumentCodec.serializeRawBackup(cycle)).toThrow();
     expect(cycle.self).toBe(cycle);
+
     const alias = { value: 1 };
+
     expect(() =>
       DocumentCodec.serializeRawBackup({ a: alias, b: alias }),
     ).toThrow();
+
     const array = [1, 2];
+
     Object.defineProperty(array, "extra", { value: "keep", enumerable: true });
     expect(() => DocumentCodec.serializeRawBackup(array)).toThrow();
+
     const hidden = {};
+
     Object.defineProperty(hidden, "value", { value: 7, enumerable: false });
     expect(() => DocumentCodec.serializeRawBackup(hidden)).toThrow();
   });
+
   it("does not invoke getters or toJSON while deciding whether a raw copy is safe", () => {
     let calls = 0;
+
     const getter = Object.defineProperty({}, "value", {
       enumerable: true,
+
       get: () => {
         calls++;
+
         return 1;
       },
     });
+
     expect(() => DocumentCodec.serializeRawBackup(getter)).toThrow();
+
     expect(() =>
       DocumentCodec.serializeRawBackup({
         toJSON: () => {
           calls++;
+
           return {};
         },
       }),
     ).toThrow();
+
     expect(calls).toBe(0);
   });
 });
+
 describe("schema2 fragments and schema1 compatibility", () => {
   const clip = [
     [
@@ -282,13 +357,17 @@ describe("schema2 fragments and schema1 compatibility", () => {
       ],
     ],
   ];
+
   it("reads schema1 without changing its original accepted source geometry", () => {
     const original = { ...fixture(), schemaVersion: 1 };
+
     expect(DocumentCodec.decodeDocument(original)).toEqual(original);
   });
+
   it("round-trips shared sources as independent JSON trees with masks and translations", () => {
     const document = fixture(),
       original = document.strokes[0]!;
+
     document.strokes = [
       {
         ...original,
@@ -298,11 +377,15 @@ describe("schema2 fragments and schema1 compatibility", () => {
       },
       { ...original, id: 8, source: "source1", clip: clip as Stroke["clip"] },
     ];
+
     const result = DocumentCodec.parseDocumentJSON(
       DocumentCodec.serializeDocument(document).json,
     );
+
     expect(result).toEqual(document);
+
     const [a, b] = result.strokes;
+
     expect(a!.points).not.toBe(b!.points);
     expect(a!.clip).not.toBe(b!.clip);
     a!.points[0]!.x = 90;
@@ -310,9 +393,11 @@ describe("schema2 fragments and schema1 compatibility", () => {
     expect(b!.points[0]!.x).toBe(0);
     expect(document.strokes[0]!.clip![0]![0]![0]![0]).toBe(0);
   });
+
   it("rejects missing lineage, inconsistent source geometry, invalid offsets and malformed topology", () => {
     const document = fixture(),
       original = document.strokes[0]!;
+
     for (const replacement of [
       { clip },
       { source: "../bad" },
@@ -352,6 +437,7 @@ describe("schema2 fragments and schema1 compatibility", () => {
         }),
       ).toThrow();
     }
+
     expect(() =>
       DocumentCodec.decodeDocument({
         ...document,
@@ -362,13 +448,16 @@ describe("schema2 fragments and schema1 compatibility", () => {
       }),
     ).toThrow("исходная геометрия");
   });
+
   it("counts repeated source points against document limits", () => {
     const document = fixture(),
       original = document.strokes[0]!;
+
     document.strokes = [
       { ...original, source: "source" },
       { ...original, id: 8, source: "source" },
     ];
+
     expect(() =>
       DocumentCodec.decodeDocument(document, {
         ...DocumentCodec.DOCUMENT_LIMITS,
@@ -376,21 +465,27 @@ describe("schema2 fragments and schema1 compatibility", () => {
       }),
     ).toThrow("общий предел");
   });
+
   it("rejects mask and document vertex limits without truncating masks", () => {
     const document = fixture(),
       original = document.strokes[0]!;
+
     const ring = Array.from({ length: 8192 }, (_, i) => [
       Math.cos((i * Math.PI) / 4096) * 10,
       Math.sin((i * Math.PI) / 4096) * 10,
     ]);
+
     ring.push([...ring[0]!]);
+
     expect(() =>
       DocumentCodec.decodeDocument({
         ...document,
         strokes: [{ ...original, source: "source", clip: [[ring]] }],
       }),
     ).toThrow("8192");
+
     expect(ring).toHaveLength(8193);
+
     // Rectangular masks are normalized; many items still count every repeated vertex.
     const strokes = Array.from({ length: 20000 }, (_, i) => ({
       ...original,
@@ -409,6 +504,7 @@ describe("schema2 fragments and schema1 compatibility", () => {
         ],
       ],
     }));
+
     expect(() =>
       DocumentCodec.decodeDocument({ ...document, strokes }),
     ).toThrow("100000");

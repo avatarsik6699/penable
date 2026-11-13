@@ -11,8 +11,10 @@ export const testBoards = {
       tools: { width: 3, stabilization: 65 },
     };
   },
+
   legacy(): TestBoardTypes.Document {
     const result = testBoards.document(1);
+
     result.strokes = [
       {
         id: 7,
@@ -26,10 +28,13 @@ export const testBoards = {
         stabilization: { mode: "light", captureZoom: 1 },
       },
     ];
+
     return result;
   },
+
   heavy(): TestBoardTypes.Document {
     const result = testBoards.document();
+
     result.strokes = [
       {
         id: 1,
@@ -44,8 +49,10 @@ export const testBoards = {
         stabilization: { strength: 65, captureZoom: 1 },
       },
     ];
+
     return result;
   },
+
   previous(): TestBoardTypes.Document {
     return { ...testBoards.document(), background: "grid" };
   },

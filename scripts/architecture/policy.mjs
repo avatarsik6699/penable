@@ -57,4 +57,5 @@ export const platformOwners = {
 
 export const layers = ["app", "widgets", "features", "entities", "shared"];
 export const isolatedLayers = new Set(["widgets", "features", "entities"]);
+
 export const isTest = (file) => /\.(?:test|spec)\.[cm]?[jt]sx?$/.test(file);

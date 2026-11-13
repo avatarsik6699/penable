@@ -65,7 +65,7 @@ A focused build is appropriate when establishing/changing build configuration.
 | Frontend build | npm run build | TypeScript followed by Vite static build |
 | Pages build | npm run build:pages | Separate production build with /penable/ asset base; final dist is Pages artifact |
 | Frontend unit tests | npm run test:unit | Includes input ownership/cancellation and coordinate transforms |
-| E2E lint / determinism | npm run lint; npm run format:check | AST policies cover spec/fixture/Page Object ownership; self-tests included |
+| E2E lint / determinism | npm run lint; npm run format:check | AST policies cover spec/fixture/Page Object ownership; spacing and self-tests included |
 | E2E suite | npm run test:e2e:run | After build:pages; owns strict4185 preview and isolated Chromium contexts; run test:e2e:install once |
 | Smoke | npm run dev; npm run preview:pages | Playwriter: active change scenarios; change07 verifies production /penable/ assets/input/storage at port4173; hardware acceptance is separate |
 | SAST | npm run lint | Correctness-focused static analysis; not a dedicated security audit |
@@ -355,3 +355,16 @@ legacy source via PENABLE_BENCH_SOURCE or current layered APIs through supported
 no engine copy. Preserve672 native raster comparisons. Run three alternating before/after pairs;
 per fixture median p95 must be <=max(1ms,baseline*1.2), with no attributable >=50ms ordinary tasks.
 These measurements describe CPU/RAF batches, not physical pen latency or GPU retained memory.
+
+
+## Change12 — Code spacing
+
+FRONTEND defines readable blank-line boundaries. Existing npm run format commands first normalize
+with Prettier, apply scripts/formatting/spacing.mjs, then rerun Prettier; only whitespace is inserted.
+The syntax-aware pass separates module sections, class actions/methods and logical statement groups,
+leaving compact data/declaration/assignment groups and overloads intact. It preserves comment
+ownership and literal contents. CSS rule spacing is preserved by Prettier and source convention.
+
+`npm run lint:spacing` checks JS/TS structural spacing; `npm run test:spacing` tests preservation,
+comments, overloads and idempotence. Both are included in npm run lint; npm run format:check also
+checks spacing. No extra dependency or application runtime change.

@@ -15,61 +15,77 @@ const portable = new Set([
   "atob",
   "btoa",
 ]);
+
 export function capability(name) {
   if (portable.has(name)) return undefined;
+
   if (
     /^(?:setTimeout|clearTimeout|setInterval|clearInterval|queueMicrotask|TimerHandler|scheduler|Scheduler)$/.test(
       name,
     )
   )
     return "timers";
+
   if (
     /^(?:requestAnimationFrame|cancelAnimationFrame|FrameRequestCallback)$/.test(
       name,
     )
   )
     return "frames";
+
   if (
     /^(?:Path2D|Canvas.*|OffscreenCanvas.*|ImageData|ImageBitmap.*|createImageBitmap)$/.test(
       name,
     )
   )
     return "canvas";
+
   if (
     /^(?:IDB.*|indexedDB|Storage|storage|localStorage|sessionStorage|CacheStorage|caches)$/.test(
       name,
     )
   )
     return "storage";
+
   if (
     /^(?:locks|Lock|LockManager|LockMode|LockOptions|LockGrantedCallback)$/.test(
       name,
     )
   )
     return "locks";
+
   if (/^(?:clipboard|Clipboard.*)$/.test(name)) return "clipboard";
+
   if (/^(?:Blob.*|File.*)$/.test(name)) return "files";
+
   if (/^(?:URL|URLSearchParams)$/.test(name)) return "url";
+
   if (/^(?:Worker|WorkerOptions|SharedWorker)$/.test(name)) return "worker";
+
   if (
     /^(?:DedicatedWorkerGlobalScope|WorkerGlobalScope|self|postMessage|importScripts|close)$/.test(
       name,
     )
   )
     return "worker-scope";
+
   if (/^(?:Message.*|Transferable|StructuredSerializeOptions)$/.test(name))
     return "messaging";
+
   if (/^(?:performance|Performance.*)$/.test(name)) return "clock";
+
   return "dom";
 }
 
 function isReference(node) {
   const parent = node.parent;
+
   if (
     (ts.isPropertyAccessExpression(parent) || ts.isQualifiedName(parent)) &&
     parent.name === node
   )
     return false;
+
   if (
     (ts.isPropertyAssignment(parent) ||
       ts.isPropertySignature(parent) ||
@@ -79,6 +95,7 @@ function isReference(node) {
     !ts.isComputedPropertyName(parent.name)
   )
     return false;
+
   if (
     (ts.isVariableDeclaration(parent) ||
       ts.isParameter(parent) ||
@@ -90,6 +107,7 @@ function isReference(node) {
     parent.name === node
   )
     return false;
+
   if (
     ts.isImportSpecifier(parent) ||
     ts.isExportSpecifier(parent) ||
@@ -97,11 +115,13 @@ function isReference(node) {
     ts.isNamespaceImport(parent)
   )
     return false;
+
   return true;
 }
 
 const isAccess = (node) =>
   ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node);
+
 const memberName = (node) =>
   ts.isPropertyAccessExpression(node)
     ? node.name.text
@@ -110,14 +130,17 @@ const memberName = (node) =>
         ts.isStringLiteralLike(node.argumentExpression)
       ? node.argumentExpression.text
       : undefined;
+
 const memberNode = (node) =>
   ts.isPropertyAccessExpression(node) ? node.name : node.argumentExpression;
+
 const browserSymbol = (symbol) =>
   symbol?.declarations?.some((declaration) =>
     /\/lib\.(?:dom|webworker)(?:\.[\w-]+)?\.d\.ts$/.test(
       declaration.getSourceFile().fileName.replaceAll("\\", "/"),
     ),
   );
+
 const namespaceMembers = [
   "window",
   "self",
@@ -131,8 +154,10 @@ const namespaceMembers = [
   "locks",
   "storage",
 ];
+
 const browserNamespace = (type) =>
   namespaceMembers.some((name) => browserSymbol(type.getProperty(name)));
+
 const unwrap = (expression) => {
   while (
     ts.isParenthesizedExpression(expression) ||
@@ -142,16 +167,19 @@ const unwrap = (expression) => {
     ts.isSatisfiesExpression(expression)
   )
     expression = expression.expression;
+
   return expression;
 };
 
 function bindingName(node) {
   if (ts.isIdentifier(node) || ts.isStringLiteralLike(node)) return node.text;
+
   if (
     ts.isComputedPropertyName(node) &&
     ts.isStringLiteralLike(node.expression)
   )
     return node.expression.text;
+
   return undefined;
 }
 
@@ -165,10 +193,13 @@ export function checkPlatform(
   for (const [file, source] of context.sources) {
     if (!file.startsWith("src/") || isTest(file) || file.endsWith(".d.ts"))
       continue;
+
     const allowed = new Set(owners[file] ?? []);
     const emitted = new Set();
+
     const check = (name, node) => {
       let required = capability(name);
+
       // Navigator only exposes the purpose owned by this adapter. Other DOM use
       // still requires dom; a lock adapter cannot silently acquire clipboard access.
       if (name === "navigator") {
@@ -176,10 +207,12 @@ export function checkPlatform(
           isAccess(node.parent) && memberNode(node.parent) === node
             ? node.parent
             : node;
+
         const member =
           isAccess(access.parent) && access.parent.expression === access
             ? memberName(access.parent)
             : undefined;
+
         // Static binding elements are checked individually below, including aliases
         // and nested patterns; acquiring a clipboard binding needs only clipboard.
         if (
@@ -188,6 +221,7 @@ export function checkPlatform(
           ts.isObjectBindingPattern(access.parent.name)
         )
           return;
+
         required =
           member === "locks"
             ? "locks"
@@ -195,10 +229,15 @@ export function checkPlatform(
               ? "clipboard"
               : "dom";
       }
+
       if (!required) return;
+
       const key = `${node.pos}:${required}`;
+
       if (emitted.has(key)) return;
+
       emitted.add(key);
+
       if (
         workerFiles.has(file) &&
         ["dom", "canvas", "frames", "clipboard", "worker"].includes(required)
@@ -209,6 +248,7 @@ export function checkPlatform(
           "worker-platform",
           `Worker graph cannot reference ${name} (${required}).`,
         );
+
       if (entityFiles.has(file))
         report(
           file,
@@ -224,9 +264,11 @@ export function checkPlatform(
           `${name} requires the exact owning ${required} adapter.`,
         );
     };
+
     const checkBinding = (binding, type) => {
       for (const element of binding.elements) {
         const name = bindingName(element.propertyName ?? element.name);
+
         if (element.dotDotDotToken || !name) {
           if (browserNamespace(type))
             report(
@@ -235,15 +277,20 @@ export function checkPlatform(
               "global-escape",
               "Use explicit native capability bindings instead of namespace rest or computed bindings.",
             );
+
           continue;
         }
+
         const property = type.getProperty(name);
+
         if (!property) continue;
+
         if (
           browserSymbol(property) &&
           (browserNamespace(type) || namespaceMembers.includes(name))
         )
           check(name, element.propertyName ?? element.name);
+
         if (ts.isObjectBindingPattern(element.name))
           checkBinding(
             element.name,
@@ -251,9 +298,11 @@ export function checkPlatform(
           );
       }
     };
+
     visit(source, (node) => {
       if (ts.isObjectBindingPattern(node)) {
         const declaration = node.parent;
+
         if (ts.isVariableDeclaration(declaration) && declaration.initializer)
           checkBinding(
             node,
@@ -262,10 +311,12 @@ export function checkPlatform(
         else if (ts.isParameter(declaration))
           checkBinding(node, context.checker.getTypeAtLocation(declaration));
       }
+
       if (isAccess(node)) {
         const base = unwrap(node.expression);
         const type = context.checker.getTypeAtLocation(base);
         const name = memberName(node);
+
         if (!name) {
           if (browserNamespace(type))
             report(
@@ -276,6 +327,7 @@ export function checkPlatform(
             );
         } else {
           const property = type.getProperty(name);
+
           if (
             browserSymbol(property) &&
             (browserNamespace(type) || namespaceMembers.includes(name))
@@ -283,6 +335,7 @@ export function checkPlatform(
             check(name, memberNode(node));
         }
       }
+
       if (
         (ts.isSpreadAssignment(node) &&
           browserNamespace(
@@ -301,18 +354,25 @@ export function checkPlatform(
           "global-escape",
           "Do not spread or assign browser namespaces through an implicit capability binding.",
         );
+
       if (!ts.isIdentifier(node)) return;
+
       if (!isReference(node)) return;
+
       const symbol = ts.isShorthandPropertyAssignment(node.parent)
         ? context.checker.getShorthandAssignmentValueSymbol(node.parent)
         : context.checker.getSymbolAtLocation(node);
+
       const declarations = symbol?.declarations ?? [];
+
       const browserGlobal = declarations.some((declaration) =>
         /\/lib\.(?:dom|webworker)(?:\.[\w-]+)?\.d\.ts$/.test(
           declaration.getSourceFile().fileName.replaceAll("\\", "/"),
         ),
       );
+
       if (browserGlobal) check(node.text, node);
+
       // Access through globalThis must not bypass normal identifier ownership.
       if (
         node.text === "globalThis" &&
@@ -321,6 +381,7 @@ export function checkPlatform(
         if (ts.isPropertyAccessExpression(node.parent)) {
           const name = node.parent.name.text;
           const member = context.checker.getSymbolAtLocation(node.parent.name);
+
           if (
             member?.declarations?.some((declaration) =>
               /\/lib\.(?:dom|webworker).*\.d\.ts$/.test(
@@ -335,9 +396,11 @@ export function checkPlatform(
           ts.isStringLiteralLike(node.parent.argumentExpression)
         ) {
           const name = node.parent.argumentExpression.text;
+
           const member = context.checker
             .getTypeAtLocation(node)
             .getProperty(name);
+
           if (
             member?.declarations?.some((declaration) =>
               /\/lib\.(?:dom|webworker).*\.d\.ts$/.test(

@@ -1,6 +1,7 @@
 import { BoardCoordinates } from "~/entities/board";
 import { DocumentDownloads, DocumentSessions } from "~/features/board-document";
 import { WorkspaceModel } from "../model/workspace-model";
+
 function create(): WorkspaceModel {
   return new WorkspaceModel({
     session: DocumentSessions.create,
@@ -23,4 +24,5 @@ function create(): WorkspaceModel {
     },
   });
 }
+
 export const WorkspacePlatform = { create };

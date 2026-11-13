@@ -10,6 +10,7 @@ import type {
   StoredRecord,
   WriterLease,
 } from "./types";
+
 export type SessionOptions = {
   snapshot: () => BoardSnapshot;
   // Internal completed-source contract; injected/default adapters retain strict synchronous detachment.
@@ -19,6 +20,7 @@ export type SessionOptions = {
   acquire: () => Promise<WriterLease>;
   open: (invalidated: (message: string) => void) => Promise<DocumentRepository>;
 };
+
 export class DocumentSession {
   private repository: DocumentRepository | null = null;
   private lease: WriterLease | null = null;
@@ -43,7 +45,9 @@ export class DocumentSession {
   private timer: ReturnType<typeof TaskClock.schedule> | undefined;
   private maxTimer: ReturnType<typeof TaskClock.schedule> | undefined;
   private lastPublished: StorageState | null = null;
+
   constructor(private readonly options: SessionOptions) {}
+
   get canWrite(): boolean {
     return (
       !this.disposed &&
@@ -53,6 +57,7 @@ export class DocumentSession {
       !this.importing
     );
   }
+
   get canImport(): boolean {
     return (
       !this.disposed &&
@@ -62,6 +67,7 @@ export class DocumentSession {
       !this.importing
     );
   }
+
   get hasUnsaved(): boolean {
     return (
       (this.loaded && this.revision > this.savedRevision) ||
@@ -69,6 +75,7 @@ export class DocumentSession {
       this.importing
     );
   }
+
   get state(): StorageState {
     return {
       phase: this.phase,
@@ -87,47 +94,66 @@ export class DocumentSession {
       message: this.message || this.lease?.message || "",
     };
   }
+
   get upgradeRecord(): StoredRecord {
     return this.upgrade;
   }
+
   get previousRecord(): StoredRecord {
     return this.previous;
   }
+
   start(): Promise<void> {
     if (!this.startup) this.startup = this.boot();
+
     return this.startup;
   }
+
   private async boot() {
     if (this.disposed) return;
+
     this.publish();
+
     try {
       this.lease = await this.options.acquire();
+
       if (this.disposed) return;
+
       this.repository = await this.options.open((message) => {
         this.fatal = true;
         this.paused = true;
         this.clearTimers();
         this.phase = "error";
+
         this.message =
           message +
           (this.hasUnsaved
             ? " Скачайте изменения из памяти и затем перезагрузите страницу."
             : "");
+
         this.publish();
       });
+
       if (this.disposed) return;
+
       const records = await this.repository.read();
+
       if (this.disposed || this.fatal) return;
+
       this.rawMain = records.main;
       this.previous = records.beforeImport;
+
       this.upgrade = records.beforeSchema2 ?? {
         exists: false,
         value: undefined,
       };
+
       this.rawLoaded = true;
+
       const document = records.main.exists
         ? DocumentCodec.decodeDocument(records.main.value)
         : DocumentCodec.emptyDocument();
+
       this.loaded = true;
       this.options.onHydrate(DocumentSnapshots.toSnapshot(document));
       this.phase = "saved";
@@ -138,29 +164,38 @@ export class DocumentSession {
       this.publish();
     }
   }
+
   changed(urgent = false) {
     if (!this.canWrite) return;
+
     this.revision++;
+
     if (this.paused) {
       this.publish();
+
       return;
     }
+
     this.phase = this.writing ? "saving" : "dirty";
     this.publish();
     TaskClock.cancel(this.timer);
+
     this.timer = TaskClock.schedule(
       () => {
         void this.flush();
       },
       urgent ? 0 : 300,
     );
+
     if (this.maxTimer === undefined)
       this.maxTimer = TaskClock.schedule(() => {
         void this.flush();
       }, 1500);
   }
+
   flush(): Promise<void> {
     this.clearTimers();
+
     if (
       !this.canWrite ||
       this.paused ||
@@ -168,9 +203,12 @@ export class DocumentSession {
       this.flushQueued
     )
       return this.tail;
+
     this.flushQueued = true;
+
     this.tail = this.tail.then(async () => {
       this.flushQueued = false;
+
       if (
         !this.canWrite ||
         this.paused ||
@@ -178,9 +216,12 @@ export class DocumentSession {
         this.revision <= this.savedRevision
       )
         return;
+
       const revision = this.revision;
+
       try {
         const live = DocumentSnapshots.fromSnapshot(this.options.snapshot());
+
         const snapshot = this.options.persistence
           ? {
               ...live,
@@ -193,20 +234,26 @@ export class DocumentSession {
               ...DocumentCodec.decodeDocument(live),
               schemaVersion: 2 as const,
             };
+
         this.writing = true;
         this.phase = "saving";
         this.publish();
+
         if (this.options.persistence)
           await this.options.persistence.write(snapshot);
         else await this.repository.write(snapshot);
+
         this.writing = false;
+
         if (this.disposed || this.fatal) return;
+
         if (
           !this.upgrade.exists &&
           this.rawMain.exists &&
           isSchema1(this.rawMain.value)
         )
           this.upgrade = this.rawMain;
+
         this.savedRevision = revision;
         this.rawMain = { exists: true, value: snapshot };
         this.phase = this.revision === revision ? "saved" : "dirty";
@@ -216,22 +263,29 @@ export class DocumentSession {
         this.paused = true;
         this.clearTimers();
         this.phase = "error";
+
         this.message =
           messageOf(error) +
           " Изменения остаются в памяти; скачайте копию или повторите сохранение.";
       }
+
       this.publish();
     });
+
     return this.tail;
   }
+
   retrySave(): Promise<void> {
     if (!this.canWrite) return Promise.resolve();
+
     this.paused = false;
     this.message = "";
     this.phase = this.revision > this.savedRevision ? "dirty" : "saved";
     this.publish();
+
     return this.flush();
   }
+
   replace(candidate: BoardDocument, isBusy: () => boolean): Promise<void> {
     if (!this.canImport || isBusy())
       return Promise.reject(
@@ -239,7 +293,9 @@ export class DocumentSession {
           "Замена сейчас недоступна. Завершите письмо или перемещение.",
         ),
       );
+
     let document: BoardDocument;
+
     try {
       document = {
         ...DocumentCodec.decodeDocument(candidate),
@@ -248,30 +304,39 @@ export class DocumentSession {
     } catch (error) {
       return Promise.reject(error);
     }
+
     this.importing = true;
     this.clearTimers();
     this.publish();
+
     const preceding = this.tail;
+
     const replacement = (async () => {
       try {
         await preceding;
+
         if (this.disposed || this.fatal || !this.repository)
           throw new Error(
             "Подключение к хранилищу изменилось. Замена не выполнена.",
           );
+
         const previous = this.loaded
           ? DocumentCodec.cloneDocument(
               DocumentSnapshots.fromSnapshot(this.options.snapshot()),
             )
           : this.rawMain.value;
+
         await this.repository.replace(previous, document);
+
         if (this.disposed || this.fatal) return;
+
         if (
           !this.upgrade.exists &&
           this.rawMain.exists &&
           isSchema1(this.rawMain.value)
         )
           this.upgrade = this.rawMain;
+
         this.previous = { exists: true, value: previous };
         this.rawMain = { exists: true, value: document };
         this.loaded = true;
@@ -286,40 +351,53 @@ export class DocumentSession {
         this.paused = true;
         this.phase = "error";
         this.message = "Замена не выполнена. " + messageOf(error);
+
         throw error;
       } finally {
         this.importing = false;
         this.publish();
       }
     })();
+
     this.tail = replacement.catch(() => {});
+
     return replacement;
   }
+
   dispose(): Promise<void> {
     if (this.disposal) return this.disposal;
+
     this.disposed = true;
     this.clearTimers();
+
     this.disposal = (async () => {
       await this.startup?.catch(() => {});
       await this.tail;
+
       await Promise.allSettled([
         this.options.persistence?.close(),
         this.repository?.close(),
       ]);
+
       await this.lease?.release();
     })();
+
     return this.disposal;
   }
+
   private clearTimers() {
     TaskClock.cancel(this.timer);
     TaskClock.cancel(this.maxTimer);
     this.timer = undefined;
     this.maxTimer = undefined;
   }
+
   private publish() {
     if (this.disposed) return;
+
     const state = this.state;
     const previous = this.lastPublished;
+
     if (
       previous &&
       previous.phase === state.phase &&
@@ -334,15 +412,18 @@ export class DocumentSession {
       previous.message === state.message
     )
       return;
+
     this.lastPublished = state;
     this.options.onState(state);
   }
 }
+
 function messageOf(error: unknown): string {
   return error instanceof Error
     ? error.message
     : "Неизвестная ошибка хранилища.";
 }
+
 function isSchema1(value: unknown): boolean {
   return Boolean(
     value &&

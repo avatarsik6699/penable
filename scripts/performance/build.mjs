@@ -9,14 +9,18 @@ const source = resolve(process.env.PENABLE_BENCH_SOURCE || "src");
 const out = resolve(process.env.PENABLE_BENCH_OUT || ".artifacts/performance");
 const legacy = existsSync(resolve(source, "drawing"));
 const hash = createHash("sha256");
+
 for (const file of (await readdir(source, { recursive: true }))
   .filter((file) => /\.tsx?$/.test(file) && !file.endsWith(".test.ts"))
   .sort()) {
   hash.update(file);
   hash.update(await readFile(resolve(source, file)));
 }
+
 const sourceHash = hash.digest("hex");
+
 await mkdir(out, { recursive: true });
+
 await build({
   configFile: false,
   logLevel: "warn",
@@ -44,10 +48,12 @@ await build({
     },
   },
 });
+
 await writeFile(
   resolve(out, "index.html"),
   `<!doctype html><html lang="en"><meta charset="utf-8"><title>Penable engine benchmark</title><link rel="icon" href="data:,"><body style="margin:0"><main style="position:relative;width:1280px;height:720px;background:white"><canvas id="completed" style="position:absolute;inset:0"></canvas><canvas id="live" style="position:absolute;inset:0"></canvas></main><p>Owned synthetic fixtures only. Run with Playwriter; this page never opens application storage.</p><script type="module" src="./engine.js"></script></body></html>`,
 );
+
 await writeFile(
   resolve(out, "provenance.json"),
   JSON.stringify(
@@ -68,4 +74,5 @@ await writeFile(
     2,
   ),
 );
+
 console.log(out);
