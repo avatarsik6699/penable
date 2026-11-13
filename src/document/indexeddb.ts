@@ -24,6 +24,7 @@ export function openRepository(onInvalidated: (message: string) => void, factory
         if (store.keyPath !== null || store.autoIncrement) throw new Error('Неподдерживаемая структура documents: данные оставлены без изменений.')
       } catch (error) { db.close(); reject(error); return }
       let closed = false
+      let schema2Preserved = false
       const pending = new Set<Promise<unknown>>()
       const invalidate = (message: string) => { if (closed) return; closed = true; db.close(); onInvalidated(message) }
       db.onversionchange = () => invalidate('Версия хранилища меняется в другой вкладке. Запись остановлена; повторите подключение.')
@@ -49,7 +50,7 @@ export function openRepository(onInvalidated: (message: string) => void, factory
         return task
       }
       function preserveSchema1(store: IDBObjectStore, candidate: BoardDocument) {
-        if (candidate.schemaVersion !== 2) return
+        if (candidate.schemaVersion !== 2 || schema2Preserved) return
         const main = store.get('main'), backupKey = store.getKey('before-schema2')
         let mainReady = false, backupReady = false
         const preserve = () => {
@@ -78,16 +79,22 @@ export function openRepository(onInvalidated: (message: string) => void, factory
           previousKey.onsuccess = () => { values.beforeImport.exists = previousKey.result !== undefined }
           result(values)
         }),
-        write: (document: BoardDocument) => transaction<void>('readwrite', (store, result) => {
+        write: (document: BoardDocument) => {
+          const schema2 = document.schemaVersion === 2
+          return transaction<void>('readwrite', (store, result) => {
           preserveSchema1(store, document)
           store.put(document, 'main'); result(undefined)
-        }),
-        replace: (previous: unknown, candidate: BoardDocument) => transaction<void>('readwrite', (store, result) => {
+          }).then(() => { schema2Preserved = schema2 })
+        },
+        replace: (previous: unknown, candidate: BoardDocument) => {
+          const schema2 = candidate.schemaVersion === 2
+          return transaction<void>('readwrite', (store, result) => {
           preserveSchema1(store, candidate)
           store.put(previous, 'before-import')
           store.put(candidate, 'main')
           result(undefined)
-        }),
+          }).then(() => { schema2Preserved = schema2 })
+        },
         close: async () => { closed = true; await Promise.allSettled([...pending]); db.close() },
       })
     }

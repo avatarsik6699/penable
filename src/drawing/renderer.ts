@@ -1,6 +1,7 @@
 import { bitmapSize, validDpr } from './coordinates'
-import { paintStroke } from './paint'
-import { groupedStrokes } from './regions'
+import { paintStroke, type StrokePaintState } from './paint'
+import { groupedStrokes, maskBounds, sourceBounds } from './regions'
+import type { SelectionPreview } from './selection'
 import type { Scene, Stroke, Viewport } from './types'
 
 export interface CanvasLayer {
@@ -18,6 +19,8 @@ const browserFrames: FrameScheduler = {
   cancel: (handle) => cancelAnimationFrame(handle),
 }
 
+interface PaintState extends StrokePaintState { sx?: number; sy?: number; tx?: number; ty?: number }
+const ZERO = { x: 0, y: 0 }
 export class CanvasRenderer {
   private width = -1
   private height = -1
@@ -32,7 +35,13 @@ export class CanvasRenderer {
   private commits: Stroke[] = []
   private disposed = false
   private preview: ReadonlySet<Stroke> = new Set()
-  private selectionPreview: readonly Stroke[] | null = null
+  private selectionPreview: SelectionPreview | null = null
+  private canonicalGroups: Stroke[] | null = null
+  private stationarySource: readonly Stroke[] | null = null
+  private stationaryGroups: Stroke[] = []
+  private selectedSource: readonly Stroke[] | null = null
+  private selectedGroups: Stroke[] = []
+  private paintStates = new WeakMap<CanvasRenderingContext2D, PaintState>()
 
   constructor(
     private readonly completed: CanvasLayer,
@@ -77,6 +86,7 @@ export class CanvasRenderer {
 
   commit(stroke: Stroke) {
     // Every finished stroke survives even if several contacts happen before the next RAF.
+    this.canonicalGroups = null
     this.commits.push(stroke)
     this.liveDirty = true
     this.schedule()
@@ -87,12 +97,21 @@ export class CanvasRenderer {
     this.sceneChanged()
   }
 
-  setSelectionPreview(strokes: readonly Stroke[] | null) {
-    this.selectionPreview = strokes
-    this.sceneChanged()
+  setSelectionPreview(preview: SelectionPreview | null) {
+    const previous = this.selectionPreview
+    if (!previous && !preview) return
+    const previousMoved = previous && (previous.delta.x !== 0 || previous.delta.y !== 0)
+    const moved = preview && (preview.delta.x !== 0 || preview.delta.y !== 0)
+    this.selectionPreview = preview
+    if (!preview) { this.stationarySource = null; this.stationaryGroups = []; this.selectedSource = null; this.selectedGroups = [] }
+    if (Boolean(previousMoved) !== Boolean(moved) || previous?.stationary !== preview?.stationary) this.fullDirty = true
+    this.liveDirty = true
+    if (this.fullDirty) this.commits = []
+    this.schedule()
   }
 
   sceneChanged() {
+    this.canonicalGroups = null; this.stationarySource = null
     this.commits = []
     this.fullDirty = true
     this.liveDirty = true
@@ -127,9 +146,19 @@ export class CanvasRenderer {
       }
       this.resizePending = false
     }
+    const selection = this.selectionPreview
+    const moving = selection && (selection.delta.x !== 0 || selection.delta.y !== 0)
     if (this.fullDirty) {
       this.clear(this.completed)
-      for (const stroke of groupedStrokes((this.selectionPreview ?? this.scene.strokes).filter(stroke => !this.preview.has(stroke)))) {
+      let completed: readonly Stroke[]
+      if (moving) {
+        if (this.stationarySource !== selection.stationary) { this.stationarySource = selection.stationary; this.stationaryGroups = groupedStrokes(selection.stationary.filter(stroke => !this.preview.has(stroke))) }
+        completed = this.stationaryGroups
+      } else {
+        this.canonicalGroups ??= groupedStrokes(this.scene.strokes.filter(stroke => !this.preview.has(stroke)))
+        completed = this.canonicalGroups
+      }
+      for (const stroke of completed) {
         this.drawStroke(this.completed.context, stroke)
       }
     } else {
@@ -139,7 +168,11 @@ export class CanvasRenderer {
     }
     if (this.fullDirty || this.liveDirty) {
       this.clear(this.live)
-      if (this.scene.active) this.drawStroke(this.live.context, this.scene.active)
+      if (moving) {
+        if (this.selectedSource !== selection.selected) { this.selectedSource = selection.selected; this.selectedGroups = groupedStrokes(selection.selected) }
+        for (const stroke of this.selectedGroups) this.drawStroke(this.live.context, stroke, false, selection.delta)
+      }
+      if (this.scene.active) this.drawStroke(this.live.context, this.scene.active, true)
     }
     this.commits = []
     this.fullDirty = false
@@ -149,12 +182,30 @@ export class CanvasRenderer {
   private clear(layer: CanvasLayer) {
     layer.context.setTransform(1, 0, 0, 1, 0, 0)
     layer.context.clearRect(0, 0, layer.canvas.width, layer.canvas.height)
+    this.paintStates.set(layer.context, {})
   }
 
-  private drawStroke(ctx: CanvasRenderingContext2D, stroke: Stroke) {
+  private drawStroke(ctx: CanvasRenderingContext2D, stroke: Stroke, active = false, delta = ZERO) {
     const { scaleX, scaleY } = this.raster
     const { zoom, x, y } = this.viewport
-    ctx.setTransform(scaleX * zoom, 0, 0, scaleY * zoom, scaleX * x, scaleY * y)
-    paintStroke(ctx, stroke)
+    if (!active) {
+      const source = sourceBounds(stroke), clip = stroke.clip ? maskBounds(stroke.clip) : null
+      const bounds = source && clip ? { left: Math.max(source.left, clip.left), right: Math.min(source.right, clip.right), top: Math.max(source.top, clip.top), bottom: Math.min(source.bottom, clip.bottom) } : source
+      const offset = stroke.translation ?? ZERO
+      if (!bounds || (bounds.right + offset.x + delta.x) * zoom + x < -1 || (bounds.left + offset.x + delta.x) * zoom + x > this.width + 1
+        || (bounds.bottom + offset.y + delta.y) * zoom + y < -1 || (bounds.top + offset.y + delta.y) * zoom + y > this.height + 1) return
+    }
+    const sx = scaleX * zoom, sy = scaleY * zoom, offset = stroke.translation ?? ZERO
+    // Match setTransform(base) followed by translate(offset), including floating
+    // point operation order, while avoiding per-stroke save/translate/restore.
+    const tx = scaleX * (x + delta.x * zoom) + sx * offset.x
+    const ty = scaleY * (y + delta.y * zoom) + sy * offset.y
+    let state = this.paintStates.get(ctx)
+    if (!state) { state = {}; this.paintStates.set(ctx, state) }
+    if (state.sx !== sx || state.sy !== sy || state.tx !== tx || state.ty !== ty) {
+      ctx.setTransform(sx, 0, 0, sy, tx, ty)
+      state.sx = sx; state.sy = sy; state.tx = tx; state.ty = ty
+    }
+    paintStroke(ctx, stroke, active, state, true)
   }
 }

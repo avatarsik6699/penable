@@ -170,3 +170,17 @@ describe('mixed add and grouped erase history', () => {
     expect(history.strokes[0]).toBe(replacement)
   })
 })
+
+describe('large ordered scene edits', () => {
+  it('replaces and replays a large permutation without scanning or splicing per item', () => {
+    const original = Array.from({ length: 20000 }, (_, index) => stroke(index + 1)), scene = [...original]
+    const history = new StrokeHistory(scene, scene.length), candidate = [...original].reverse()
+    const scan = vi.spyOn(scene, 'indexOf'), splice = vi.spyOn(scene, 'splice')
+    expect(history.replace(candidate)).toBe(true); expect(history.strokes).toBe(scene)
+    expect(scene[0]).toBe(original.at(-1)); expect(scene.at(-1)).toBe(original[0])
+    history.undo(); expect(scene[0]).toBe(original[0]); expect(scene.at(-1)).toBe(original.at(-1))
+    history.redo(); expect(scene[0]).toBe(candidate[0]); expect(scene.at(-1)).toBe(candidate.at(-1))
+    expect(scan).not.toHaveBeenCalled(); expect(splice).not.toHaveBeenCalled()
+    scan.mockRestore(); splice.mockRestore()
+  })
+})

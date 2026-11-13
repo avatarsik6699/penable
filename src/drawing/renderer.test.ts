@@ -6,6 +6,7 @@ import { INK, type ActiveStroke, type PointerInput, type Scene } from './types'
 import { initialViewport } from './viewport'
 import { BITMAP_PIXEL_BUDGET } from './coordinates'
 import { rectangle, selectParts } from './regions'
+import { BoardSelection } from './selection'
 import { StrokeHistory } from './history'
 
 function layer() {
@@ -329,10 +330,94 @@ describe('fragment rendering transactions', () => {
   })
   it('preview never mutates canonical scene and cancel restores it even before a queued frame', () => {
     const original = stroke(), h = setup({ strokes: [original], active: null })
-    h.renderer.setSelectionPreview([{ ...original, source: 'source', translation: { x: 20, y: 10 } }])
+    h.renderer.setSelectionPreview({ stationary: [], selected: [original], delta: { x: 20, y: 10 } })
     h.clock.run(); expect(h.scene.strokes[0]).toBe(original)
-    expect(h.completed.context.translate).toHaveBeenCalledWith(20, 10)
+    expect(h.live.context.setTransform).toHaveBeenLastCalledWith(1, 0, 0, 1, 20, 10)
     vi.clearAllMocks(); h.renderer.setSelectionPreview(null); h.clock.run()
     expect(h.completed.context.stroke).toHaveBeenCalledOnce(); expect(h.completed.context.translate).not.toHaveBeenCalled()
+  })
+})
+
+describe('selection frame efficiency', () => {
+  it('keeps stationary ink on the completed layer across move frames and coalesces live updates', () => {
+    const original = stroke(), stationary = { ...stroke(), id: 2 }
+    const h = setup({ strokes: [original, stationary], active: null })
+    const base = { stationary: [stationary], selected: [original] }
+    h.renderer.setSelectionPreview({ ...base, delta: { x: 1, y: 0 } }); h.clock.run()
+    vi.clearAllMocks()
+    for (let i = 2; i <= 20; i++) h.renderer.setSelectionPreview({ ...base, delta: { x: i, y: 0 } })
+    expect(h.clock.pending.size).toBe(1)
+    h.clock.run()
+    expect(h.completed.context.clearRect).not.toHaveBeenCalled(); expect(h.completed.context.stroke).not.toHaveBeenCalled()
+    expect(h.live.context.stroke).toHaveBeenCalledOnce()
+    expect(h.live.context.setTransform).toHaveBeenLastCalledWith(1,0,0,1,20,0)
+    h.renderer.setSelectionPreview({ ...base, delta: { x: 0, y: 0 } }); h.clock.run()
+    expect(h.completed.context.stroke).toHaveBeenCalledTimes(2)
+    expect(h.live.context.clearRect).toHaveBeenCalledTimes(2)
+  })
+  it('does not reuse stale active geometry when the same mutable point array grows', () => {
+    const h = setup(), active = stroke(); h.scene.active = active
+    h.renderer.activeChanged(); h.clock.run(); vi.clearAllMocks()
+    active.points.push({ x: 30, y: 40, time: 4, pressure: 1 })
+    h.renderer.activeChanged(); h.clock.run()
+    expect(h.live.context.lineTo).toHaveBeenCalledWith(30,40)
+  })
+})
+
+describe('batched renderer state without merging ink', () => {
+  it('reuses grouping, styles and a common matrix while retaining individual fills and local clips', () => {
+    const h = setup(), sourceReads = vi.fn(()=>'source')
+    const dot = (id:number,x:number,width:number) => ({ id,color:INK,width,source:`dot-${id}`,translation:{ x:3,y:4 },points:[{ x,y:20,time:0,pressure:1 }] })
+    const a = dot(1,10,2), b = { ...dot(2,20,4),clip:rectangle({ x:15,y:15 },{ x:25,y:25 }) }, c = dot(3,30,4)
+    Object.defineProperty(a,'source',{ get:sourceReads })
+    const base = { stationary:[],selected:[a,b,c] }
+    let width = 0
+    const widths = vi.fn((value:number)=>{ width = value })
+    Object.defineProperty(h.live.context,'lineWidth',{ get:()=>width,set:widths,configurable:true })
+    h.renderer.setSelectionPreview({ ...base,delta:{ x:5,y:6 } }); h.clock.run()
+    expect(h.live.context.fill).toHaveBeenCalledTimes(3)
+    expect(h.live.context.translate).not.toHaveBeenCalled()
+    expect(h.live.context.save).toHaveBeenCalledOnce(); expect(h.live.context.restore).toHaveBeenCalledOnce()
+    expect(widths.mock.calls.map(call=>call[0])).toEqual([2,4])
+    expect(h.live.context.setTransform.mock.calls).toEqual([[1,0,0,1,0,0],[1,0,0,1,8,10]])
+    const reads = sourceReads.mock.calls.length
+    vi.clearAllMocks()
+    h.renderer.setSelectionPreview({ ...base,delta:{ x:7,y:8 } }); h.clock.run()
+    expect(sourceReads).not.toHaveBeenCalled()
+    expect(reads).toBeGreaterThan(0); expect(h.live.context.fill).toHaveBeenCalledTimes(3)
+    expect(h.live.context.setTransform.mock.calls).toEqual([[1,0,0,1,0,0],[1,0,0,1,10,12]])
+    h.renderer.resize(201,101,2); h.clock.run()
+    expect(widths.mock.calls.map(call=>call[0])).toEqual([2,4,2,4])
+  })
+  it('preserves the original fractional setTransform then translate arithmetic order', () => {
+    const h = setup(), viewport = { zoom:1.7,x:3.1,y:-8.3 }, offset = { x:.3,y:-.7 }, delta = { x:.123,y:.456 }
+    const original = { ...stroke(),translation:offset,source:'source' }
+    h.renderer.resize(201.3,102.7,1.25); h.renderer.setViewport(viewport)
+    h.renderer.setSelectionPreview({ stationary:[],selected:[original],delta }); h.clock.run()
+    const { scaleX,scaleY } = h.renderer.resolution
+    expect(h.live.context.setTransform).toHaveBeenLastCalledWith(scaleX*viewport.zoom,0,0,scaleY*viewport.zoom,
+      scaleX*(viewport.x+delta.x*viewport.zoom)+(scaleX*viewport.zoom)*offset.x,
+      scaleY*(viewport.y+delta.y*viewport.zoom)+(scaleY*viewport.zoom)*offset.y)
+    expect(h.live.context.translate).not.toHaveBeenCalled(); expect(h.live.context.save).not.toHaveBeenCalled()
+  })
+  it('invalidates canonical grouping when a commit is followed by a viewport redraw', () => {
+    const h = setup({ strokes:[stroke()],active:null }), added = { ...stroke(),id:2,points:[{ x:50,y:20,time:0,pressure:1 }] }
+    h.scene.strokes.push(added); h.renderer.commit(added); h.clock.run(); vi.clearAllMocks()
+    h.renderer.setViewport({ zoom:2,x:0,y:0 }); h.clock.run()
+    expect(h.completed.context.stroke).toHaveBeenCalledOnce(); expect(h.completed.context.fill).toHaveBeenCalledOnce()
+  })
+})
+
+describe('idle selection cancellation after pen commit', () => {
+  it('retains a completed pen stroke queued before an idle cancel/clear and the next frame', () => {
+    const h = setup(), selection = new BoardSelection({ scene:h.scene,viewport:initialViewport,bounds:()=>({ left:0,top:0,width:200,height:100 }),writable:()=>true,
+      validate:()=>{},commit:()=>{},preview:preview=>h.renderer.setSelectionPreview(preview),changed:()=>{},setViewport:()=>{} })
+    const input = new PenInput({ scene:h.scene,viewport:initialViewport,bounds:()=>({ left:0,top:0 }),width:()=>3,
+      onActiveChange:()=>h.renderer.activeChanged(),onCommit:ink=>{ h.scene.strokes.push(ink); h.renderer.commit(ink) } })
+    input.down(pointer({ clientX:20,clientY:20 })); input.up(pointer({ clientX:20,clientY:20,buttons:0,pressure:0,timeStamp:2 }))
+    expect(h.scene.strokes).toHaveLength(1); expect(h.completed.context.fill).not.toHaveBeenCalled()
+    selection.cancel(); selection.clear(); h.clock.run()
+    expect(h.completed.context.fill).toHaveBeenCalledOnce(); expect(h.completed.context.arc).toHaveBeenCalledWith(20,20,1.5,0,Math.PI*2)
+    h.renderer.sceneChanged(); h.clock.run(); expect(h.completed.context.fill).toHaveBeenCalledTimes(2)
   })
 })

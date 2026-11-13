@@ -102,3 +102,15 @@ describe('large valid curve work bounds', () => {
     } finally { hypot.mockRestore() }
   })
 })
+
+describe('fragment eraser broad phase', () => {
+  it('rejects distant translated and clipped fragments before building the exact sweep', () => {
+    const tester = new StrokeHitTester(1)
+    const points = Array.from({ length:10000 }, (_,i) => p(10000+i,Math.sin(i)))
+    const fragment = { ...stroke(points), source:'far', translation:{ x:100,y:100 }, clip:[[[[10000,-10],[20000,-10],[20000,10],[10000,10],[10000,-10]]]] as import('./types').ClipMask }
+    const before = performance.now()
+    for (let i = 0; i < 100; i++) expect(tester.hits(fragment,p(0,0),p(5,5))).toBe(false)
+    expect(performance.now()-before).toBeLessThan(100)
+    expect(tester.hits({ ...stroke([p(0,0),p(100,0)]), source:'line',translation:{x:100,y:100} },p(150,100),p(150,100))).toBe(true)
+  })
+})

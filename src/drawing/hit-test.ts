@@ -1,5 +1,5 @@
 import { intersection } from 'polygon-clipping'
-import { capsule, inkIntersectsMask } from './regions'
+import { capsule, inkIntersectsMask, maskBounds, sourceBounds } from './regions'
 import { strokeGeometry, type StrokeGeometry } from './geometry'
 import { stabilizedPositions } from './stabilization'
 import type { Position, Stroke } from './types'
@@ -86,7 +86,10 @@ export class StrokeHitTester {
   hits(stroke: Stroke, from: Position, to: Position): boolean {
     if (stroke.clip || stroke.translation) {
       const offset = stroke.translation ?? { x: 0, y: 0 }
-      const sweep = capsule({ x: from.x - offset.x, y: from.y - offset.y }, { x: to.x - offset.x, y: to.y - offset.y }, ERASER_RADIUS / this.zoom)
+      const localFrom = { x: from.x - offset.x, y: from.y - offset.y }, localTo = { x: to.x - offset.x, y: to.y - offset.y }
+      const radius = ERASER_RADIUS / this.zoom, source = sourceBounds(stroke), clip = stroke.clip ? maskBounds(stroke.clip) : null
+      if (!source || !overlapsSweep(source, localFrom, localTo, radius) || (stroke.clip && (!clip || !overlapsSweep(clip, localFrom, localTo, radius)))) return false
+      const sweep = capsule(localFrom, localTo, radius)
       return inkIntersectsMask(stroke, stroke.clip ? intersection(stroke.clip, sweep) : sweep)
     }
     let cached = this.cache.get(stroke)

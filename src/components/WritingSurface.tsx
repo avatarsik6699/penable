@@ -3,7 +3,7 @@ import { BoardCursor } from '../drawing/cursor'
 import { validDpr } from '../drawing/coordinates'
 import { EraserInput } from '../drawing/eraser'
 import { PenInput } from '../drawing/input'
-import { BoardSelection } from '../drawing/selection'
+import { BoardSelection, prepareSelection } from '../drawing/selection'
 import { downloadPNG, selectionPNG, writePNG } from '../drawing/png'
 import { CanvasRenderer } from '../drawing/renderer'
 import type { DrawingTool, HistoryState, InputDiagnostics, Scene, SelectionState, SelectionCommand, SurfaceControls } from '../drawing/types'
@@ -13,6 +13,7 @@ import { historyShortcut, selectionNudgeShortcut, type HistoryAction } from '../
 import { backgroundLayout, type BackgroundMode } from '../drawing/background'
 import { cloneDocument, decodeDocument } from '../document/codec'
 import type { BoardDocument } from '../document/types'
+import { DocumentJobs, heavyDocument } from '../document/jobs'
 import { allocateStrokeId } from '../document/stroke-ids'
 
 interface WritingSurfaceProps {
@@ -185,9 +186,15 @@ export function WritingSurface({ onActivateSelection, onSelectionState, tool, ge
       if (encoded !== previousSelectionState) { previousSelectionState = encoded; onSelectionState(state) }
       publishHistoryState()
     }
+    const selectionJobs = new DocumentJobs()
     const selection = new BoardSelection({
       scene, viewport: () => viewportRef.current, bounds: () => canvas.getBoundingClientRect(), writable: canWrite,
-      validate: (strokes) => { decodeDocument({ ...initialDocument, schemaVersion: 2, strokes, viewport: viewportRef.current }) },
+      select: (region, signal) => heavyDocument(scene.strokes, region) ? selectionJobs.select(scene.strokes, region, signal) : prepareSelection(scene.strokes, region),
+      validate: (strokes, signal) => {
+        const document = { ...initialDocument, schemaVersion: 2 as const, strokes, viewport: { ...viewportRef.current } }
+        if (heavyDocument(strokes)) return selectionJobs.validate(strokes, signal, document)
+        decodeDocument(document)
+      },
       commit: (strokes) => { if (history.replace(strokes)) { renderer.sceneChanged(); onDocumentChange(true) } },
       preview: (strokes) => renderer.setSelectionPreview(strokes), changed: publishSelection,
       setViewport: (viewport) => { navigation.setViewport(viewport) },
@@ -207,7 +214,7 @@ export function WritingSurface({ onActivateSelection, onSelectionState, tool, ge
       if (command === 'image' && selection.hasSelection && !pngBusy) {
         pngBusy = true; publishSelection()
         const generation = ++pngGeneration
-        const promise = selectionPNG(selection.selected)
+        const promise = selectionPNG(selection.selected, selection.outline)
         // Invoke the clipboard API in the user gesture, passing a deferred PNG Blob.
         const clipboard = writePNG(promise)
         void Promise.allSettled([promise, clipboard]).then(([result, written]) => {
@@ -570,6 +577,8 @@ export function WritingSurface({ onActivateSelection, onSelectionState, tool, ge
       observer?.disconnect()
       dprQuery?.removeEventListener('change', resize)
       cancel()
+      selectionJobs.cancel()
+      void selectionJobs.close()
       if (cursorFrame !== null) cancelAnimationFrame(cursorFrame)
       delete canvas.dataset.appCursorReady
       if (cursorLayer) cursorLayer.hidden = true

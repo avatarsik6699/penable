@@ -1,6 +1,5 @@
 import { difference, intersection, union, type MultiPolygon, type Pair } from 'polygon-clipping'
-import { strokeGeometry } from './geometry'
-import { stabilizedPositions } from './stabilization'
+import { sourceGeometry } from './source-geometry'
 import type { ClipMask, Position, Stroke } from './types'
 
 export const REGION_LIMITS = { lasso: 2048, mask: 8192, document: 100_000 }
@@ -33,14 +32,18 @@ export function lasso(points: readonly Position[]): ClipMask {
   return normalizeMask([[points.map(p => [p.x, p.y])]])
 }
 export function translateMask(mask: ClipMask, offset: Position): ClipMask {
+  if (!offset.x && !offset.y) return mask
   return mask.map(p => p.map(r => r.map(([x, y]) => [x + offset.x, y + offset.y])))
 }
+const maskBoundsCache = new WeakMap<ClipMask, InkBounds | null>()
 export function maskBounds(mask: ClipMask): InkBounds | null {
+  if (maskBoundsCache.has(mask)) return maskBoundsCache.get(mask)!
   let left = Infinity, top = Infinity, right = -Infinity, bottom = -Infinity
   for (const polygon of mask) for (const ring of polygon) for (const [x, y] of ring) {
     left = Math.min(left, x); top = Math.min(top, y); right = Math.max(right, x); bottom = Math.max(bottom, y)
   }
-  return left === Infinity ? null : { left, top, right, bottom }
+  const result = left === Infinity ? null : { left, top, right, bottom }
+  maskBoundsCache.set(mask, result); return result
 }
 function circle(center: Position, radius: number): MultiPolygon {
   const count = 64, outerRadius = radius / Math.cos(Math.PI / count)
@@ -69,31 +72,53 @@ function segmentDistance(a: Position, b: Position, c: Position, d: Position): nu
   return Math.min(pointSegmentDistance(a, c, d), pointSegmentDistance(b, c, d), pointSegmentDistance(c, a, b), pointSegmentDistance(d, a, b))
 }
 interface InkSegment { a: Position; b: Position; error: number }
+interface MaskEdge { a: Position; b: Position }
+const maskEdgesCache = new WeakMap<ClipMask, MaskEdge[]>()
+function maskEdges(mask: ClipMask): MaskEdge[] {
+  let edges = maskEdgesCache.get(mask)
+  if (!edges) {
+    edges = []
+    for (const polygon of mask) for (const ring of polygon) for (let i = 1; i < ring.length; i++) {
+      const a = ring[i - 1]!, b = ring[i]!
+      edges.push({ a: { x: a[0], y: a[1] }, b: { x: b[0], y: b[1] } })
+    }
+    maskEdgesCache.set(mask, edges)
+  }
+  return edges
+}
 const segments = new WeakMap<Stroke['points'], Map<string, InkSegment[]>>()
-const clippedBoundsCache = new WeakMap<ClipMask, WeakMap<Stroke['points'], InkBounds | null>>()
-const roughBoundsCache = new WeakMap<Stroke, InkBounds | null>()
+const clippedBoundsCache = new WeakMap<ClipMask, WeakMap<Stroke['points'], Map<string, InkBounds | null>>>()
+const strokeBoundsCache = new WeakMap<Stroke, InkBounds | null>()
+const roughBoundsCache = new WeakMap<Stroke['points'], Map<string, InkBounds | null>>()
+const profileKey = (stroke: Stroke) => JSON.stringify([stroke.width, stroke.stabilization])
 export function sourceBounds(stroke: Stroke): InkBounds | null {
-  if (roughBoundsCache.has(stroke)) return roughBoundsCache.get(stroke)!
+  if (strokeBoundsCache.has(stroke)) return strokeBoundsCache.get(stroke)!
+  const key = profileKey(stroke)
+  let cache = roughBoundsCache.get(stroke.points)
+  if (!cache) { cache = new Map(); roughBoundsCache.set(stroke.points, cache) }
+  if (cache.has(key)) { const result = cache.get(key)!; strokeBoundsCache.set(stroke, result); return result }
   let left = Infinity, top = Infinity, right = -Infinity, bottom = -Infinity
   for (const point of stroke.points) { left = Math.min(left, point.x); right = Math.max(right, point.x); top = Math.min(top, point.y); bottom = Math.max(bottom, point.y) }
   const padding = stroke.width / 2 + (stroke.stabilization ? 3 / stroke.stabilization.captureZoom : 0)
   const result = left === Infinity ? null : { left: left - padding, top: top - padding, right: right + padding, bottom: bottom + padding }
-  roughBoundsCache.set(stroke, result); return result
+  cache.set(key, result); strokeBoundsCache.set(stroke, result); return result
 }
 function overlaps(a: InkBounds, b: InkBounds): boolean { return a.left <= b.right && a.right >= b.left && a.top <= b.bottom && a.bottom >= b.top }
+function curveError(start: Position, control: Position, end: Position): number { return Math.hypot(start.x - 2 * control.x + end.x, start.y - 2 * control.y + end.y) / 4 }
+function midpoint(a: Position, b: Position): Position { return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } }
 function curveSegments(start: Position, control: Position, end: Position, result: InkSegment[], depth = 0): void {
-  const error = Math.hypot(start.x - 2 * control.x + end.x, start.y - 2 * control.y + end.y) / 4
-  if (error <= .0001 || depth >= 24) { result.push({ a: start, b: end, error }); return }
-  const a = { x: (start.x + control.x) / 2, y: (start.y + control.y) / 2 }, b = { x: (end.x + control.x) / 2, y: (end.y + control.y) / 2 }
-  const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
+  const error = curveError(start, control, end)
+  // Derived query bounds only. The renderer still uses the exact original curve.
+  if (error <= .01 || depth >= 24) { result.push({ a: start, b: end, error }); return }
+  const a = midpoint(start, control), b = midpoint(control, end), mid = midpoint(a, b)
   curveSegments(start, a, mid, result, depth + 1); curveSegments(mid, b, end, result, depth + 1)
 }
 function sourceSegments(stroke: Stroke): InkSegment[] {
-  const key = JSON.stringify([stroke.width, stroke.stabilization])
+  const key = profileKey(stroke)
   const cache = segments.get(stroke.points) ?? new Map<string, InkSegment[]>()
   const cached = cache.get(key)
   if (cached) return cached
-  const geometry = strokeGeometry(stabilizedPositions(stroke.points, stroke.stabilization), stroke.width), result: InkSegment[] = []
+  const geometry = sourceGeometry(stroke), result: InkSegment[] = []
   if (geometry.kind === 'dot') result.push({ a: geometry, b: geometry, error: 0 })
   if (geometry.kind === 'path') {
     let previous: Position | null = null
@@ -109,37 +134,103 @@ function segmentBounds(segment: InkSegment, radius: number): InkBounds {
   const r = radius + segment.error
   return { left: Math.min(segment.a.x, segment.b.x) - r, right: Math.max(segment.a.x, segment.b.x) + r, top: Math.min(segment.a.y, segment.b.y) - r, bottom: Math.max(segment.a.y, segment.b.y) + r }
 }
+function chordDistance(a: Position, b: Position, mask: ClipMask): number {
+  let distance = Infinity
+  for (const edge of maskEdges(mask)) {
+    distance = Math.min(distance, segmentDistance(a, b, edge.a, edge.b))
+    if (distance === 0) return 0
+  }
+  return distance
+}
+function curveIntersects(start: Position, control: Position, end: Position, radius: number, mask: ClipMask, bounds: InkBounds, depth = 0): boolean {
+  const error = curveError(start, control, end)
+  if (!overlaps(bounds, segmentBounds({ a: start, b: end, error }, radius))) return false
+  if (contains(mask, start) || contains(mask, end)) return true
+  const distance = chordDistance(start, end, mask)
+  if (distance > radius + error) return false
+  if (error <= .0001 || depth >= 24 || distance <= radius - error) return true
+  const a = midpoint(start, control), b = midpoint(control, end), mid = midpoint(a, b)
+  return curveIntersects(start, a, mid, radius, mask, bounds, depth + 1) || curveIntersects(mid, b, end, radius, mask, bounds, depth + 1)
+}
 export function inkIntersectsMask(stroke: Stroke, mask: ClipMask): boolean {
   const bounds = maskBounds(mask), source = sourceBounds(stroke)
   if (!bounds || !source || !overlaps(bounds, source)) return false
-  for (const segment of sourceSegments(stroke)) {
-    if (!overlaps(bounds, segmentBounds(segment, stroke.width / 2))) continue
-    if (contains(mask, segment.a) || contains(mask, segment.b)) return true
-    for (const polygon of mask) for (const ring of polygon) for (let i = 1; i < ring.length; i++) {
-      const a = ring[i - 1]!, b = ring[i]!
-      if (segmentDistance(segment.a, segment.b, { x: a[0], y: a[1] }, { x: b[0], y: b[1] }) <= stroke.width / 2 + segment.error) return true
+  const geometry = sourceGeometry(stroke), radius = stroke.width / 2
+  if (geometry.kind === 'dot') return contains(mask, geometry) || chordDistance(geometry, geometry, mask) <= radius
+  if (geometry.kind === 'path') {
+    let previous: Position | null = null
+    for (const command of geometry.commands) {
+      if (previous && command.kind === 'quadratic' && curveIntersects(previous, { x: command.cx, y: command.cy }, command, radius, mask, bounds)) return true
+      if (previous && command.kind === 'line' && overlaps(bounds, segmentBounds({ a: previous, b: command, error: 0 }, radius))
+        && (contains(mask, previous) || contains(mask, command) || chordDistance(previous, command, mask) <= radius)) return true
+      previous = command
     }
   }
   return false
 }
-// Bounds use conservative tangent capsules independently, with no Boolean union of
-// painted ink. The renderer always paints the original exact accepted curve.
+function circleIntersections(a: Position, b: Position, center: Position, radius: number, add: (p: Position) => void) {
+  const dx = b.x - a.x, dy = b.y - a.y, length = Math.hypot(dx, dy)
+  if (!length) return
+  const ux = dx / length, uy = dy / length
+  const x = center.x - a.x, y = center.y - a.y
+  const projection = x * ux + y * uy, perpendicular = x * uy - y * ux
+  if (Math.abs(perpendicular) > radius) return
+  const halfChord = Math.sqrt(Math.max(0, radius * radius - perpendicular * perpendicular))
+  // Construct around the circle, not a distant segment endpoint. Squared quadratic
+  // coefficients lose the small discriminant for otherwise valid billion-unit edges.
+  const foot = { x: center.x - perpendicular * uy, y: center.y + perpendicular * ux }
+  for (const distance of [-halfChord, halfChord]) if (projection + distance >= 0 && projection + distance <= length) {
+    add({ x: foot.x + ux * distance, y: foot.y + uy * distance })
+  }
+}
+function lineIntersection(a: Position, b: Position, c: Position, d: Position, add: (p: Position) => void) {
+  const dx = b.x - a.x, dy = b.y - a.y, ex = d.x - c.x, ey = d.y - c.y, denominator = dx * ey - dy * ex
+  if (!denominator) return
+  const t = ((c.x - a.x) * ey - (c.y - a.y) * ex) / denominator
+  const u = ((c.x - a.x) * dy - (c.y - a.y) * dx) / denominator
+  if (t >= 0 && t <= 1 && u >= 0 && u <= 1) add({ x: a.x + t * dx, y: a.y + t * dy })
+}
+// Extrema of capsule ∩ polygon occur at capsule cardinal/corner points inside the
+// mask, mask vertices inside the capsule, or boundary intersections. No Boolean
+// polygon construction is needed for a query bound (holes use the same boundary).
+function clippedCapsuleBounds(segment: InkSegment, radius: number, mask: ClipMask, clipBounds: InkBounds): InkBounds | null {
+  const r = radius + segment.error, bounds = segmentBounds(segment, radius)
+  if (!overlaps(bounds, clipBounds)) return null
+  if (maskContainsBounds(mask, bounds)) return bounds
+  let result: InkBounds | null = null
+  const add = (p: Position) => { result = mergeBounds(result, { left: p.x, right: p.x, top: p.y, bottom: p.y }) }
+  const inside = (p: Position) => { if (contains(mask, p)) add(p) }
+  const { a, b } = segment, length = Math.hypot(b.x - a.x, b.y - a.y)
+  const nx = length ? -(b.y - a.y) / length * r : r, ny = length ? (b.x - a.x) / length * r : 0
+  const sides = [
+    [{ x: a.x + nx, y: a.y + ny }, { x: b.x + nx, y: b.y + ny }],
+    [{ x: a.x - nx, y: a.y - ny }, { x: b.x - nx, y: b.y - ny }],
+  ] as const
+  for (const center of [a, b]) for (const point of [{ x: center.x - r, y: center.y }, { x: center.x + r, y: center.y }, { x: center.x, y: center.y - r }, { x: center.x, y: center.y + r }]) inside(point)
+  for (const side of sides) { inside(side[0]); inside(side[1]) }
+  for (const edge of maskEdges(mask)) {
+    if (!overlaps(bounds, { left: Math.min(edge.a.x, edge.b.x), right: Math.max(edge.a.x, edge.b.x), top: Math.min(edge.a.y, edge.b.y), bottom: Math.max(edge.a.y, edge.b.y) })) continue
+    if (pointSegmentDistance(edge.a, a, b) <= r) add(edge.a)
+    if (pointSegmentDistance(edge.b, a, b) <= r) add(edge.b)
+    circleIntersections(edge.a, edge.b, a, r, add); circleIntersections(edge.a, edge.b, b, r, add)
+    for (const side of sides) lineIntersection(edge.a, edge.b, side[0], side[1], add)
+  }
+  return result
+}
 function localVisibleBounds(stroke: Stroke): InkBounds | null {
-  const cache = stroke.clip ? clippedBoundsCache.get(stroke.clip) ?? new WeakMap<Stroke['points'], InkBounds | null>() : null
-  if (cache?.has(stroke.points)) return cache.get(stroke.points)!
+  const key = profileKey(stroke)
+  let pointsCache = stroke.clip ? clippedBoundsCache.get(stroke.clip) : undefined
+  if (stroke.clip && !pointsCache) { pointsCache = new WeakMap(); clippedBoundsCache.set(stroke.clip, pointsCache) }
+  let cache = pointsCache?.get(stroke.points)
+  if (pointsCache && !cache) { cache = new Map(); pointsCache.set(stroke.points, cache) }
+  if (cache?.has(key)) return cache.get(key)!
   const clipBounds = stroke.clip ? maskBounds(stroke.clip) : null
   let result: InkBounds | null = null
   for (const segment of sourceSegments(stroke)) {
-    let bounds = segmentBounds(segment, stroke.width / 2)
-    if (stroke.clip) {
-      if (!clipBounds || !overlaps(bounds, clipBounds)) continue
-      bounds = maskBounds(intersection(capsule(segment.a, segment.b, stroke.width / 2 + segment.error), stroke.clip))!
-      if (!bounds) continue
-    }
-    result = mergeBounds(result, bounds)
+    const bounds = stroke.clip && clipBounds ? clippedCapsuleBounds(segment, stroke.width / 2, stroke.clip, clipBounds) : segmentBounds(segment, stroke.width / 2)
+    if (bounds) result = mergeBounds(result, bounds)
   }
-  if (stroke.clip && cache) { cache.set(stroke.points, result); clippedBoundsCache.set(stroke.clip, cache) }
-  return result
+  cache?.set(key, result); return result
 }
 function mergeBounds(a: InkBounds | null, b: InkBounds): InkBounds { return a ? { left: Math.min(a.left, b.left), top: Math.min(a.top, b.top), right: Math.max(a.right, b.right), bottom: Math.max(a.bottom, b.bottom) } : b }
 export function visibleBounds(strokes: readonly Stroke[]): InkBounds | null {
@@ -161,22 +252,40 @@ export function contains(mask: ClipMask, point: Position): boolean {
   }
   return winding !== 0
 }
+function maskContainsBounds(mask: ClipMask, bounds: InkBounds): boolean {
+  const outer = maskBounds(mask)
+  if (!outer || outer.left > bounds.left || outer.right < bounds.right || outer.top > bounds.top || outer.bottom < bounds.bottom) return false
+  if (mask.length === 1 && mask[0]!.length === 1 && mask[0]![0]!.length === 5
+    && mask[0]![0]!.every(([x,y], index, ring) => !index || x === ring[index - 1]![0] || y === ring[index - 1]![1])) return true
+  if (![ { x: bounds.left, y: bounds.top }, { x: bounds.right, y: bounds.top }, { x: bounds.right, y: bounds.bottom }, { x: bounds.left, y: bounds.bottom } ].every(p => contains(mask, p))) return false
+  // A hole or concave notch wholly inside the box also disqualifies containment.
+  return !maskEdges(mask).some(({ a, b }) => overlaps(bounds, { left: Math.min(a.x, b.x), right: Math.max(a.x, b.x), top: Math.min(a.y, b.y), bottom: Math.max(a.y, b.y) }))
+}
+function checkedMask(mask: ClipMask): ClipMask {
+  if (vertexCount(mask) > REGION_LIMITS.mask) throw new Error('Слишком сложная граница: предел 8192 вершин на фрагмент.')
+  return mask
+}
 export interface SelectedPart { original: Stroke; selected: Stroke; remainder: Stroke | null }
 export function selectParts(strokes: readonly Stroke[], region: ClipMask, allocate: () => number): SelectedPart[] {
-  const result: SelectedPart[] = []
+  const result: SelectedPart[] = [], translated = new Map<string, ClipMask>()
   for (const stroke of strokes) {
     const offset = stroke.translation ?? { x: 0, y: 0 }
-    const localRegion = translateMask(region, { x: -offset.x, y: -offset.y })
+    const key = `${offset.x}:${offset.y}`
+    let localRegion = translated.get(key)
+    if (!localRegion) { localRegion = translateMask(region, { x: -offset.x, y: -offset.y }); translated.set(key, localRegion) }
     const source = sourceBounds(stroke), regionBounds = maskBounds(localRegion)
     if (!source || !regionBounds || !overlaps(source, regionBounds)) continue
-    const selectedRegion = stroke.clip ? intersection(stroke.clip, localRegion) : localRegion
-    if (!inkIntersectsMask(stroke, selectedRegion)) continue
+    if (maskContainsBounds(localRegion, source)) {
+      if (!stroke.clip || inkIntersectsMask(stroke, stroke.clip)) result.push({ original: stroke, selected: stroke, remainder: null })
+      continue
+    }
     // An enclosing box keeps the original exact painted boundary; polygonized ink is
     // never substituted for the source curve or used as the rendered clipping edge.
     const bounds = source
     const outer = stroke.clip ?? rectangle({ x: bounds.left - 1, y: bounds.top - 1 }, { x: bounds.right + 1, y: bounds.bottom + 1 })
-    const selectedClip = normalizeMask(intersection(outer, localRegion))
-    const remainderClip = normalizeMask(difference(outer, localRegion))
+    const selectedClip = checkedMask(intersection(outer, localRegion))
+    if (!inkIntersectsMask(stroke, selectedClip)) continue
+    const remainderClip = checkedMask(difference(outer, localRegion))
     const common = { ...stroke, source: sourceOf(stroke), translation: { ...offset } }
     const selected = { ...common, clip: selectedClip }
     const remainingInk = inkIntersectsMask(stroke, remainderClip)
@@ -194,6 +303,14 @@ export function traceMask(ctx: CanvasRenderingContext2D, mask: ClipMask): void {
     ctx.closePath()
   }
 }
+const unionCache = new WeakMap<ClipMask, WeakMap<ClipMask, ClipMask>>()
+function combinedMask(a: ClipMask, b: ClipMask): ClipMask {
+  let cache = unionCache.get(a)
+  if (!cache) { cache = new WeakMap(); unionCache.set(a, cache) }
+  let result = cache.get(b)
+  if (!result) { result = union(a, b); cache.set(b, result) }
+  return result
+}
 export function groupedStrokes(strokes: readonly Stroke[]): Stroke[] {
   const result: Stroke[] = [], groups = new Map<string, number>()
   for (const stroke of strokes) {
@@ -203,7 +320,7 @@ export function groupedStrokes(strokes: readonly Stroke[]): Stroke[] {
     const index = groups.get(key)
     if (index === undefined) { groups.set(key, result.length); result.push(stroke); continue }
     const previous = result[index]!
-    result[index] = { ...previous, clip: !previous.clip || !stroke.clip ? undefined : union(previous.clip, stroke.clip) }
+    result[index] = { ...previous, clip: !previous.clip || !stroke.clip ? undefined : combinedMask(previous.clip, stroke.clip) }
   }
   return result
 }

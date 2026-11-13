@@ -55,3 +55,16 @@ describe('PNG browser boundaries', () => {
     await writing
   })
 })
+
+describe('explicit PNG selection area', () => {
+  it('preserves selected whitespace and clips to the exact area without outside padding', async () => {
+    const context = { setTransform: vi.fn(), beginPath: vi.fn(), moveTo: vi.fn(), lineTo: vi.fn(), closePath: vi.fn(), clip: vi.fn(), arc: vi.fn(), fill: vi.fn() }
+    let encodedSize: number[] = []
+    const canvas = { width: 0, height: 0, getContext: () => context, toBlob: (done: BlobCallback) => { encodedSize = [canvas.width,canvas.height]; done(new Blob(['png'])) } }
+    vi.stubGlobal('document', { createElement: () => canvas })
+    const dot: Stroke = { id: 1, color: INK, width: 2, points: [{ x: 10, y: 20, time: 0, pressure: 1 }] }
+    await selectionPNG([dot], rectangle({ x: -20, y: -10 }, { x: 80, y: 90 }))
+    expect(encodedSize).toEqual([200,200]); expect(context.setTransform).toHaveBeenCalledWith(2,0,0,2,40,20)
+    expect(context.clip).toHaveBeenCalledWith('nonzero'); expect(canvas.width).toBe(0)
+  })
+})

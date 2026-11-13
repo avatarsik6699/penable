@@ -7,7 +7,8 @@ import type { DrawingTool, SelectionShape, SelectionState, HistoryState, InputDi
 import { DEFAULT_STABILIZATION_STRENGTH, normalizeStrength } from './drawing/stabilization'
 import type { BackgroundMode } from './drawing/background'
 import { StoragePanel } from './components/StoragePanel'
-import { cloneDocument, serializeDocument, serializeRawBackup } from './document/codec'
+import { serializeDocument, serializeRawBackup } from './document/codec'
+import { DocumentJobs } from './document/jobs'
 import { DocumentSession, messageOf } from './document/session'
 import type { BoardDocument, StorageState } from './document/types'
 
@@ -64,9 +65,9 @@ export default function App() {
     const initial = latestDocument.current
     if (!initial) throw new Error('Доска ещё не загружена.')
     const scene = controlsRef.current?.snapshot()
-    return cloneDocument({ format: 'penable-board', schemaVersion: 2, strokes: scene?.strokes ?? initial.strokes,
-      viewport: scene?.viewport ?? initial.viewport, background: backgroundValue.current,
-      tools: { width: toolsRef.current.width, stabilization: toolsRef.current.stabilization } })
+    return { format: 'penable-board', schemaVersion: 2, strokes: scene?.strokes ?? initial.strokes,
+      viewport: { ...(scene?.viewport ?? initial.viewport) }, background: backgroundValue.current,
+      tools: { width: toolsRef.current.width, stabilization: toolsRef.current.stabilization } }
   }, [])
   const canWrite = useCallback(() => Boolean(sessionRef.current?.canWrite && controlsRef.current && !dialogBlocked.current), [])
   const activateSelection = useCallback(() => { toolRef.current = 'selection'; setTool('selection') }, [])
@@ -77,7 +78,7 @@ export default function App() {
   useEffect(() => {
     let active = true
     const session = new DocumentSession({
-      snapshot,
+      snapshot, persistence: new DocumentJobs(),
       onHydrate: (document) => {
         if (!active || sessionRef.current !== session) return
         controlsRef.current?.cancelInput()

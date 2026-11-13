@@ -78,3 +78,53 @@ describe('exact footprint regressions', () => {
     history.redo(); expect(scene[0]).toBe(b)
   })
 })
+
+describe('bounded adaptive geometry queries', () => {
+  it('does not treat a hole inside source bounds as full containment', () => {
+    const original = stroke()
+    const region = [[[[ -10,-10],[110,-10],[110,10],[-10,10],[-10,-10]],[[20,-5],[20,5],[40,5],[40,-5],[20,-5]]]] as import('./types').ClipMask
+    const [part] = selectParts([original], region, () => 2)
+    expect(part!.remainder).not.toBeNull()
+    expect(part!.selected.clip).toBeDefined()
+    expect(contains(part!.selected.clip!, { x: 30, y: 0 })).toBe(false)
+  })
+  it('ignores hidden diagonal source bounds and separates width/profile cache entries', () => {
+    const original = { ...stroke(), width: 1, points: [{ x: 0,y:0,time:0,pressure:1 }, { x:100,y:100,time:1,pressure:1 }] }
+    const clip = rectangle({ x: 80, y: 0 }, { x:100,y:20 })
+    expect(visibleBounds([{ ...original, clip }])).toBeNull()
+    const dot = { ...stroke(), width: 2, points: [{ x:0,y:0,time:0,pressure:1 }] }, area = rectangle({ x:-10,y:-10 }, { x:10,y:10 })
+    expect(visibleBounds([{ ...dot, clip: area }])).toEqual({ left:-1,right:1,top:-1,bottom:1 })
+    expect(visibleBounds([{ ...dot, width:8, clip: area }])).toEqual({ left:-4,right:4,top:-4,bottom:4 })
+  })
+  it('retains fully contained immutable sources without unnecessary fragmentation', () => {
+    const original = stroke(), [part] = selectParts([original], rectangle({ x:-20,y:-20 }, { x:120,y:20 }), () => { throw Error('must not allocate') })
+    expect(part!.selected).toBe(original); expect(part!.remainder).toBeNull()
+  })
+  it('bounds clipped long handwriting without per-subsegment Boolean operations', () => {
+    const original = { ...stroke(), width:3, points: Array.from({ length:2000 }, (_,i) => ({ x:100+i*.2,y:350+Math.sin(i/10)*30,time:i,pressure:.5 })) }
+    const start = performance.now()
+    const [part] = selectParts([original], rectangle({ x:120,y:300 }, { x:220,y:400 }), () => 2)
+    const bounds = visibleBounds([part!.selected])!
+    expect(bounds.left).toBe(120); expect(bounds.right).toBe(220)
+    // Catches the old >1s cold-bound regression with headroom for CI noise.
+    expect(performance.now() - start).toBeLessThan(300)
+  })
+})
+
+describe('selection bounds review regressions', () => {
+  it.each([1e6,1e9])('keeps circle extrema across very long mask edges of %s', extent => {
+    const dot = { ...stroke(), width:2, points:[{ x:0,y:0,time:0,pressure:1 }], clip:rectangle({ x:.8,y:-extent }, { x:1.2,y:extent }) }
+    const bounds = visibleBounds([dot])!
+    expect(bounds.left).toBeCloseTo(.8,12); expect(bounds.right).toBeCloseTo(1,12)
+    expect(bounds.top).toBeCloseTo(-.6,12); expect(bounds.bottom).toBeCloseTo(.6,12)
+  })
+  it('does not select fully clipped invisible sources through the containment shortcut', () => {
+    const dot = { ...stroke(), width:2, points:[{ x:0,y:0,time:0,pressure:1 }] }
+    const outside = rectangle({ x:100,y:100 }, { x:200,y:200 })
+    const hole = [[[[ -100,-100],[100,-100],[100,100],[-100,100],[-100,-100]],[[ -10,-10],[-10,10],[10,10],[10,-10],[-10,-10]]]] as import('./types').ClipMask
+    for (const clip of [outside,hole]) {
+      expect(visibleBounds([{ ...dot, clip }])).toBeNull()
+      expect(selectParts([{ ...dot, clip }], rectangle({ x:-5,y:-5 }, { x:5,y:5 }), () => 2)).toEqual([])
+    }
+  })
+})

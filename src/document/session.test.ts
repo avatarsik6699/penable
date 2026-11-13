@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cloneDocument, emptyDocument } from './codec'
+import type { DocumentPersistence } from './jobs'
 import { DocumentSession } from './session'
 import type { BoardDocument, DocumentRepository, StoredRecord, WriterLease } from './types'
 import type { Stroke } from '../drawing/types'
@@ -11,7 +12,7 @@ function deferred<T>() {
   return { promise, resolve, reject }
 }
 
-function setup(main: StoredRecord = { exists: true, value: emptyDocument() }, writer = true) {
+function setup(main: StoredRecord = { exists: true, value: emptyDocument() }, writer = true, persistence?: DocumentPersistence) {
   let live = emptyDocument()
   let invalidate: (message: string) => void = () => {}
   const repository = {
@@ -23,7 +24,7 @@ function setup(main: StoredRecord = { exists: true, value: emptyDocument() }, wr
   const snapshot = vi.fn(() => cloneDocument(live))
   const onHydrate = vi.fn((document: BoardDocument) => { live = cloneDocument(document) })
   const onState = vi.fn()
-  const session = new DocumentSession({ snapshot, onHydrate, onState,
+  const session = new DocumentSession({ snapshot, onHydrate, onState, persistence,
     acquire: async () => lease, open: async (callback) => { invalidate = callback; return repository } })
   return { session, repository, lease, snapshot, onHydrate, onState,
     get live() { return live }, invalidate: (message: string) => invalidate(message) }
@@ -304,5 +305,43 @@ describe('schema2 session upgrade state', () => {
     expect(h.session.previousRecord.value).not.toBe(raw)
     expect(h.session.state.hasPrevious).toBe(true); expect(h.session.state.hasUpgradeCopy).toBe(true)
     await h.session.dispose()
+  })
+})
+
+describe('snapshot ownership boundary', () => {
+  it('detaches a live source before awaiting a save adapter', async () => {
+    const h = setup(); await h.session.start(); h.snapshot.mockImplementation(() => h.live)
+    h.live.strokes.push({ id:1,width:3,color:'#182230',points:[{ x:10,y:20,pressure:1,time:0 }] })
+    const write = deferred<void>(); h.repository.write.mockReturnValueOnce(write.promise)
+    h.session.changed(true); const saving = h.session.flush(); await Promise.resolve()
+    h.live.strokes[0]!.points[0]!.x = 99
+    expect(h.repository.write.mock.calls[0]![0].strokes[0]!.points[0]!.x).toBe(10)
+    write.resolve(); await saving; await h.session.dispose()
+  })
+  it('detaches previous-import memory even when the snapshot provider returns live references', async () => {
+    const h = setup(); await h.session.start(); h.snapshot.mockImplementation(() => h.live)
+    h.live.strokes.push({ id:1,width:3,color:'#182230',points:[{ x:10,y:20,pressure:1,time:0 }] })
+    const replacement = deferred<void>(), started = deferred<void>()
+    h.repository.replace.mockImplementationOnce(() => { started.resolve(); return replacement.promise })
+    const importing = h.session.replace(emptyDocument(),()=>false); await started.promise
+    h.live.strokes[0]!.points[0]!.x = 99
+    expect((h.repository.replace.mock.calls[0]![0] as BoardDocument).strokes[0]!.points[0]!.x).toBe(10)
+    replacement.resolve(); await importing; await h.session.dispose()
+  })
+})
+
+describe('durable worker session lifetime', () => {
+  it('drains background writes and closes persistence before releasing the writer lease', async () => {
+    const write = deferred<void>(), close = deferred<void>(), closing = deferred<void>()
+    const persistence = { write:vi.fn((_document:BoardDocument)=>write.promise),close:vi.fn(()=>{ closing.resolve(); return close.promise }) }
+    const h = setup(undefined,true,persistence); await h.session.start(); h.snapshot.mockImplementation(()=>h.live)
+    h.live.strokes.push({ id:1,width:3,color:'#182230',points:[{ x:10,y:20,time:0,pressure:1 }] })
+    h.session.changed(true); const saving = h.session.flush(); await Promise.resolve()
+    h.live.strokes.push({ id:2,width:3,color:'#182230',points:[{ x:20,y:20,time:0,pressure:1 }] })
+    expect(persistence.write.mock.calls[0]![0].strokes).toHaveLength(1)
+    const disposed = h.session.dispose(); expect(h.lease.release).not.toHaveBeenCalled(); expect(persistence.close).not.toHaveBeenCalled()
+    write.resolve(); await saving; await closing.promise
+    expect(h.repository.write).not.toHaveBeenCalled(); expect(h.lease.release).not.toHaveBeenCalled()
+    close.resolve(); await disposed; expect(h.lease.release).toHaveBeenCalledOnce()
   })
 })

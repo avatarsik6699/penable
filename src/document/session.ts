@@ -1,10 +1,13 @@
-import { decodeDocument, emptyDocument } from './codec'
+import { cloneDocument, decodeDocument, emptyDocument } from './codec'
 import { openRepository } from './indexeddb'
+import type { DocumentPersistence } from './jobs'
 import { acquireWriterLease } from './writer-lock'
 import type { BoardDocument, DocumentRepository, SavePhase, StorageState, StoredRecord, WriterLease } from './types'
 
 interface SessionOptions {
   snapshot: () => BoardDocument
+  // Internal completed-source contract; injected/default adapters retain strict synchronous detachment.
+  persistence?: DocumentPersistence
   onHydrate: (document: BoardDocument) => void
   onState: (state: StorageState) => void
   acquire?: () => Promise<WriterLease>
@@ -108,11 +111,15 @@ export class DocumentSession {
       if (!this.canWrite || this.paused || !this.repository || this.revision <= this.savedRevision) return
       const revision = this.revision
       try {
-        const snapshot = { ...decodeDocument(this.options.snapshot()), schemaVersion: 2 as const }
+        const live = this.options.snapshot()
+        const snapshot = this.options.persistence
+          ? { ...live, schemaVersion: 2 as const, strokes: [...live.strokes], viewport: { ...live.viewport }, tools: { ...live.tools } }
+          : { ...decodeDocument(live), schemaVersion: 2 as const }
         this.writing = true
         this.phase = 'saving'
         this.publish()
-        await this.repository.write(snapshot)
+        if (this.options.persistence) await this.options.persistence.write(snapshot)
+        else await this.repository.write(snapshot)
         this.writing = false
         if (this.disposed || this.fatal) return
         if (!this.upgrade.exists && this.rawMain.exists && isSchema1(this.rawMain.value)) this.upgrade = this.rawMain
@@ -153,7 +160,7 @@ export class DocumentSession {
       try {
         await preceding
         if (this.disposed || this.fatal || !this.repository) throw new Error('Подключение к хранилищу изменилось. Замена не выполнена.')
-        const previous = this.loaded ? this.options.snapshot() : this.rawMain.value
+        const previous = this.loaded ? cloneDocument(this.options.snapshot()) : this.rawMain.value
         await this.repository.replace(previous, document)
         if (this.disposed || this.fatal) return
         if (!this.upgrade.exists && this.rawMain.exists && isSchema1(this.rawMain.value)) this.upgrade = this.rawMain
@@ -188,7 +195,7 @@ export class DocumentSession {
     this.disposal = (async () => {
       await this.startup?.catch(() => {})
       await this.tail
-      await this.repository?.close()
+      await Promise.allSettled([this.options.persistence?.close(), this.repository?.close()])
       await this.lease?.release()
     })()
     return this.disposal

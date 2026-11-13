@@ -132,3 +132,19 @@ describe('atomic schema2 upgrade copy', () => {
     const failure = expect(writing).rejects.toThrow(); tx.onabort?.(); await failure; await repository.close()
   })
 })
+
+describe('schema2 preservation read budget', () => {
+  it('skips deserializing old main only after successful schema2 completion, never after abort', async () => {
+    const h = fakeDatabase(); h.opening.onsuccess?.(); const repository = await h.opened
+    const first = repository.write(emptyDocument()), aborted = h.transactions.at(-1)!
+    const failed = expect(first).rejects.toThrow(); aborted.onabort?.(); await failed
+    const retry = repository.write(emptyDocument()), retried = h.transactions.at(-1)!
+    expect(retried.reads.has('value:main')).toBe(true)
+    retried.oncomplete?.(); await retry
+    const second = repository.write(emptyDocument()), saved = h.transactions.at(-1)!
+    expect(saved.reads.size).toBe(0); saved.oncomplete?.(); await second
+    const replacement = repository.replace({ before:'memory' },emptyDocument()), replaced = h.transactions.at(-1)!
+    expect(replaced.reads.size).toBe(0); expect(replaced.puts).toHaveLength(2)
+    replaced.oncomplete?.(); await replacement; await repository.close()
+  })
+})

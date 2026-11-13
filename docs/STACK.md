@@ -11,6 +11,7 @@
 | Frontend | React + TypeScript, Vite SPA, plain CSS, Canvas 2D |
 | Input | Pointer Events, world-coordinate controller outside React's rendering cycle |
 | Selection geometry | polygon-clipping0.15.7; normalized local vector clips and source lineage |
+| Background jobs | Native module Worker; bounded transferable point chunks for large selection/validation/save |
 | Backend | n/a — browser only |
 | Storage | Native IndexedDB, versioned one-board document; exclusive origin Web Lock; JSON backup |
 | Package manager | npm, package-lock.json |
@@ -69,7 +70,7 @@ A focused build is appropriate when establishing/changing build configuration.
 | Secrets scan | npm run scan:secrets | Gitleaks default rules; excludes only generated deps/build, Git internals and local artifacts; scans untracked files too |
 | Dependency audit | npm run audit:deps | npm audit, moderate and above fail; includes development dependencies |
 | Accessibility audit | n/a — formal automated audit deferred | Manual labels, focus, keyboard, contrast and responsive inspection required in Smoke |
-| Performance budget | n/a — numeric latency target not agreed | User evaluates actual pen response; event frequency is not end-to-end latency |
+| Performance regression | Owned-browser PerformanceObserver + active change fixtures | Change09 checks ordinary selection/move for attributable >=50ms Long Tasks and heavy-job responsiveness/cancellation; actual pen latency remains hardware acceptance |
 
 ## Release Gate
 
@@ -259,3 +260,18 @@ changing before-import; provide both downloads. Existing document limits plus204
 All previews are transient; canonical mutations are prepared/validated atomic history replacements.
 One source writer; final independent review and browser tests before local automatic ship.
 Actual Wacom and OS clipboard acceptance are separate. No push/release authorized for08.
+
+## Change09 — Area and Responsiveness Contract
+
+SPEC5.10 retains the drawn region independently of ink bounds, including clipboard and PNG
+whitespace. Shared cached immutable geometry must bypass active mutable ink. Selection preview
+uses existing completed/live layers and RAF coalescing. Bounds use conservative adaptive/analytic
+queries; preserve accepted source curves and partial-ink slivers.
+
+Heavy selection/candidate validation and autosave run in a module Worker. Point transfer is
+bounded and yields to the main thread; do not post one huge object or stringify it on main.
+Strict external decode and worker-side candidate decode remain mandatory. Pending jobs use
+cancellation/generation guards; failure cannot commit or discard notes. Autosave worker drains
+transactions and closes its repository before the owning main-thread lease is released.
+No persistent schema/dependency change; normal Vite builds must emit base-correct worker assets.
+Explicit JSON import/export/load remain separately measured from selection/drag/save paths.
