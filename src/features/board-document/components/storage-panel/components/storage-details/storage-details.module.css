@@ -1,59 +1,77 @@
-.storage-popover {
+.panel {
   position: absolute;
-  top: calc(100% + 6px);
-  right: 24px;
-  z-index: 2;
-  width: min(440px, calc(100vw - 32px));
-  max-height: min(440px, calc(100dvh - 240px));
+  z-index: 6;
+  top: 80px;
+  right: 20px;
+  width: min(304px, calc(100vw - 24px));
+  max-height: calc(100dvh - 100px);
   overflow: auto;
   overscroll-behavior: contain;
+  border-radius: 14px;
   padding: 16px;
-  border: 1px solid var(--divider);
-  border-radius: 6px;
   background: var(--paper);
-  box-shadow: 0 4px 16px var(--panel-shadow);
+  box-shadow: var(--popover-shadow);
 }
-
-.storage-popover-heading {
+.heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.heading h2 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+}
+.heading button {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  margin: -6px;
+  color: var(--text-muted);
+}
+.panel p {
+  margin: 0 0 16px;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+.panel .error {
+  color: var(--error);
+}
+.primary,
+.secondary {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.storage-popover h2 {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.storage-popover p {
-  margin: 12px 0 0;
-  line-height: 1.6;
-  overflow-wrap: anywhere;
-}
-
-.storage-recovery {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.storage-recovery:not(:empty) {
-  margin-top: 12px;
-}
-
-.storage-help {
-  color: var(--text-muted);
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 40px;
+  padding: 9px 12px;
   font-size: 12px;
+  margin-top: 8px;
 }
-
-@media (max-width: 580px) {
-  .storage-popover {
-    right: 16px;
+.primary {
+  background: var(--focus);
+  color: white;
+}
+.primary:not(:disabled):hover {
+  background: #124cb1;
+}
+.secondary {
+  box-shadow: inset 0 0 0 1px var(--divider);
+}
+.panel .help {
+  margin: 16px 0 0;
+  font-size: 11px;
+}
+@media (max-width: 700px) {
+  .panel {
+    right: 12px;
+    top: 72px;
+    max-height: calc(100dvh - 88px);
   }
-}
-
-.storage-error {
-  color: var(--error);
 }

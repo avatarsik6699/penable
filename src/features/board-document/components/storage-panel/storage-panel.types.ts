@@ -2,6 +2,9 @@ import type { BoardDocument, StorageState } from "../../board-document.types";
 
 export namespace StoragePanelTypes {
   export type Props = {
+    openPanel: "board" | "save" | null;
+    onPanelChange: (panel: "board" | "save" | null) => void;
+    backgroundControl: import("react").ReactNode;
     state: StorageState;
     hasDocument: boolean;
     busy: boolean;

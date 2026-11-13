@@ -41,11 +41,17 @@ export class BoardPage {
     await this.page.mouse.move(absolute.x, absolute.y, { steps });
   }
 
+  private async selectPen() {
+    const pen = this.page.getByRole("button", { name: "Перо", exact: true });
+
+    if ((await pen.getAttribute("aria-pressed")) !== "true") await pen.click();
+  }
+
   private async writeStroke(
     from = { x: 100, y: 100 },
     to = { x: 380, y: 150 },
   ) {
-    await this.page.getByRole("button", { name: "Перо", exact: true }).click();
+    await this.selectPen();
     await this.move(from);
     await this.page.mouse.down();
     await this.move(to, 30);
@@ -62,7 +68,7 @@ export class BoardPage {
   }
 
   async drawAndExpectExactCommitRaster() {
-    await this.page.getByRole("button", { name: "Перо", exact: true }).click();
+    await this.selectPen();
     await this.move({ x: 100, y: 100 });
     await this.page.mouse.down();
     await this.move({ x: 320, y: 160 }, 24);
@@ -131,6 +137,13 @@ export class BoardPage {
     await this.move(to, 10);
     await this.page.mouse.up();
 
+    await this.page.evaluate(
+      () =>
+        new Promise((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(resolve)),
+        ),
+    );
+
     await expect(
       this.page.getByRole("button", { name: "Рамка", exact: true }),
     ).toBeEnabled();
@@ -151,14 +164,39 @@ export class BoardPage {
     expect(numbers![5]! - numbers![1]!).toBeCloseTo(height, 5);
   }
 
+  async moveSelectionWithActions(
+    from: TestBoardTypes.Position,
+    to: TestBoardTypes.Position,
+  ) {
+    await this.moveSelection(from, to, true);
+  }
+
   async moveSelection(
     from: TestBoardTypes.Position,
     to: TestBoardTypes.Position,
+    openActions = false,
   ) {
     await this.move(from);
     await this.page.mouse.down();
     await this.move(to, 12);
     await this.page.mouse.up();
+
+    if (openActions) {
+      await this.page
+        .getByRole("button", { name: "Действия", exact: true })
+        .click();
+
+      await expect(
+        this.page.getByRole("button", { name: "Действия", exact: true }),
+      ).toHaveAttribute("aria-expanded", "true");
+    }
+
+    await this.page.evaluate(
+      () =>
+        new Promise((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(resolve)),
+        ),
+    );
 
     await expect(
       this.page.getByRole("button", { name: "Рамка", exact: true }),
@@ -170,14 +208,11 @@ export class BoardPage {
       .poll(async () => {
         const strokes = (await this.storage.records()).main?.strokes ?? [];
 
-        return strokes.some(
-          (stroke) =>
-            stroke.clip &&
-            stroke.translation?.x === x &&
-            stroke.translation?.y === y,
-        );
+        return strokes
+          .filter((stroke) => stroke.clip)
+          .map((stroke) => stroke.translation);
       })
-      .toBe(true);
+      .toContainEqual({ x, y });
 
     await this.storage.expectSaved();
   }
@@ -194,7 +229,7 @@ export class BoardPage {
   }
 
   async cancelStroke() {
-    await this.page.getByRole("button", { name: "Перо", exact: true }).click();
+    await this.selectPen();
     await this.move({ x: 500, y: 150 });
     await this.page.mouse.down();
     await this.move({ x: 580, y: 190 }, 10);
@@ -268,7 +303,7 @@ export class BoardPage {
   }
 
   async expectCursorAndNavigationOwnership() {
-    await this.page.getByRole("button", { name: "Перо", exact: true }).click();
+    await this.selectPen();
     await this.move({ x: 500, y: 200 });
     await this.expectCursorMode("pen");
     await this.surface.focus();
@@ -289,11 +324,11 @@ export class BoardPage {
     await this.move({ x: 500, y: 200 });
     await this.expectCursorMode("eraser");
 
-    await this.page
-      .getByRole("button", { name: "Импорт", exact: true })
-      .click();
+    await this.storage.beginImport();
 
-    await expect(this.page.getByRole("dialog")).toBeVisible();
+    await expect(
+      this.page.getByRole("dialog", { name: "Импорт доски", exact: true }),
+    ).toBeVisible();
 
     await expect
       .poll(() =>
@@ -304,7 +339,12 @@ export class BoardPage {
       .toBe(true);
 
     await this.page.keyboard.press("Escape");
-    await expect(this.page.getByRole("dialog")).toBeHidden();
+
+    await expect(
+      this.page.getByRole("dialog", { name: "Импорт доски", exact: true }),
+    ).toBeHidden();
+
+    await this.selectPen();
 
     const width = this.page.getByRole("slider", {
       name: "Толщина",
@@ -314,6 +354,8 @@ export class BoardPage {
     await width.focus();
     await this.page.keyboard.press("ArrowRight");
     await expect(width).toHaveValue("3.1");
+
+    await this.page.getByRole("button", { name: "Перо", exact: true }).click();
 
     const stabilization = this.page.getByRole("slider", {
       name: "Стабилизация",
@@ -341,7 +383,7 @@ export class BoardPage {
     ).toBeVisible();
 
     await expect(
-      this.page.getByRole("button", { name: "Хранение", exact: true }),
+      this.page.getByRole("button", { name: "Меню доски", exact: true }),
     ).toBeVisible();
 
     await expect(this.surface).toBeVisible();

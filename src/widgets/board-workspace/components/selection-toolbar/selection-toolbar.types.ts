@@ -6,6 +6,8 @@ import type { SelectionShape } from "~/entities/board";
 
 export namespace SelectionToolbarTypes {
   export type Props = {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
     state: SelectionState;
     shape: SelectionShape;
     readOnly: boolean;

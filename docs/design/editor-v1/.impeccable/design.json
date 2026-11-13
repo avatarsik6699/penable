@@ -68,7 +68,7 @@
       "Writing-first, light digital notebook composition.",
       "Floating horizontal dock with inline width and click-to-open stabilization.",
       "Russian labels, system UI typography, and compact controls.",
-      "Owner review is required before any app implementation."
+      "Owner approved visual transfer in Change15; runtime acceptance is separate."
     ],
     "rules": [],
     "dos": [
@@ -81,7 +81,7 @@
       "Don't add a permanent tutorial or status row inside the proposed product frame.",
       "Don't present the synthetic note as real user content or proof of handwriting quality.",
       "Don't treat this proposal or its static previews as production, application, or Wacom acceptance.",
-      "Don't move this proposal into the app until the owner reviews it and a separate change authorizes implementation."
+      "Don't treat mock approval as hardware or production acceptance; follow Change15 and SPEC."
     ]
   }
 }

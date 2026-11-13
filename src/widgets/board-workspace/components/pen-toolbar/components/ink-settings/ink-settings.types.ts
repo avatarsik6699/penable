@@ -1,12 +1,7 @@
-import type { PenToolbarTypes } from "../../pen-toolbar.types";
-
 export namespace InkSettingsTypes {
-  export type Props = Pick<
-    PenToolbarTypes.Props,
-    | "width"
-    | "readOnly"
-    | "onWidthChange"
-    | "stabilization"
-    | "onStabilizationChange"
-  >;
+  export type Props = {
+    width: number;
+    readOnly: boolean;
+    onWidthChange: (value: number) => void;
+  };
 }

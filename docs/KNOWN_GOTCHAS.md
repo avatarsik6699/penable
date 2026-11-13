@@ -57,3 +57,18 @@ unbound loopback port. This host can drop rather than reject SYN; the availabili
 before Playwright's server launch timeout. Use documented webServer.wait.stdout for Vite's Local
 line, strictPort:true and reuseExistingServer:false. Do not reuse the user's dev server or raise
 all test timeouts. E2E owns4185 and isolated contexts; no browser profile cleanup is needed.
+
+## Playwriter timeout does not cancel the snippet
+
+Observed during Change15 native verification: executor uses Promise.race for its deadline, so an
+async mouse loop or waiting locator can keep running after the CLI reports timeout. Starting
+cleanup or another probe can race the old code and invalidate measurements.
+
+Use short bounded input batches, explicit short locator timeouts, and locally captured page handles.
+After a timed-out mutating snippet, close only the page the task created, verify it is closed, then
+`playwriter session reset ID` before creating its replacement in the same session/group. Reset
+replaces userState and reconnects handles; do not assign a replacement to the old shared state while
+old code might still resume. Never close/reset user-owned pages or clear browser/application data.
+Timed-out runs are not acceptance evidence. A replacement owned tab is a recovery exception to the
+one-created-tab convention; avoid simultaneous task tabs.1px screencast cadence stabilization, if
+used, must be disclosed and stopped after measurement (see STACK performance notes).

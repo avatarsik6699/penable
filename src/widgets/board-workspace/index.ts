@@ -17,7 +17,7 @@ export type { CanvasLayer, FrameScheduler } from "./components/writing-surface";
 export { WorkspacePlatform } from "./adapters/workspace-platform";
 export { BoardWorkspace } from "./board-workspace";
 export { PenToolbar } from "./components/pen-toolbar";
-export { PointerDiagnostics } from "./components/pen-toolbar";
+export { PointerDiagnostics } from "./components/pointer-diagnostics";
 export { SelectionToolbar } from "./components/selection-toolbar";
 export { WritingSurface } from "./components/writing-surface";
 export type {

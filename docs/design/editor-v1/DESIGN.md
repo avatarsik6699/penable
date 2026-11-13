@@ -1,6 +1,6 @@
 ---
 name: penable editor proposal
-description: Proposal for a writing-first light notebook editor; owner review required before app work.
+description: Proposal for a writing-first light notebook editor; owner-approved visual reference for Change15.
 colors:
   ink: "#182230"
   muted: "#526176"
@@ -40,7 +40,8 @@ components:
 
 ## Overview
 
-**DESIGN PROPOSAL ONLY.** This document describes the isolated mock in this directory. The owner has not approved moving it into the application. SPEC §5.3 remains the production design authority.
+**APPROVED MOCK REFERENCE.** This document describes the isolated mock in this directory.
+The owner approved visual transfer on2026-11-13 in Change15. SPEC §5.3/5.14 remains the production authority.
 
 **Creative North Star: "The Writing-First Notebook"**
 
@@ -52,7 +53,7 @@ The board menu, pen settings, selection actions, and save recovery are shown as 
 - Writing-first, light digital notebook composition.
 - Floating horizontal dock with inline width and click-to-open stabilization.
 - Russian labels, system UI typography, and compact controls.
-- Owner review is required before any app implementation.
+- Visual direction approved for Change15; runtime acceptance is separate.
 
 ## Colors
 
@@ -130,4 +131,4 @@ Controls use restrained rounded corners: 8px icon controls, 7px shape and state 
 - Don't add a permanent tutorial or status row inside the proposed product frame.
 - Don't present the synthetic note as real user content or proof of handwriting quality.
 - Don't treat this proposal or its static previews as production, application, or Wacom acceptance.
-- Don't move this proposal into the app until the owner reviews it and a separate change authorizes implementation.
+- Don't treat mock approval as hardware or production acceptance; follow Change15 and SPEC.

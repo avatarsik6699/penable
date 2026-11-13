@@ -1,4 +1,4 @@
-import type { InputDiagnostics } from "../../../../model/workspace-model.types";
+import type { InputDiagnostics } from "../../model/workspace-model.types";
 
 export namespace PointerDiagnosticsTypes {
   export type Props = {

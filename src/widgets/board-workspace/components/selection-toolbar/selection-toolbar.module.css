@@ -1,70 +1,42 @@
-.selection-toolbar {
-  position: absolute;
-  z-index: 1;
-  top: 12px;
-  left: 12px;
-  max-width: calc(100% - 24px);
-  padding: 8px;
-  border: 1px solid var(--divider);
-  border-radius: 6px;
-  background: var(--paper);
+.toolbar {
+  position: relative;
+}
+.controls {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.controls button {
+  padding: 0 10px;
+  height: 40px;
   font-size: 13px;
 }
-
-.selection-toolbar button {
-  min-height: 36px;
-  padding: 0 9px;
-  border: 1px solid var(--divider);
-  border-radius: 5px;
-  background: var(--paper);
-  color: var(--ink);
-  font: inherit;
-  cursor: pointer;
+.controls button:last-child {
+  width: 40px;
+  padding: 0;
+  display: grid;
+  place-items: center;
 }
-
-.selection-toolbar button:hover:enabled {
-  background: var(--panel);
-}
-
-.selection-toolbar button[aria-pressed="true"] {
-  border-color: var(--control-selected-border);
-  background: var(--control-selected-bg);
-  color: var(--control-selected-text);
-}
-
-.selection-toolbar button:disabled {
-  color: var(--control-disabled);
-  cursor: default;
-}
-
-.selection-feedback {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  width: min(380px, calc(100vw - 32px));
+.feedback {
+  position: fixed;
+  bottom: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(440px, calc(100vw - 32px));
+  padding: 11px 16px;
   margin: 0;
-  padding: 8px 10px;
-  border: 1px solid var(--divider);
-  border-radius: 6px;
+  color: var(--ink);
   background: var(--paper);
-  color: var(--text-muted);
-  line-height: 1.45;
-  overflow-wrap: anywhere;
+  box-shadow: var(--popover-shadow);
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.5;
 }
-
-@media (max-width: 580px) {
-  .selection-toolbar {
-    max-width: calc(100% - 16px);
-    top: 8px;
-    left: 8px;
+@media (max-width: 520px) {
+  .toolbar {
+    width: 100%;
   }
-  .selection-toolbar button {
-    min-height: 36px;
+  .controls {
+    justify-content: center;
   }
-}
-
-.selection-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
 }

@@ -14,6 +14,7 @@ export function useImportDialog(
   feedback: (message: string) => void,
   beforeOpen: () => void,
   imported: () => void,
+  onClosed: () => void,
 ) {
   const [open, setOpen] = useState(false);
   const [candidate, setCandidate] = useState<BoardDocument | null>(null);
@@ -22,6 +23,16 @@ export function useImportDialog(
   const [error, setError] = useState("");
   const dialogRef = useRef<OverlayElements.Dialog>(null);
   const lifetime = useRef({ mounted: false, readGeneration: 0 });
+  const wasOpen = useRef(false);
+
+  useEffect(
+    function importReturnFocusFx() {
+      if (wasOpen.current && !open) onClosed();
+
+      wasOpen.current = open;
+    },
+    [open, onClosed],
+  );
 
   useEffect(function storageLifetimeFx() {
     const current = lifetime.current;

@@ -8,7 +8,7 @@ export class StoragePage {
 
   async expectSaved() {
     await expect(
-      this.page.getByText("Сохранено", { exact: true }),
+      this.page.getByText("Сохранено локально", { exact: true }),
     ).toBeVisible();
   }
 
@@ -138,6 +138,24 @@ export class StoragePage {
       .toEqual(document);
   }
 
+  async openBoardMenu() {
+    const trigger = this.page.getByRole("button", {
+      name: "Меню доски",
+      exact: true,
+    });
+
+    if ((await trigger.getAttribute("aria-expanded")) !== "true")
+      await trigger.click();
+  }
+
+  async beginImport() {
+    await this.openBoardMenu();
+
+    await this.page
+      .getByRole("button", { name: "Импорт", exact: true })
+      .click();
+  }
+
   async closeDetails() {
     const close = this.page.getByRole("button", {
       name: "Закрыть сведения о хранении",
@@ -145,14 +163,22 @@ export class StoragePage {
     });
 
     if (await close.isVisible()) await close.click();
+
+    const boardClose = this.page.getByRole("button", {
+      name: "Закрыть меню доски",
+      exact: true,
+    });
+
+    if (await boardClose.isVisible()) await boardClose.click();
   }
 
   async importDocument(document: unknown) {
-    await this.page
-      .getByRole("button", { name: "Импорт", exact: true })
-      .click();
+    await this.beginImport();
 
-    const dialog = this.page.getByRole("dialog");
+    const dialog = this.page.getByRole("dialog", {
+      name: "Импорт доски",
+      exact: true,
+    });
 
     await expect(dialog).toBeVisible();
 
@@ -178,11 +204,12 @@ export class StoragePage {
   async rejectInvalidImport() {
     const previous = (await this.records()).main;
 
-    await this.page
-      .getByRole("button", { name: "Импорт", exact: true })
-      .click();
+    await this.beginImport();
 
-    const dialog = this.page.getByRole("dialog");
+    const dialog = this.page.getByRole("dialog", {
+      name: "Импорт доски",
+      exact: true,
+    });
 
     await dialog.locator("input[type=file]").setInputFiles({
       name: "bad-board.json",
@@ -201,6 +228,8 @@ export class StoragePage {
   }
 
   async exportDocument(): Promise<TestBoardTypes.Document> {
+    await this.openBoardMenu();
+
     const pending = this.page.waitForEvent("download");
 
     await this.page
@@ -233,6 +262,8 @@ export class StoragePage {
   }
 
   async expectReadOnly() {
+    await this.openBoardMenu();
+
     await expect(
       this.page.getByText("Только просмотр", { exact: true }),
     ).toBeVisible();
@@ -244,10 +275,14 @@ export class StoragePage {
     await expect(
       this.page.getByRole("button", { name: "Импорт", exact: true }),
     ).toBeDisabled();
+
+    await this.closeDetails();
   }
 
   async expectSaveError() {
-    await expect(this.page.getByText("Ошибка", { exact: true })).toBeVisible();
+    await expect(
+      this.page.getByText("Не удалось сохранить", { exact: true }),
+    ).toBeVisible();
   }
 
   async retrySave() {

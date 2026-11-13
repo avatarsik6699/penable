@@ -24,5 +24,6 @@ from visual mock acceptance. Source/scene/data behavior stays under SPEC and FRO
 ## Brand commitments
 
 Name: penable. Russian interface. Light paper and compact tools. Miro/Notability inform familiar
-editing ergonomics. Owner selected a floating horizontal dock for the proposed next editor world,
-inline width and click-to-open stabilization; first deliverable is a separate visual mock.
+editing ergonomics. Owner selected a floating horizontal dock for the editor world,
+inline width and click-to-open stabilization. The separate Change14 mock was approved on2026-11-13
+for transfer into the real editor in Change15; acceptance covers visual direction, not hardware behavior.

@@ -404,3 +404,15 @@ clipboard, file access or external network actions; only same-origin mock assets
 mock BRIEF/DESIGN documents are explicitly proposals, not current implementation authority.
 The Full Gate still runs production checks; unchanged source and Pages build bytes establish that
 engine performance/raster acceptance remains unchanged. No physical pen acceptance claimed for mock.
+
+
+## Change15 — Production floating UI
+
+Owner-approved Change14 mock is the visual reference; SPEC5.3/5.14 governs the production transfer.
+Root DESIGN.md and .impeccable/design.json describe the built visual system; SPEC remains behavior authority.
+No new runtime package or data schema. Existing source commands/gates remain mandatory.
+Parent may run `npm run preview:pages -- --port 4191 --strictPort` for isolated native production
+smoke (4192 if4191 already contains notes); never open or mutate the owner's localhost:5173 data. Native benchmark uses existing bench
+commands on4180. Full Gate still owns4185. Desktop1440×900/1280×720 and compact390×844 checks
+include real command disclosure, one panel at a time, keyboard/focus, import/recovery/busy/read-only,
+stable canvas dimensions/generation and no ink from UI. Hardware latency and OS clipboard separate.

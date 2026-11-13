@@ -1,107 +1,58 @@
-.width-control {
+.width {
   display: flex;
   align-items: center;
-  gap: 12px;
-  min-height: 40px;
-  font-size: 14px;
+  gap: 10px;
+  width: 178px;
+  padding: 0 8px 0 3px;
 }
-
-.width-control label {
-  cursor: pointer;
+.width input {
+  width: 90px;
+  flex: 1;
 }
-
-.width-control input {
-  width: 128px;
-  min-height: 40px;
-  margin: 0;
-  accent-color: var(--focus);
-  cursor: pointer;
-}
-
-.width-control output {
-  min-width: 44px;
-  font-variant-numeric: tabular-nums;
+.width output {
+  display: flex;
+  gap: 3px;
+  align-items: baseline;
   white-space: nowrap;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
 }
-
-.width-control output span {
+.width output span {
+  font-size: 11px;
   color: var(--text-muted);
-  font-size: 12px;
 }
-
-.pen-preview {
+.preview {
+  width: 16px;
+  height: 20px;
   display: grid;
   place-items: center;
-  width: 24px;
-  height: 24px;
+  flex-shrink: 0;
 }
-
-.pen-preview > span {
-  border-radius: 50%;
+.preview span {
   background: var(--ink);
+  border-radius: 50%;
 }
-
-.stabilization-control {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 14px;
-}
-
-.stabilization-control label {
-  display: block;
-  cursor: pointer;
-}
-
-.setting-help {
-  display: block;
-  color: var(--text-muted);
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-.stabilization-control input {
-  width: 128px;
-  min-width: 60px;
-  min-height: 40px;
-  margin: 0;
-  accent-color: var(--focus);
-  cursor: pointer;
-}
-
-.stabilization-control output {
-  min-width: 42px;
-  font-variant-numeric: tabular-nums;
+.hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
   white-space: nowrap;
 }
-
-.stabilization-control output span {
-  color: var(--text-muted);
-  font-size: 12px;
-}
-
-@media (max-width: 580px) {
-  .width-control {
-    order: 2;
-    flex: 1;
-    gap: 8px;
+@media (max-width: 520px) {
+  .width {
+    width: 104px;
+    padding: 0;
+    gap: 5px;
   }
-  .width-control input {
-    flex: 1;
-    width: 70px;
-    max-width: 128px;
-    min-width: 50px;
-  }
-  .pen-preview {
+  .preview {
     display: none;
   }
-  .stabilization-control {
-    order: 4;
-    flex-basis: 100%;
-    gap: 12px;
+  .width input {
+    width: 44px;
   }
-  .stabilization-control input {
-    flex: 1;
-    width: 70px;
+  .width output {
+    font-size: 12px;
   }
 }

@@ -1,49 +1,30 @@
+import type React from "react";
 import { useBoardWorkspace } from "./hooks/use-board-workspace";
 import styles from "./board-workspace.module.css";
-import type React from "react";
 import { StoragePanel } from "~/features/board-document";
 import { PenToolbar } from "./components/pen-toolbar";
 import { SelectionToolbar } from "./components/selection-toolbar";
 import { WritingSurface } from "./components/writing-surface";
+import { BackgroundControl } from "./components/background-control";
+import { ViewportControls } from "./components/viewport-controls";
+import { HelpControls } from "./components/help-controls";
 import type { BoardWorkspaceTypes } from "./board-workspace.types";
 
 export const BoardWorkspace: React.FC<BoardWorkspaceTypes.Props> = () => {
   const workspace = useBoardWorkspace();
 
+  const unavailable =
+    workspace.ui.dialogOpen ||
+    !workspace.ui.hasBoard ||
+    Boolean(workspace.ui.unavailable);
+
+  const readOnly = !workspace.ui.storage.writable || unavailable;
+
   return (
-    <main className={styles["app"]}>
-      <PenToolbar
-        tool={workspace.ui.tool}
-        onToolChange={workspace.model.changeTool}
-        width={workspace.ui.width}
-        onWidthChange={workspace.model.changeWidth}
-        diagnostics={workspace.ui.diagnostics}
-        stabilization={workspace.ui.stabilization}
-        onStabilizationChange={workspace.model.changeStabilization}
-        background={workspace.ui.background}
-        onBackgroundChange={workspace.model.changeBackground}
-        historyState={workspace.ui.history}
-        readOnly={
-          !workspace.ui.storage.writable ||
-          workspace.ui.dialogOpen ||
-          !workspace.ui.hasBoard ||
-          Boolean(workspace.ui.unavailable)
-        }
-        onUndo={() => workspace.model.controls.current?.undo()}
-        onRedo={() => workspace.model.controls.current?.redo()}
-        onZoomIn={() => workspace.model.controls.current?.zoomIn()}
-        onZoomOut={() => workspace.model.controls.current?.zoomOut()}
-        onResetView={() => workspace.model.controls.current?.reset()}
-        onFitAll={() => workspace.model.controls.current?.fitAll()}
-        selectionDisabled={
-          workspace.ui.dialogOpen ||
-          !workspace.ui.hasBoard ||
-          Boolean(workspace.ui.unavailable)
-        }
-      />
+    <main className={styles.app} aria-label="Личная доска">
       <StoragePanel
         state={workspace.ui.storage}
-        hasDocument={Boolean(workspace.ui.hasBoard)}
+        hasDocument={workspace.ui.hasBoard}
         busy={workspace.ui.history.busy}
         onExport={workspace.model.exportCurrent}
         onUpgrade={workspace.model.exportUpgrade}
@@ -53,11 +34,38 @@ export const BoardWorkspace: React.FC<BoardWorkspaceTypes.Props> = () => {
         onBeginImport={workspace.model.beginImport}
         onEndImport={workspace.model.endImport}
         onConfirm={workspace.model.confirmImport}
+        openPanel={
+          workspace.panel === "board" || workspace.panel === "save"
+            ? workspace.panel
+            : null
+        }
+        onPanelChange={workspace.changePanel}
+        backgroundControl={
+          <BackgroundControl
+            background={workspace.ui.background}
+            readOnly={readOnly || workspace.ui.history.busy}
+            onBackgroundChange={workspace.model.changeBackground}
+          />
+        }
       />
-      <div className={styles["board-stage"]}>
-        {workspace.ui.tool === "selection" &&
+      <PenToolbar
+        tool={workspace.ui.tool}
+        onToolChange={workspace.changeTool}
+        width={workspace.ui.width}
+        onWidthChange={workspace.model.changeWidth}
+        stabilization={workspace.ui.stabilization}
+        onStabilizationChange={workspace.model.changeStabilization}
+        historyState={workspace.ui.history}
+        readOnly={readOnly}
+        onUndo={() => workspace.model.controls.current?.undo()}
+        onRedo={() => workspace.model.controls.current?.redo()}
+        selectionDisabled={unavailable}
+        penOpen={workspace.panel === "pen"}
+        onPenOpenChange={(open) => workspace.changePanel(open ? "pen" : null)}
+        selectionControls={
+          workspace.ui.tool === "selection" &&
           workspace.ui.hasBoard &&
-          !workspace.ui.unavailable && (
+          !workspace.ui.unavailable ? (
             <SelectionToolbar
               state={workspace.ui.selection}
               shape={workspace.ui.selectionShape}
@@ -72,8 +80,35 @@ export const BoardWorkspace: React.FC<BoardWorkspaceTypes.Props> = () => {
               onCommand={(command) =>
                 workspace.model.controls.current?.selection(command)
               }
+              open={workspace.panel === "selection"}
+              onOpenChange={(open) =>
+                workspace.changePanel(open ? "selection" : null)
+              }
             />
-          )}
+          ) : null
+        }
+      />
+      <ViewportControls
+        onZoomOut={() => workspace.model.controls.current?.zoomOut()}
+        onZoomIn={() => workspace.model.controls.current?.zoomIn()}
+        onResetView={() => workspace.model.controls.current?.reset()}
+        onFitAll={() => workspace.model.controls.current?.fitAll()}
+        historyState={workspace.ui.history}
+        diagnostics={workspace.ui.diagnostics}
+        selectionDisabled={unavailable}
+      />
+      <HelpControls
+        open={workspace.panel === "help"}
+        onOpenChange={(open) => workspace.changePanel(open ? "help" : null)}
+        diagnostics={workspace.ui.diagnostics}
+        diagnosticsOpen={workspace.diagnosticsOpen}
+        onDiagnosticsChange={workspace.changeDiagnostics}
+        onCancelActiveInput={workspace.model.cancelActiveInput}
+      />
+      <span className={styles.hidden} id="prototype-warning">
+        Пишите пером или мышью. Ластик удаляет штрихи целиком.
+      </span>
+      <div className={styles["board-stage"]}>
         {!workspace.ui.hasBoard ? (
           <div className={styles["load-state"]} role="status">
             {workspace.ui.storage.phase === "loading"

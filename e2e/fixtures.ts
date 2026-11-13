@@ -1,4 +1,5 @@
 import { test as base, expect, type Page } from "@playwright/test";
+import { EditorChromePage } from "./pages/editor-chrome-page";
 import { BoardPage } from "./pages/board-page";
 import { StoragePage } from "./pages/storage-page";
 import { testBoards } from "./data/boards";
@@ -109,12 +110,17 @@ type Fixtures = {
   };
   samples: Samples;
   board: BoardPage;
+  editor: EditorChromePage;
   secondBoard: BoardPage;
   legacyBoard: BoardPage;
   saveFailureBoard: BoardPage;
 };
 
 export const test = base.extend<Fixtures>({
+  editor: async ({ page, board }, use) => {
+    await use(new EditorChromePage(page, board));
+  },
+
   documents: async ({ baseURL: _baseURL }, use) => {
     await use({
       empty: testBoards.document(),

@@ -2,33 +2,49 @@ import type React from "react";
 import type { ToolControlsTypes } from "./tool-controls.types";
 import styles from "./tool-controls.module.css";
 import { Button } from "~/shared/ui/button";
+import { EditorIcon } from "~/shared/ui/editor-icon";
 
 export const ToolControls: React.FC<ToolControlsTypes.Props> = (props) => (
-  <div className={styles["tool-controls"]} role="group" aria-label="Инструмент">
+  <div className={styles.tools} role="group" aria-label="Инструмент">
     <Button
-      type="button"
+      ref={(node) => {
+        props.bindPenTrigger(node);
+      }}
+      aria-label="Перо"
+      title="Перо · повторно — параметры"
       aria-pressed={props.tool === "pen"}
-      onClick={() => props.onToolChange("pen")}
+      aria-haspopup="dialog"
+      aria-expanded={props.penOpen}
+      aria-controls="pen-panel"
       disabled={props.readOnly || props.historyState.busy}
+      onClick={() =>
+        props.tool === "pen"
+          ? props.onPenParameters()
+          : props.onToolChange("pen")
+      }
     >
-      Перо
+      <EditorIcon name="pen" />
+      <span className={styles.chevron}>
+        <EditorIcon name="chevron-down" />
+      </span>
     </Button>
     <Button
-      type="button"
+      aria-label="Ластик"
+      title="Ластик: штрих целиком"
       aria-pressed={props.tool === "eraser"}
       onClick={() => props.onToolChange("eraser")}
-      title="Удаляет штрих целиком"
       disabled={props.readOnly || props.historyState.busy}
     >
-      Ластик
+      <EditorIcon name="eraser" />
     </Button>
     <Button
-      type="button"
+      aria-label="Выделение"
+      title="Выделение"
       aria-pressed={props.tool === "selection"}
       onClick={() => props.onToolChange("selection")}
       disabled={props.selectionDisabled || props.historyState.busy}
     >
-      Выделение
+      <EditorIcon name="selection" />
     </Button>
   </div>
 );

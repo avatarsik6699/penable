@@ -1,6 +1,7 @@
 # Penable editor proposal
 
-Status: PROPOSAL FOR OWNER REVIEW. This is not the working editor or an approved replacement of SPEC5.3.
+Status: VISUAL REFERENCE APPROVED on2026-11-13 for production transfer in Change15.
+This directory remains an isolated synthetic mock; production authority is SPEC5.3/5.14.
 
 ## Direction contract
 

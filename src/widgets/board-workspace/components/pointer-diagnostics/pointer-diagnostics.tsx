@@ -6,8 +6,7 @@ export const PointerDiagnostics: React.FC<PointerDiagnosticsTypes.Props> = (
   props,
 ) => {
   return (
-    <details className={styles["diagnostics"]}>
-      <summary>Диагностика</summary>
+    <div className={styles["diagnostics"]}>
       <div className={styles["diagnostics-panel"]}>
         <dl>
           <div>
@@ -68,6 +67,6 @@ export const PointerDiagnostics: React.FC<PointerDiagnosticsTypes.Props> = (
         </p>
         <p>Давление показано из события. Толщина ручки постоянная.</p>
       </div>
-    </details>
+    </div>
   );
 };

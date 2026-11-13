@@ -1,0 +1,264 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-13T14:51:10.827555+00:00",
+  "title": "Design System: penable",
+  "extensions": {
+    "colorMeta": {
+      "paper": {
+        "role": "neutral",
+        "displayName": "Paper White",
+        "tonalRamp": [
+          "oklch(15.00% 0.00000 0.00)",
+          "oklch(26.43% 0.00000 0.00)",
+          "oklch(37.86% 0.00000 0.00)",
+          "oklch(49.29% 0.00000 0.00)",
+          "oklch(60.71% 0.00000 0.00)",
+          "oklch(72.14% 0.00000 0.00)",
+          "oklch(83.57% 0.00000 0.00)",
+          "oklch(95.00% 0.00000 0.00)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "tonalRamp": [
+          "oklch(15.00% 0.03038 256.86)",
+          "oklch(26.43% 0.03038 256.86)",
+          "oklch(37.86% 0.03038 256.86)",
+          "oklch(49.29% 0.03038 256.86)",
+          "oklch(60.71% 0.03038 256.86)",
+          "oklch(72.14% 0.03038 256.86)",
+          "oklch(83.57% 0.03038 256.86)",
+          "oklch(95.00% 0.03038 256.86)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted Slate",
+        "tonalRamp": [
+          "oklch(15.00% 0.03860 256.82)",
+          "oklch(26.43% 0.03860 256.82)",
+          "oklch(37.86% 0.03860 256.82)",
+          "oklch(49.29% 0.03860 256.82)",
+          "oklch(60.71% 0.03860 256.82)",
+          "oklch(72.14% 0.03860 256.82)",
+          "oklch(83.57% 0.03860 256.82)",
+          "oklch(95.00% 0.03860 256.82)"
+        ]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Notebook Blue",
+        "tonalRamp": [
+          "oklch(15.00% 0.19546 260.89)",
+          "oklch(26.43% 0.19546 260.89)",
+          "oklch(37.86% 0.19546 260.89)",
+          "oklch(49.29% 0.19546 260.89)",
+          "oklch(60.71% 0.19546 260.89)",
+          "oklch(72.14% 0.19546 260.89)",
+          "oklch(83.57% 0.19546 260.89)",
+          "oklch(95.00% 0.19546 260.89)"
+        ]
+      },
+      "selected": {
+        "role": "neutral",
+        "displayName": "Soft Selection",
+        "tonalRamp": [
+          "oklch(15.00% 0.02027 264.47)",
+          "oklch(26.43% 0.02027 264.47)",
+          "oklch(37.86% 0.02027 264.47)",
+          "oklch(49.29% 0.02027 264.47)",
+          "oklch(60.71% 0.02027 264.47)",
+          "oklch(72.14% 0.02027 264.47)",
+          "oklch(83.57% 0.02027 264.47)",
+          "oklch(95.00% 0.02027 264.47)"
+        ]
+      },
+      "selected-border": {
+        "role": "neutral",
+        "displayName": "Selected Boundary",
+        "tonalRamp": [
+          "oklch(15.00% 0.05271 262.68)",
+          "oklch(26.43% 0.05271 262.68)",
+          "oklch(37.86% 0.05271 262.68)",
+          "oklch(49.29% 0.05271 262.68)",
+          "oklch(60.71% 0.05271 262.68)",
+          "oklch(72.14% 0.05271 262.68)",
+          "oklch(83.57% 0.05271 262.68)",
+          "oklch(95.00% 0.05271 262.68)"
+        ]
+      },
+      "hover": {
+        "role": "neutral",
+        "displayName": "Hover Mist",
+        "tonalRamp": [
+          "oklch(15.00% 0.00624 255.48)",
+          "oklch(26.43% 0.00624 255.48)",
+          "oklch(37.86% 0.00624 255.48)",
+          "oklch(49.29% 0.00624 255.48)",
+          "oklch(60.71% 0.00624 255.48)",
+          "oklch(72.14% 0.00624 255.48)",
+          "oklch(83.57% 0.00624 255.48)",
+          "oklch(95.00% 0.00624 255.48)"
+        ]
+      },
+      "disabled": {
+        "role": "neutral",
+        "displayName": "Disabled Slate",
+        "tonalRamp": [
+          "oklch(15.00% 0.02523 258.37)",
+          "oklch(26.43% 0.02523 258.37)",
+          "oklch(37.86% 0.02523 258.37)",
+          "oklch(49.29% 0.02523 258.37)",
+          "oklch(60.71% 0.02523 258.37)",
+          "oklch(72.14% 0.02523 258.37)",
+          "oklch(83.57% 0.02523 258.37)",
+          "oklch(95.00% 0.02523 258.37)"
+        ]
+      },
+      "divider": {
+        "role": "neutral",
+        "displayName": "Divider",
+        "tonalRamp": [
+          "oklch(15.00% 0.01093 256.70)",
+          "oklch(26.43% 0.01093 256.70)",
+          "oklch(37.86% 0.01093 256.70)",
+          "oklch(49.29% 0.01093 256.70)",
+          "oklch(60.71% 0.01093 256.70)",
+          "oklch(72.14% 0.01093 256.70)",
+          "oklch(83.57% 0.01093 256.70)",
+          "oklch(95.00% 0.01093 256.70)"
+        ]
+      },
+      "error": {
+        "role": "primary",
+        "displayName": "Error Red",
+        "tonalRamp": [
+          "oklch(15.00% 0.18205 29.51)",
+          "oklch(26.43% 0.18205 29.51)",
+          "oklch(37.86% 0.18205 29.51)",
+          "oklch(49.29% 0.18205 29.51)",
+          "oklch(60.71% 0.18205 29.51)",
+          "oklch(72.14% 0.18205 29.51)",
+          "oklch(83.57% 0.18205 29.51)",
+          "oklch(95.00% 0.18205 29.51)"
+        ]
+      }
+    },
+    "shadows": [
+      {
+        "name": "chrome-shadow",
+        "value": "0 3px 14px rgb(24 34 48 / 8%), 0 1px 3px rgb(24 34 48 / 5%)",
+        "purpose": "Floating dock and peripheral controls."
+      },
+      {
+        "name": "popover-shadow",
+        "value": "0 6px 24px rgb(24 34 48 / 12%), 0 1px 4px rgb(24 34 48 / 5%)",
+        "purpose": "Contextual panels above the writing field."
+      }
+    ],
+    "motion": [
+      {
+        "name": "button-feedback",
+        "value": "background-color 100ms ease, color 100ms ease",
+        "purpose": "Button feedback only under prefers-reduced-motion: no-preference."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "dock-second-row",
+        "value": "900px"
+      },
+      {
+        "name": "compact-corners",
+        "value": "700px"
+      },
+      {
+        "name": "compact-context",
+        "value": "520px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Icon Button",
+      "kind": "button",
+      "description": "Forty-pixel drawn-icon control used by tools, history and navigation.",
+      "html": "<button class=\"ds-icon-button\" type=\"button\" aria-label=\"Перо\" aria-pressed=\"true\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m14 4 6 6-9 9-7 1 1-7Z M11 7l6 6 M4 20l4-4\"/></svg></button>",
+      "css": ".ds-icon-button{width:40px;height:40px;padding:0;display:inline-grid;place-items:center;border:0;border-radius:8px;background:transparent;color:var(--ink,#182230);cursor:pointer;}.ds-icon-button svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}.ds-icon-button:not(:disabled):hover{background:var(--control-hover,#f1f4f8);}.ds-icon-button[aria-pressed=\"true\"]{color:var(--control-selected-text,#175cd3);background:var(--control-selected-bg,#eaf1ff);}.ds-icon-button:focus-visible{outline:2px solid var(--focus,#175cd3);outline-offset:3px;}.ds-icon-button:disabled{color:var(--control-disabled,#86909f);cursor:default;}",
+      "refersTo": "icon-button"
+    },
+    {
+      "name": "Primary Recovery Button",
+      "kind": "button",
+      "description": "Full-width recovery action in save details.",
+      "html": "<button class=\"ds-primary\" type=\"button\">Повторить сохранение</button>",
+      "css": ".ds-primary{font-family:\"Segoe UI\",system-ui,sans-serif;width:100%;min-height:40px;padding:9px 12px;border:0;border-radius:8px;font-size:12px;color:var(--paper,#fff);background:var(--focus,#175cd3);cursor:pointer;}.ds-primary:not(:disabled):hover{background:#124cb1;}.ds-primary:focus-visible{outline:2px solid var(--focus,#175cd3);outline-offset:3px;}.ds-primary:disabled{color:var(--control-disabled,#86909f);cursor:default;}",
+      "refersTo": "primary-button"
+    },
+    {
+      "name": "Secondary Recovery Button",
+      "kind": "button",
+      "description": "Quiet outlined download or reconnect action in a contextual panel.",
+      "html": "<button class=\"ds-secondary\" type=\"button\">Скачать копию</button>",
+      "css": ".ds-secondary{font-family:\"Segoe UI\",system-ui,sans-serif;width:100%;min-height:40px;padding:9px 12px;border:0;border-radius:8px;font-size:12px;color:var(--ink,#182230);background:transparent;box-shadow:inset 0 0 0 1px var(--divider,#e0e5ec);cursor:pointer;}.ds-secondary:not(:disabled):hover{background:var(--control-hover,#f1f4f8);}.ds-secondary:focus-visible{outline:2px solid var(--focus,#175cd3);outline-offset:3px;}.ds-secondary:disabled{color:var(--control-disabled,#86909f);cursor:default;}"
+    },
+    {
+      "name": "Range Input",
+      "kind": "input",
+      "description": "Forty-pixel hit height with a thin track and accent thumb for width/stabilization.",
+      "html": "<label class=\"ds-range-label\">Стабилизация<input class=\"ds-range\" type=\"range\" min=\"0\" max=\"100\" value=\"65\" aria-label=\"Стабилизация\"></label>",
+      "css": ".ds-range-label{font-family:\"Segoe UI\",system-ui,sans-serif;display:grid;color:var(--ink,#182230);font-size:13px;}.ds-range{appearance:none;width:100%;min-height:40px;margin:0;background:transparent;accent-color:var(--focus,#175cd3);cursor:pointer;}.ds-range::-webkit-slider-runnable-track{height:3px;border-radius:3px;background:var(--divider,#e0e5ec);}.ds-range::-webkit-slider-thumb{appearance:none;width:13px;height:13px;margin-top:-5px;border-radius:50%;background:var(--focus,#175cd3);box-shadow:0 0 0 2px #fff;}.ds-range:focus-visible{outline:2px solid var(--focus,#175cd3);outline-offset:3px;}.ds-range:disabled{opacity:.5;cursor:default;}"
+    },
+    {
+      "name": "Floating Tool Dock",
+      "kind": "nav",
+      "description": "Signature solid white floating toolbar; native controls remain grouped.",
+      "html": "<div class=\"ds-dock\" role=\"group\" aria-label=\"Инструменты доски\"><button class=\"ds-dock-tool\" type=\"button\" aria-label=\"Перо\" aria-pressed=\"true\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m14 4 6 6-9 9-7 1 1-7Z M11 7l6 6 M4 20l4-4\"/></svg></button><span class=\"ds-dock-divider\" aria-hidden=\"true\"></span><span class=\"ds-dock-readout\">3.0 <small>px</small></span></div>",
+      "css": ".ds-dock{font-family:\"Segoe UI\",system-ui,sans-serif;display:inline-flex;align-items:center;gap:8px;height:56px;padding:8px;border-radius:12px;background:var(--paper,#fff);color:var(--ink,#182230);box-shadow:var(--chrome-shadow,0 3px 14px rgb(24 34 48 / 8%),0 1px 3px rgb(24 34 48 / 5%));}.ds-dock-tool{width:40px;height:40px;padding:0;border:0;border-radius:8px;display:grid;place-items:center;background:var(--control-selected-bg,#eaf1ff);color:var(--focus,#175cd3);cursor:pointer;}.ds-dock-tool svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}.ds-dock-tool:hover{background:var(--control-hover,#f1f4f8);}.ds-dock-tool:focus-visible{outline:2px solid var(--focus,#175cd3);outline-offset:3px;}.ds-dock-divider{width:1px;height:22px;margin:0 3px;background:var(--divider,#e0e5ec);}.ds-dock-readout{font-size:13px;font-variant-numeric:tabular-nums;}.ds-dock-readout small{font-size:11px;color:var(--text-muted,#526176);}",
+      "refersTo": "floating-dock"
+    },
+    {
+      "name": "Menu Row",
+      "kind": "nav",
+      "description": "Full-width icon/label row used in board and selection disclosures.",
+      "html": "<button class=\"ds-menu-row\" type=\"button\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M12 3v12 m-5-5 5 5 5-5 M4 16v5h16v-5\"/></svg><span>Скачать JSON-копию</span></button>",
+      "css": ".ds-menu-row{font-family:\"Segoe UI\",system-ui,sans-serif;display:flex;align-items:center;gap:11px;width:100%;min-height:40px;padding:8px;border:0;border-radius:8px;color:var(--ink,#182230);background:transparent;text-align:left;font-size:12px;cursor:pointer;}.ds-menu-row svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}.ds-menu-row:not(:disabled):hover{background:var(--control-hover,#f1f4f8);}.ds-menu-row:focus-visible{outline:2px solid var(--focus,#175cd3);outline-offset:3px;}.ds-menu-row:disabled{color:var(--control-disabled,#86909f);cursor:default;}"
+    },
+    {
+      "name": "Context Panel",
+      "kind": "card",
+      "description": "Solid white, softly elevated container for disclosed settings and actions.",
+      "html": "<section class=\"ds-panel\"><h2>Перо</h2><p>Сглаживает движения пера.<br>Применяется к следующему штриху.</p></section>",
+      "css": ".ds-panel{font-family:\"Segoe UI\",system-ui,sans-serif;width:284px;padding:16px;border-radius:14px;color:var(--ink,#182230);background:var(--paper,#fff);box-shadow:var(--popover-shadow,0 6px 24px rgb(24 34 48 / 12%),0 1px 4px rgb(24 34 48 / 5%));}.ds-panel h2{margin:0 0 14px;font-size:14px;font-weight:600;}.ds-panel p{margin:0;color:var(--text-muted,#526176);font-size:12px;line-height:1.6;}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Writing-First Notebook",
+    "overview": "The production editor follows the owner-approved Change14 visual direction implemented in Change15.\nWhite paper, compact Russian labels and one consistent SVG icon family keep writing central.\nContextual panels expose settings, document actions and recovery without a permanent instruction row.\nThis file describes the built visual system; [SPEC](docs/SPEC.md) owns product behavior and [FRONTEND](docs/FRONTEND.md) owns architecture.",
+    "keyCharacteristics": [
+      "Light writing field with a compact floating horizontal tool dock.",
+      "Inline width, contextual stabilization and restrained peripheral controls.",
+      "Explicit save/error/read-only states and discoverable recovery actions.",
+      "System UI typography; no external font or synthetic note in production."
+    ],
+    "rules": [
+      {
+        "name": "The Semantic State Rule",
+        "body": "Keep error, selected, hover and disabled treatments distinct; do not rely on color alone to name a failure.",
+        "section": "colors"
+      }
+    ],
+    "dos": [
+      "Do keep the writing field dominant and preserve the out-of-flow layout.",
+      "Do keep frequent controls visible and disclose secondary settings/actions contextually.",
+      "Do retain visible focus, accessible names, 40px targets and readable numeric readouts.",
+      "Do preserve the pinned diagnostics exception so pressure can be observed while writing."
+    ],
+    "donts": [
+      "Don't import the mock's synthetic note or Caveat font into the production editor.",
+      "Don't cancel pending selection work merely because a nonmodal panel opens or closes.",
+      "Don't change ink geometry, document data or canvas backing dimensions as a visual styling shortcut."
+    ]
+  }
+}

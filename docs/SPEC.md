@@ -1,6 +1,6 @@
 # penable — спецификация
 
-> Статус: утверждено пользователем 2026-11-12 («Можешь продолжай»).
+> Статус: утверждено пользователем; дизайн Change14 принят2026-11-13 для переноса в Change15.
 > Подтверждено: React, сначала проверка пера, светлый лист с компактными инструментами,
 > Wacom One на Windows 11. Changes 01–05 приняты и завершены, включая ластик целых штрихов.
 > Change06 shipped локально; пользователь подтвердил работу нового курсора и жестов: «Отлично, всё работает».
@@ -12,8 +12,8 @@
 
 | Поле | Значение |
 |------|----------|
-| Версия | 0.9 — retained selection area and responsiveness shipped locally |
-| Дата | 2026-11-12 |
+| Версия | 1.0 — approved floating editor UI |
+| Дата | 2026-11-13 |
 | Архитектор / владелец | Пользователь |
 | Предметная область | Личные рукописные конспекты в браузере |
 | Стек | React + TypeScript, Vite + Canvas 2D, IndexedDB; см. [STACK.md](STACK.md) |
@@ -122,9 +122,9 @@ React-render на каждое движение. Контроллер не за�
 
 ### 5.1 Экран
 
-Один маршрут `/`: компактная панель сверху, рабочее поле на оставшуюся высоту,
-небольшая сворачиваемая диагностика. Надпись «Проверка пера. Записи исчезнут
-при перезагрузке» видна до начала письма. Дополнительных экранов в M1 нет.
+Один маршрут `/`: поле занимает всё окно, компактные плавающие инструменты и контекстные
+панели описаны в §5.3/5.14. Локальное сохранение и его ошибки явно показаны. Диагностика
+доступна через помощь и может оставаться видимой при письме. Дополнительных экранов нет.
 
 ### 5.2 Письмо и состояния M1
 
@@ -153,33 +153,18 @@ React-render на каждое движение. Контроллер не за�
 
 ### 5.3 Design System
 
-Пользователь выбрал светлый лист и компактные инструменты. Рассмотренная альтернатива —
-тёмная поверхность с теми же инструментами; не выбрана.
+Updated by owner approval on2026-11-13 of docs/design/editor-v1: light full-window board,
+floating horizontal tool dock top-center; board menu top-left, save status top-right, zoom/fit
+bottom-right, help/diagnostics bottom-left. Width is inline; repeat selected Pen opens stabilization.
+The approved reference is the actual HTML/CSS and PNGs; synthetic handwriting remains demo content.
 
-| Токен | Предложение |
-|-------|-------------|
-| Лист | #FFFFFF |
-| Панель | #F3F6FA |
-| Текст и чернила | #182230 |
-| Разделители | #D6DEE8 |
-| Акцент / focus | #175CD3 |
-| Ошибка | #B42318 |
-| Типографика | Локальный Segoe UI с системными fallback; 14 px инструменты, 12–13 px диагностика; без внешних шрифтов |
-| Композиция | Инструменты выровнены слева, поле занимает остаток окна, панель переносится на узком экране |
+White paper/chrome, ink#182230, muted#526176, blue#175CD3, error#B42318, subtle offset shadows,
+40px minimum interactive targets, system Segoe UI with sans-serif fallback and one authored SVG
+icon family. No font/network dependency in production. Tool/status panels are out of flow and never
+resize or remount the canvas. Secondary actions are disclosed without adding permanent instruction rows.
+Existing loading/error/read-only/busy/import/recovery and selection feedback remain explicit.
+Compact screens retain usable controls/scrollable panels; no new mobile drawing behavior.
 
-У controls есть подписи, видимый focus и области взаимодействия от 40 px.
-Декоративные карточки и анимации вокруг письма не нужны. В M1 чистый лист;
-фон в клетку/точку появляется с навигацией в M2.
-
-```text
-┌ penable    Толщина [ 3 px ]          Диагностика ┐
-│ Проверка пера. Записи исчезнут при перезагрузке │
-├────────────────────────────────────────────────┤
-│                                                │
-│              Область письма                    │
-│                                                │
-└────────────────────────────────────────────────┘
-```
 
 ### 5.4 Качество письма и навигация — change 02
 
@@ -414,11 +399,12 @@ Wheel остаётся canvas-only/nonpassive; на границе zoom и пр�
 и его inertia блокируются до паузы≥150ms между wheel events. Для этого годится clock в pure
 controller, без таймеров на каждый sample. Read-only позволяет смотреть/pan/zoom без сохранения.
 
-**Стабильная панель.** Постоянная строка: статус, экспорт, импорт, «Хранение». Подробные
-message/notice, справка, предыдущая копия и retry находятся в nonmodal popover вне layout flow.
+**Стабильные элементы интерфейса.** В Change15 статус находится справа сверху, экспорт/импорт
+и резервные копии — в меню доски слева сверху. Подробные message/notice и retry находятся
+в nonmodal popover вне layout flow; прежняя постоянная строка заменена композицией §5.14.
 Динамические статусы/сообщения/появление recovery actions не меняют bounds canvas при том же
 viewport, не отменяют текущий жест и не крадут focus автоматически. Ошибка всегда заметна
-в основной строке (приоритет над read-only label), полный текст и recovery доступны в popover;
+в основном индикаторе (приоритет над read-only label), полный текст и recovery доступны в popover;
 ошибка не исчезает автоматически. Popover закрывается повторным нажатием, outside click или
 Escape; внутри есть ограничение высоты и обычная прокрутка. Import dialog с подтверждением,
 проверкой файла и backup остаётся modal. Cursor скрыт над UI overlays/modal, controls доступны
@@ -678,3 +664,17 @@ PDF, PWA и несколько тетрадей. Ластик разрешён c
 - [React useRef](https://react.dev/reference/react/useRef) и [useEffect](https://react.dev/reference/react/useEffect): императивная интеграция и cleanup.
 - [Vite Getting Started](https://vite.dev/guide/): клиентский React/TypeScript проект.
 - [MDN: квоты и удаление данных](https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria).
+
+
+### 5.14 Floating editor UI
+
+Change15 implements the owner-approved Change14 reference in production. Existing engine, geometry,
+persisted document schema, limits, permissions and commands retain their contracts. UI disclosure
+is ephemeral and coordinated by one workspace owner: at most one nonmodal board/save/pen/selection/
+help panel. Outside interaction dismisses, Escape closes and returns focus to its trigger; expanded
+diagnostics can stay pinned during board input so live pressure remains observable, with explicit
+close/Escape and replacement by another panel. Existing
+modal import retains protected focus and command blocking. Toolbar/control interaction must not
+write ink. Feedback and saving changes do not change board dimensions or reset the view/history.
+All existing capabilities stay reachable: tool/width/stabilization, undo/redo, rectangle/lasso and
+all selection commands/PNG, import/export/recovery/background, zoom/reset/fit and diagnostics.

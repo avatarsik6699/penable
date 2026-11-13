@@ -1,7 +1,8 @@
+import type React from "react";
 import { SelectionActions } from "./components/selection-actions";
 import { Button } from "~/shared/ui/button";
+import { EditorIcon } from "~/shared/ui/editor-icon";
 import styles from "./selection-toolbar.module.css";
-import type React from "react";
 import type { SelectionToolbarTypes } from "./selection-toolbar.types";
 import { useSelectionActions } from "./hooks/use-selection-actions";
 
@@ -15,18 +16,17 @@ export const SelectionToolbar: React.FC<SelectionToolbarTypes.Props> = (
       ref={(node) => {
         toolbar.bindRoot(node);
       }}
-      className={styles["selection-toolbar"]}
+      className={styles.toolbar}
       data-board-selection-toolbar=""
       role="region"
       aria-label="Действия выделения"
     >
       <div
-        className={styles["selection-actions"]}
+        className={styles.controls}
         role="group"
         aria-label="Способ выделения"
       >
         <Button
-          type="button"
           aria-pressed={props.shape === "rectangle"}
           disabled={toolbar.busy}
           onClick={() => toolbar.changeShape("rectangle")}
@@ -34,7 +34,6 @@ export const SelectionToolbar: React.FC<SelectionToolbarTypes.Props> = (
           Рамка
         </Button>
         <Button
-          type="button"
           aria-pressed={props.shape === "lasso"}
           disabled={toolbar.busy}
           onClick={() => toolbar.changeShape("lasso")}
@@ -45,16 +44,18 @@ export const SelectionToolbar: React.FC<SelectionToolbarTypes.Props> = (
           ref={(node) => {
             toolbar.bindTrigger(node);
           }}
-          type="button"
-          aria-expanded={toolbar.open}
+          aria-label="Действия"
+          title="Действия выделения"
+          aria-haspopup="dialog"
+          aria-expanded={props.open}
           aria-controls="selection-menu"
           disabled={props.blocked}
-          onClick={() => toolbar.setOpen((value) => !value)}
+          onClick={() => props.onOpenChange(!props.open)}
         >
-          Действия
+          <EditorIcon name="more" />
         </Button>
       </div>
-      {toolbar.open && (
+      {props.open && (
         <SelectionActions
           state={props.state}
           readOnly={props.readOnly}
@@ -63,8 +64,8 @@ export const SelectionToolbar: React.FC<SelectionToolbarTypes.Props> = (
           command={toolbar.command}
         />
       )}
-      {!toolbar.open && props.state.message && (
-        <p className={styles["selection-feedback"]} role="status">
+      {!props.open && props.state.message && (
+        <p className={styles.feedback} role="status">
           {props.state.message}
         </p>
       )}

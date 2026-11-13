@@ -3,7 +3,7 @@ export const StorageStatusConfig = {
     loading: "Загрузка",
     dirty: "Есть изменения",
     saving: "Сохранение",
-    saved: "Сохранено",
-    error: "Ошибка",
+    saved: "Сохранено локально",
+    error: "Не удалось сохранить",
   },
 };

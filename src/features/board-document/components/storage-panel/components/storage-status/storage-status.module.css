@@ -1,10 +1,6 @@
 .storage-status {
-  flex: none;
-  width: 116px;
-  font-weight: 600;
   white-space: nowrap;
 }
-
 .storage-status-error {
   color: var(--error);
 }

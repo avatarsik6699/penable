@@ -116,7 +116,7 @@ test("large selection crosses editor and durable worker boundaries", async ({
 
   await board.selectRectangle(samples.selectionStart, samples.selectionEnd);
   await board.expectSelectionSize(130, 120);
-  await board.moveSelection(samples.moveStart, samples.moveEnd);
+  await board.moveSelectionWithActions(samples.moveStart, samples.moveEnd);
   await board.expectPartialMove(40, 30);
   await board.expectDistinctWorkerPaths();
 
@@ -134,4 +134,11 @@ test("cursor shapes, pan and import dialog preserve input ownership", async ({
   board,
 }) => {
   await board.expectCursorAndNavigationOwnership();
+});
+
+test("floating editor panels preserve canvas, ink and keyboard ownership", async ({
+  editor,
+}) => {
+  await editor.expectStableDisclosures();
+  await editor.expectDesktopAndCompactLayout();
 });

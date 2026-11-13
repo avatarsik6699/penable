@@ -1,68 +1,98 @@
-.storage-panel {
-  position: relative;
-  z-index: 2;
-  flex: none;
-  padding: 4px 24px;
-  border-bottom: 1px solid var(--divider);
-  background: var(--paper);
-  font-size: 13px;
+.storage {
+  display: contents;
 }
-
-.storage-row {
+.board,
+.status {
+  position: absolute;
+  z-index: 4;
+  top: 20px;
+  background: var(--paper);
+  border-radius: 12px;
+  box-shadow: var(--chrome-shadow);
+}
+.board {
+  left: 20px;
+}
+.status {
+  right: 20px;
+}
+.brandButton {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 4px 16px;
+  gap: 16px;
+  height: 48px;
+  padding: 0 15px 0 17px;
+  border-radius: 12px;
 }
-
-.storage-panel .storage-error {
+.brandButton > svg {
+  width: 18px;
+  height: 18px;
+}
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -0.035em;
+}
+.dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--focus);
+}
+.saveButton {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 14px;
+  border-radius: 12px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.saveButton > svg {
+  width: 18px;
+  height: 18px;
+  color: #36724c;
+}
+.saveDot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #799080;
+  margin-left: 3px;
+}
+.error .saveButton,
+.error .saveButton > svg {
   color: var(--error);
 }
-
-.storage-local {
-  color: var(--text-muted);
+.error .saveDot {
+  background: var(--error);
 }
-
-.storage-actions {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-left: auto;
-}
-
-.storage-panel button {
-  min-height: 40px;
-  padding: 0 10px;
-  border: 1px solid var(--divider);
-  border-radius: 5px;
-  background: var(--paper);
-  color: var(--ink);
-  cursor: pointer;
-  font: inherit;
-}
-
-.storage-panel button:hover:enabled {
-  background: var(--panel);
-}
-
-.storage-panel button:disabled {
-  color: var(--control-disabled);
-  cursor: default;
-}
-
-@media (max-width: 580px) {
-  .storage-panel {
-    padding: 6px 16px;
+@media (max-width: 700px) {
+  .board {
+    left: 12px;
+    top: 16px;
   }
-  .storage-local {
+  .status {
+    right: 12px;
+    top: 16px;
+  }
+  .brandButton {
+    gap: 8px;
+    padding: 0 12px;
+  }
+  .brand {
+    font-size: 17px;
+  }
+  .saveButton {
+    gap: 7px;
+    padding: 0 10px;
+    font-size: 11px;
+  }
+  .saveDot {
     display: none;
-  }
-  .storage-row {
-    gap: 6px 12px;
-  }
-  .storage-actions {
-    margin-left: 0;
-    flex-basis: 100%;
   }
 }
