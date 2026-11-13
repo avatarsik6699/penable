@@ -134,3 +134,8 @@ remain available alongside the final warmed protocol. No owner data at localhost
 | Release / push / deploy | Not requested; local ship only |
 
 Local ship: implementation e32ccd3, fast-forward merged into main. No push/deploy performed.
+
+## Owner acceptance
+
+2026-11-13: owner manually checked the current UI/navigation and accepted the stage:
+«Я проверил, всё супер. Думаю можно завершать текущий этап.» No further issues reported.
