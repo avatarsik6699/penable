@@ -6,7 +6,7 @@
 |---|---|
 | Change |11|
 | Slug |architecture-alignment|
-| Status |active|
+| Status |shipped locally|
 | Branch |feature/11-architecture-alignment|
 
 ## Goal
@@ -107,3 +107,5 @@ Run on a clean source snapshot; final Pages JS/CSS/worker/HTML bytes match brows
 | Architect Review Notes | PASS0 unresolved |
 | Backend / migrations / containers | n/a per STACK |
 | Release | Not requested; local ship only |
+
+Implementation commit a46432e; merged fast-forward to local main. No push/deploy performed.

@@ -1,7 +1,7 @@
 # Stack Guide
 
 > Source of truth for technologies, commands and required tools.
-> Status: CONFIGURED; changes01–10 shipped locally; change11 under local gate; change07 published, changes08–11 await separate release.
+> Status: CONFIGURED; changes01–11 shipped locally; change07 published, changes08–11 await separate release.
 > SPEC approved 2026-11-12. Target device: Wacom One, Windows 11.
 
 ## Stack
