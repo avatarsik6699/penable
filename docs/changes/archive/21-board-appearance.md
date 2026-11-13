@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Change |21|
-| Status |ready for local ship|
+| Status |shipped locally|
 | Branch |feature/21-board-appearance|
 
 ## Goal
@@ -30,7 +30,7 @@ and a draft/save/cancel editor inside the same sidebar. Preserve the730px toolba
 
 - [x] T1 Behavioral unit/E2E coverage for migration,100 distinct automatic covers, persistence/cancel/failure/readonly/keyboard and no thumbnail requests; preserve unrelated assertions and run Fast Gate/LSP — _Depends on:_ F1,F2,F3
 - [x] T2 Native Chrome100-board responsiveness/desktop/compact review, independent source review and bounded design record/README updates — _Depends on:_ T1
-- [ ] T3 Full Gate, automatic local ship/archive and owned-environment cleanup; no public release — _Depends on:_ T2
+- [x] T3 Full Gate, automatic local ship/archive and owned-environment cleanup; no public release — _Depends on:_ T2
 
 ## Files
 
