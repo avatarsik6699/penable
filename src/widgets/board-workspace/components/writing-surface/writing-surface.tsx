@@ -1,3 +1,4 @@
+import { MinimapView } from "./components/minimap-view";
 import { BoardCursorView } from "./components/board-cursor";
 import { SurfaceLayers } from "./components/surface-layers";
 import type React from "react";
@@ -26,6 +27,19 @@ export const WritingSurface: React.FC<WritingSurfaceTypes.Props> = (props) => {
         bindCursor={surface.bindCursor}
         bindFocusBadge={surface.bindFocusBadge}
       />
+      {props.minimapOpen && (
+        <MinimapView
+          onClose={props.onMinimapClose}
+          bindRoot={surface.bindMapRoot}
+          bindMapCanvas={surface.bindMapCanvas}
+          bindMapFrame={surface.bindMapFrame}
+          bindMapMarker={surface.bindMapMarker}
+          bindMapStatus={surface.bindMapStatus}
+          bindMapOutside={surface.bindMapOutside}
+          bindMapArea={surface.bindMapArea}
+          bindMapFit={surface.bindMapFit}
+        />
+      )}
       <p id="writing-help" className={styles["visually-hidden"]}>
         Пишите кончиком пера или левой кнопкой мыши. Ластик удаляет штрихи
         целиком. Толщина меняется со следующего штриха пера. Колесо перемещает

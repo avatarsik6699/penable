@@ -3,7 +3,7 @@
 Binding for Penable production source and its test/tooling boundaries. Product behavior lives in
 SPEC; commands and gates live in STACK. Approved change11 adapts infraegev2 FRONTEND §§2–4,6,
 its reading-position adapter/model split, explicit session ownership and executable policies.
-The reference checkout is read-only. Existing visual direction and schema1/2 behavior are retained.
+The reference checkout is read-only. Existing visual direction and legacy schema1/2 compatibility are retained; schema3 metadata is governed by SPEC5.15.
 
 ## Layers and public APIs
 
@@ -84,7 +84,7 @@ Do not create all directories or suffix files by template: every one must own ac
   Path2D prefix/cache and draws one combined path. Keep weak ownership, sealing and O(new samples).
 - Workspace/tab owns clipboard, document session and durable writer. Editor generation owns
   renderer, semantic input, selection worker and DOM subscriptions. Import replaces only editor
-  generation. Session preserves raw schema metadata for atomic before-schema2 recovery.
+  generation. Session preserves raw schema metadata for atomic before-schema2/before-schema3 recovery.
 - Dispose cancels interaction/selection/frames/listeners, drains persistence/repository, then
   releases lease. StrictMode startup waits prior disposal. Selection cancellation never closes
   the durable writer. Factories inject dependencies; one explicit owner composes cleanup.

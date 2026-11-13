@@ -1,98 +1,74 @@
 .storage {
   display: contents;
 }
-.board,
-.status {
-  position: absolute;
-  z-index: 4;
-  top: 20px;
-  background: var(--paper);
-  border-radius: 12px;
-  box-shadow: var(--chrome-shadow);
-}
-.board {
-  left: 20px;
-}
-.status {
-  right: 20px;
-}
-.brandButton {
+
+.controls {
   display: flex;
   align-items: center;
-  gap: 16px;
-  height: 48px;
-  padding: 0 15px 0 17px;
-  border-radius: 12px;
+  gap: 0;
 }
-.brandButton > svg {
-  width: 18px;
-  height: 18px;
+
+.gear,
+.statusButton {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: grid;
+  place-items: center;
 }
-.brand {
-  display: flex;
-  align-items: baseline;
-  gap: 2px;
-  font-size: 20px;
-  font-weight: 650;
-  letter-spacing: -0.035em;
-}
-.dot {
-  width: 4px;
-  height: 4px;
+
+.statusDot {
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
-  background: var(--focus);
+  box-shadow: inset 0 0 0 1px #18223018;
 }
-.saveButton {
-  height: 48px;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 0 14px;
-  border-radius: 12px;
-  color: var(--text-muted);
-  font-size: 12px;
+
+.saved {
+  background: #36724c;
 }
-.saveButton > svg {
-  width: 18px;
-  height: 18px;
-  color: #36724c;
+
+.pending {
+  background: #b77916;
 }
-.saveDot {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: #799080;
-  margin-left: 3px;
+
+.idle {
+  background: #7a8798;
 }
-.error .saveButton,
-.error .saveButton > svg {
-  color: var(--error);
-}
-.error .saveDot {
+
+.error {
   background: var(--error);
 }
+
+.statusButton > svg {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  right: 3px;
+  bottom: 4px;
+  background: var(--paper);
+  border-radius: 2px;
+}
+
+.errorText {
+  color: var(--error);
+  font-size: 12px;
+  padding: 0 6px;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 @media (max-width: 700px) {
-  .board {
-    left: 12px;
-    top: 16px;
-  }
-  .status {
-    right: 12px;
-    top: 16px;
-  }
-  .brandButton {
-    gap: 8px;
-    padding: 0 12px;
-  }
-  .brand {
-    font-size: 17px;
-  }
-  .saveButton {
-    gap: 7px;
-    padding: 0 10px;
+  .errorText {
     font-size: 11px;
-  }
-  .saveDot {
-    display: none;
+    max-width: 130px;
   }
 }

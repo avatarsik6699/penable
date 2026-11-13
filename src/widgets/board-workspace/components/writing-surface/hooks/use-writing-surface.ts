@@ -11,6 +11,14 @@ export function useWritingSurface(props: WritingSurfaceTypes.Props) {
     selectionPath: null,
     cursor: null,
     focusBadge: null,
+    mapHost: null,
+    mapCanvas: null,
+    mapFrame: null,
+    mapMarker: null,
+    mapStatus: null,
+    mapOutside: null,
+    mapArea: null,
+    mapFit: null,
   });
 
   const settings = useRef(props);
@@ -43,7 +51,13 @@ export function useWritingSurface(props: WritingSurfaceTypes.Props) {
 
       runtime.current?.refresh();
     },
-    [props.tool, props.modalOpen, props.uiRevision],
+    [
+      props.tool,
+      props.modalOpen,
+      props.uiRevision,
+      props.minimapOpen,
+      props.backgroundSettings,
+    ],
   );
 
   const bindBackground = useCallback((node: SurfaceElements["background"]) => {
@@ -73,7 +87,48 @@ export function useWritingSurface(props: WritingSurfaceTypes.Props) {
     elements.current.focusBadge = node;
   }, []);
 
+  const bindMapRoot = useCallback((node: SurfaceElements["mapHost"]) => {
+    elements.current.mapHost = node;
+    settings.current.bindMinimapRoot(node);
+  }, []);
+
+  const bindMapCanvas = useCallback((node: SurfaceElements["mapCanvas"]) => {
+    elements.current.mapCanvas = node;
+  }, []);
+
+  const bindMapFrame = useCallback((node: SurfaceElements["mapFrame"]) => {
+    elements.current.mapFrame = node;
+  }, []);
+
+  const bindMapMarker = useCallback((node: SurfaceElements["mapMarker"]) => {
+    elements.current.mapMarker = node;
+  }, []);
+
+  const bindMapStatus = useCallback((node: SurfaceElements["mapStatus"]) => {
+    elements.current.mapStatus = node;
+  }, []);
+
+  const bindMapOutside = useCallback((node: SurfaceElements["mapOutside"]) => {
+    elements.current.mapOutside = node;
+  }, []);
+
+  const bindMapArea = useCallback((node: SurfaceElements["mapArea"]) => {
+    elements.current.mapArea = node;
+  }, []);
+
+  const bindMapFit = useCallback((node: SurfaceElements["mapFit"]) => {
+    elements.current.mapFit = node;
+  }, []);
+
   return {
+    bindMapRoot,
+    bindMapCanvas,
+    bindMapFrame,
+    bindMapMarker,
+    bindMapStatus,
+    bindMapOutside,
+    bindMapArea,
+    bindMapFit,
     bindBackground,
     bindCompleted,
     bindCanvas,

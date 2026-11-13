@@ -1,3 +1,4 @@
+import { DocumentOverview } from "./modules/overview";
 import { DocumentCodec } from "../codec";
 import { DocumentRepositoryAdapter } from "../../adapters/indexeddb";
 import { BoardIds } from "~/entities/board";
@@ -113,7 +114,7 @@ async function finish(id: number) {
         invalidated = message;
       });
 
-      await (await repository).write({ ...document, schemaVersion: 2 });
+      await (await repository).write({ ...document, schemaVersion: 3 });
     }
 
     if (selection) {
@@ -150,7 +151,14 @@ async function finish(id: number) {
 
     pending = null;
     strokes = [];
-    host.postMessage({ id, ...(selection ? { selection } : {}) });
+
+    host.postMessage({
+      id,
+      ...(selection ? { selection } : {}),
+      ...(job.kind === "overview"
+        ? { overview: DocumentOverview.build(document.strokes) }
+        : {}),
+    });
   } catch (error) {
     pending = null;
     strokes = [];

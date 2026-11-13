@@ -1,4 +1,9 @@
-import { type Viewport, type Position, type Stroke } from "../board.types";
+import {
+  type Viewport,
+  type Position,
+  type Stroke,
+  type WritingView,
+} from "../board.types";
 import { BoardRegions } from "../regions";
 import { ViewportConfig } from "./viewport.config";
 
@@ -44,6 +49,41 @@ function zoomAt(
   return { zoom, x: anchor.x - world.x * zoom, y: anchor.y - world.y * zoom };
 }
 
+function isValid(viewport: Viewport): boolean {
+  return (
+    Number.isFinite(viewport.zoom) &&
+    viewport.zoom >= 0.25 &&
+    viewport.zoom <= 8 &&
+    Number.isFinite(viewport.x) &&
+    Number.isFinite(viewport.y) &&
+    Math.abs(viewport.x) <= 1e9 &&
+    Math.abs(viewport.y) <= 1e9
+  );
+}
+
+function writingView(
+  viewport: Viewport,
+  width: number,
+  height: number,
+): WritingView {
+  return {
+    center: screenToWorld({ x: width / 2, y: height / 2 }, viewport),
+    zoom: viewport.zoom,
+  };
+}
+
+function restoreWritingView(
+  view: WritingView,
+  width: number,
+  height: number,
+): Viewport {
+  return {
+    zoom: view.zoom,
+    x: width / 2 - view.center.x * view.zoom,
+    y: height / 2 - view.center.y * view.zoom,
+  };
+}
+
 function fitAll(
   strokes: readonly Stroke[],
   width: number,
@@ -73,6 +113,9 @@ function fitAll(
 
 export const ViewportTransforms = {
   zoomAt,
+  isValid,
+  writingView,
+  restoreWritingView,
   initialViewport,
   worldToScreen,
   screenToWorld,

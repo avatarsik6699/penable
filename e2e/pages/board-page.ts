@@ -383,7 +383,7 @@ export class BoardPage {
     ).toBeVisible();
 
     await expect(
-      this.page.getByRole("button", { name: "Меню доски", exact: true }),
+      this.page.getByRole("button", { name: "Настройки доски", exact: true }),
     ).toBeVisible();
 
     await expect(this.surface).toBeVisible();

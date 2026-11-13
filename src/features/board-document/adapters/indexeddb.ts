@@ -79,6 +79,7 @@ function openRepository(
 
       let closed = false;
       let schema2Preserved = false;
+      let schema3Preserved = false;
       const pending = new Set<Promise<unknown>>();
 
       const invalidate = (message: string) => {
@@ -193,6 +194,43 @@ function openRepository(
         };
       }
 
+      function preserveSchema3(
+        store: IDBObjectStore,
+        candidate: BoardDocument,
+      ) {
+        if (candidate.schemaVersion !== 3 || schema3Preserved) return;
+
+        const main = store.get("main"),
+          backup = store.getKey("before-schema3");
+
+        let mainReady = false,
+          backupReady = false;
+
+        const preserve = () => {
+          if (!mainReady || !backupReady || backup.result !== undefined) return;
+
+          const raw: unknown = main.result;
+
+          if (
+            raw &&
+            typeof raw === "object" &&
+            "schemaVersion" in raw &&
+            (raw.schemaVersion === 1 || raw.schemaVersion === 2)
+          )
+            store.put(raw, "before-schema3");
+        };
+
+        main.onsuccess = () => {
+          mainReady = true;
+          preserve();
+        };
+
+        backup.onsuccess = () => {
+          backupReady = true;
+          preserve();
+        };
+      }
+
       resolve({
         read: () =>
           transaction("readonly", (store, result) => {
@@ -200,6 +238,18 @@ function openRepository(
               main: { exists: false, value: undefined as unknown },
               beforeImport: { exists: false, value: undefined as unknown },
               beforeSchema2: { exists: false, value: undefined as unknown },
+              beforeSchema3: { exists: false, value: undefined as unknown },
+            };
+
+            const schema3 = store.get("before-schema3"),
+              schema3Key = store.getKey("before-schema3");
+
+            schema3.onsuccess = () => {
+              values.beforeSchema3.value = schema3.result as unknown;
+            };
+
+            schema3Key.onsuccess = () => {
+              values.beforeSchema3.exists = schema3Key.result !== undefined;
             };
 
             const main = store.get("main");
@@ -241,10 +291,12 @@ function openRepository(
 
           return transaction<void>("readwrite", (store, result) => {
             preserveSchema1(store, document);
+            preserveSchema3(store, document);
             store.put(document, "main");
             result(undefined);
           }).then(() => {
             schema2Preserved = schema2;
+            schema3Preserved = document.schemaVersion === 3;
           });
         },
 
@@ -253,11 +305,13 @@ function openRepository(
 
           return transaction<void>("readwrite", (store, result) => {
             preserveSchema1(store, candidate);
+            preserveSchema3(store, candidate);
             store.put(previous, "before-import");
             store.put(candidate, "main");
             result(undefined);
           }).then(() => {
             schema2Preserved = schema2;
+            schema3Preserved = candidate.schemaVersion === 3;
           });
         },
 

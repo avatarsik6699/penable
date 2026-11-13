@@ -1,3 +1,4 @@
+import { NativeMinimap } from "./minimap";
 import { SelectionCommands, HistoryCommands, EditorControls } from "./commands";
 import type { SurfaceElements, EditorHandle } from "./editor-runtime.types";
 import { SurfaceBindings } from "./bindings";
@@ -12,6 +13,7 @@ import { PenInput } from "~/entities/board";
 import { BoardSelection } from "~/entities/board";
 import { CanvasRenderer } from "./rendering";
 import type { Scene } from "~/entities/board";
+import { BoardViewport } from "~/entities/board";
 import { BoardNavigation } from "~/entities/board";
 import { StrokeHistory } from "~/entities/board";
 import { SelectionDocuments } from "~/features/board-document";
@@ -29,7 +31,7 @@ function create(
     onActivateSelection,
     onSelectionState,
     getTool,
-    onDocumentChange,
+    onDocumentChange: notifyDocumentChange,
     onHistoryState,
     controlsRef,
     onDiagnostics,
@@ -77,6 +79,18 @@ function create(
       viewport: initial.viewport,
     };
 
+    let minimap: NativeMinimap | null = null;
+    let lastWritingView = initial.lastWritingView ?? null;
+
+    const onDocumentChange = (urgent: boolean) => {
+      if (urgent) {
+        minimap?.invalidate();
+        readSettings().onScenePresence(scene.strokes.length > 0);
+      }
+
+      notifyDocumentChange(urgent);
+    };
+
     const history = new StrokeHistory(scene.strokes, scene.strokes.length);
     const visualViewport = window.visualViewport;
 
@@ -88,7 +102,11 @@ function create(
     );
 
     const updateBackground = () =>
-      SurfacePresenters.background(elements.background, state.viewport);
+      SurfacePresenters.background(
+        elements.background,
+        state.viewport,
+        readSettings().backgroundSettings,
+      );
 
     const input = new PenInput({
       scene,
@@ -109,6 +127,16 @@ function create(
         selection.clear();
         history.commit(stroke);
         renderer.commit(stroke);
+
+        const writingBounds = canvas.getBoundingClientRect();
+
+        lastWritingView = BoardViewport.writingView(
+          state.viewport,
+          writingBounds.width,
+          writingBounds.height,
+        );
+
+        readSettings().onWritingCommitted(lastWritingView);
         publishHistoryState();
         onDocumentChange(true);
       },
@@ -166,10 +194,12 @@ function create(
 
       onChange: (viewport) => {
         state.viewport = viewport;
+        readSettings().onNavigationNotice("");
         renderer.setViewport(viewport);
         updateBackground();
         paintSelection();
         diagnostics.update({ zoom: viewport.zoom });
+        minimap?.viewportChanged();
 
         if (canWrite() && !selection.busy) onDocumentChange(false);
       },
@@ -266,8 +296,13 @@ function create(
       active: () => !disposed,
     });
 
-    const publishHistoryState = historyCommands.publish,
-      applyHistory = historyCommands.apply;
+    const publishHistoryState = () => {
+      historyCommands.publish();
+      readSettings().onScenePresence(scene.strokes.length > 0);
+      minimap?.viewportChanged();
+    };
+
+    const applyHistory = historyCommands.apply;
 
     const surface = SurfaceBindings.bind({
       elements,
@@ -290,7 +325,32 @@ function create(
     });
 
     api.cancel = surface.cancel;
-    api.refresh = surface.refresh;
+
+    minimap = new NativeMinimap({
+      elements,
+      scene,
+      viewport: () => state.viewport,
+      bounds: () => canvas.getBoundingClientRect(),
+      blocked: () =>
+        interactionsBlocked() ||
+        drawingPointerId() !== null ||
+        navigation.pointerId !== null ||
+        selection.busy,
+
+      navigate: (viewport) => {
+        if (!BoardViewport.isValid(viewport)) return false;
+
+        navigation.setViewport(viewport);
+
+        return true;
+      },
+    });
+
+    api.refresh = () => {
+      updateBackground();
+      surface.refresh();
+      minimap?.setOpen(readSettings().minimapOpen);
+    };
 
     controlsRef.current = EditorControls.create({
       canvas,
@@ -305,6 +365,8 @@ function create(
       publishSelection,
       applyHistory,
       surface,
+      lastWritingView: () => lastWritingView,
+      notice: (message) => readSettings().onNavigationNotice(message),
     });
 
     const unbindResolution = SurfaceResolution.bind(
@@ -326,6 +388,7 @@ function create(
       surface.dispose();
       unbindResolution();
       selectionJobs.dispose();
+      minimap?.dispose();
       renderer.dispose();
       controlsRef.current = null;
       diagnostics.dispose();

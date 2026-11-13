@@ -28,6 +28,7 @@ export class DocumentSession {
   private message = "";
   private rawMain: StoredRecord = { exists: false, value: undefined };
   private upgrade: StoredRecord = { exists: false, value: undefined };
+  private schema3: StoredRecord = { exists: false, value: undefined };
   private previous: StoredRecord = { exists: false, value: undefined };
   private revision = 0;
   private savedRevision = 0;
@@ -77,6 +78,7 @@ export class DocumentSession {
       importing: this.importing,
       hasPrevious: this.previous.exists,
       hasUpgradeCopy: this.upgrade.exists,
+      hasSchema3Copy: this.schema3.exists,
       canReconnect:
         !this.canWrite &&
         this.phase !== "loading" &&
@@ -88,6 +90,10 @@ export class DocumentSession {
 
   get upgradeRecord(): StoredRecord {
     return this.upgrade;
+  }
+
+  get schema3Record(): StoredRecord {
+    return this.schema3;
   }
 
   get previousRecord(): StoredRecord {
@@ -135,6 +141,11 @@ export class DocumentSession {
       this.previous = records.beforeImport;
 
       this.upgrade = records.beforeSchema2 ?? {
+        exists: false,
+        value: undefined,
+      };
+
+      this.schema3 = records.beforeSchema3 ?? {
         exists: false,
         value: undefined,
       };
@@ -216,14 +227,14 @@ export class DocumentSession {
         const snapshot = this.options.persistence
           ? {
               ...live,
-              schemaVersion: 2 as const,
+              schemaVersion: 3 as const,
               strokes: [...live.strokes],
               viewport: { ...live.viewport },
               tools: { ...live.tools },
             }
           : {
               ...DocumentCodec.decodeDocument(live),
-              schemaVersion: 2 as const,
+              schemaVersion: 3 as const,
             };
 
         this.writing = true;
@@ -238,14 +249,15 @@ export class DocumentSession {
 
         if (this.disposed || this.fatal) return;
 
-        if (
-          !this.upgrade.exists &&
-          this.rawMain.exists &&
-          SessionUtils.isSchema1(this.rawMain.value)
-        )
-          this.upgrade = this.rawMain;
-
         this.savedRevision = revision;
+
+        if (
+          !this.schema3.exists &&
+          this.rawMain.exists &&
+          SessionUtils.isLegacy(this.rawMain.value)
+        )
+          this.schema3 = this.rawMain;
+
         this.rawMain = { exists: true, value: snapshot };
         this.phase = this.revision === revision ? "saved" : "dirty";
         this.message = "";
@@ -290,7 +302,7 @@ export class DocumentSession {
     try {
       document = {
         ...DocumentCodec.decodeDocument(candidate),
-        schemaVersion: 2,
+        schemaVersion: 3,
       };
     } catch (error) {
       return Promise.reject(error);
@@ -322,11 +334,11 @@ export class DocumentSession {
         if (this.disposed || this.fatal) return;
 
         if (
-          !this.upgrade.exists &&
+          !this.schema3.exists &&
           this.rawMain.exists &&
-          SessionUtils.isSchema1(this.rawMain.value)
+          SessionUtils.isLegacy(this.rawMain.value)
         )
-          this.upgrade = this.rawMain;
+          this.schema3 = this.rawMain;
 
         this.previous = { exists: true, value: previous };
         this.rawMain = { exists: true, value: document };

@@ -83,7 +83,7 @@ describe("versioned document codec", () => {
 
   it.each([
     { format: "other" },
-    { schemaVersion: 3 },
+    { schemaVersion: 4 },
     { background: "neon" },
     { viewport: { zoom: 0, x: 0, y: 0 } },
     { viewport: { zoom: 1, x: 1e9 + 1, y: 0 } },
@@ -509,4 +509,58 @@ describe("schema2 fragments and schema1 compatibility", () => {
       DocumentCodec.decodeDocument({ ...document, strokes }),
     ).toThrow("100000");
   });
+});
+
+describe("schema3 view metadata", () => {
+  it.each([1, 2] as const)(
+    "loads legacy%s with safe defaults without inventing a writing view",
+    (version) => {
+      const legacy = { ...fixture(), schemaVersion: version };
+
+      delete legacy.backgroundSettings;
+      delete legacy.lastWritingView;
+
+      const result = DocumentCodec.decodeDocument(legacy);
+
+      expect(result.backgroundSettings).toEqual({ contrast: 45, spacing: 24 });
+      expect(result.lastWritingView).toBeNull();
+      expect(result.strokes).toEqual(legacy.strokes);
+    },
+  );
+
+  it("round-trips detached settings and a world-centred writing view", () => {
+    const source = {
+      ...fixture(),
+      backgroundSettings: { contrast: 73, spacing: 32 },
+      lastWritingView: { center: { x: -4e9, y: 500 }, zoom: 0.25 },
+    };
+
+    const result = DocumentCodec.parseDocumentJSON(
+      DocumentCodec.serializeDocument(source).json,
+    );
+
+    expect(result).toEqual(source);
+    expect(result.backgroundSettings).not.toBe(source.backgroundSettings);
+
+    expect(result.lastWritingView!.center).not.toBe(
+      source.lastWritingView.center,
+    );
+  });
+
+  it.each([
+    { backgroundSettings: undefined },
+    { lastWritingView: undefined },
+    { backgroundSettings: { contrast: NaN, spacing: 24 } },
+    { backgroundSettings: { contrast: 101, spacing: 24 } },
+    { backgroundSettings: { contrast: 50.5, spacing: 24 } },
+    { backgroundSettings: { contrast: 50, spacing: 13 } },
+    { backgroundSettings: { contrast: 50, spacing: 66 } },
+    { lastWritingView: { center: { x: Infinity, y: 0 }, zoom: 1 } },
+    { lastWritingView: { center: { x: 1e10 + 1, y: 0 }, zoom: 1 } },
+    { lastWritingView: { center: { x: 0, y: 0 }, zoom: 0 } },
+  ])("rejects malformed v3 metadata %j", (fields) =>
+    expect(() =>
+      DocumentCodec.decodeDocument({ ...fixture(), ...fields }),
+    ).toThrow(),
+  );
 });

@@ -18,17 +18,20 @@ export namespace TestBoardTypes {
 
   export type Document = {
     format: "penable-board";
-    schemaVersion: 1 | 2;
+    schemaVersion: 1 | 2 | 3;
     strokes: Stroke[];
     viewport: { x: number; y: number; zoom: number };
     background: "blank" | "dots" | "grid";
     tools: { width: number; stabilization: number };
+    backgroundSettings?: { contrast: number; spacing: number };
+    lastWritingView?: { center: { x: number; y: number }; zoom: number } | null;
   };
 
   export type Records = {
     main?: Document;
     previous?: Document;
     upgrade?: Document;
+    upgrade3?: Document;
   };
 
   export type Position = { x: number; y: number };

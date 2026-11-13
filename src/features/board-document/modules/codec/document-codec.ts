@@ -14,13 +14,13 @@ function decodeDocument(
 
   if (
     CodecPrimitives.own(root, "format") !== "penable-board" ||
-    (schemaVersion !== 1 && schemaVersion !== 2)
+    (schemaVersion !== 1 && schemaVersion !== 2 && schemaVersion !== 3)
   )
     CodecPrimitives.invalid("format/schemaVersion");
 
   const decoded = StrokeDecoder.decodeStrokes(
     CodecPrimitives.own(root, "strokes"),
-    schemaVersion as 1 | 2,
+    schemaVersion === 1 ? 1 : 2,
     limits,
   );
 
@@ -39,9 +39,75 @@ function decodeDocument(
   if (background !== "blank" && background !== "dots" && background !== "grid")
     CodecPrimitives.invalid("background");
 
+  let backgroundSettings = { contrast: 45, spacing: 24 };
+  let lastWritingView: import("~/entities/board").WritingView | null = null;
+
+  if (schemaVersion === 3) {
+    const settings = CodecPrimitives.object(
+      CodecPrimitives.own(root, "backgroundSettings"),
+      "backgroundSettings",
+    );
+
+    backgroundSettings = {
+      contrast: CodecPrimitives.number(
+        CodecPrimitives.own(settings, "contrast"),
+        0,
+        100,
+        "backgroundSettings.contrast",
+      ),
+      spacing: CodecPrimitives.number(
+        CodecPrimitives.own(settings, "spacing"),
+        12,
+        64,
+        "backgroundSettings.spacing",
+      ),
+    };
+
+    if (
+      !Number.isInteger(backgroundSettings.contrast) ||
+      !Number.isInteger(backgroundSettings.spacing) ||
+      backgroundSettings.spacing % 2 !== 0
+    )
+      CodecPrimitives.invalid("backgroundSettings");
+
+    const rawView = CodecPrimitives.own(root, "lastWritingView");
+
+    if (rawView !== null) {
+      const view = CodecPrimitives.object(rawView, "lastWritingView");
+
+      const center = CodecPrimitives.object(
+        CodecPrimitives.own(view, "center"),
+        "lastWritingView.center",
+      );
+
+      lastWritingView = {
+        center: {
+          x: CodecPrimitives.number(
+            CodecPrimitives.own(center, "x"),
+            -1e10,
+            1e10,
+            "lastWritingView.center.x",
+          ),
+          y: CodecPrimitives.number(
+            CodecPrimitives.own(center, "y"),
+            -1e10,
+            1e10,
+            "lastWritingView.center.y",
+          ),
+        },
+        zoom: CodecPrimitives.number(
+          CodecPrimitives.own(view, "zoom"),
+          0.25,
+          8,
+          "lastWritingView.zoom",
+        ),
+      };
+    }
+  }
+
   const result: BoardDocument = {
     format: "penable-board",
-    schemaVersion: schemaVersion as 1 | 2,
+    schemaVersion: schemaVersion as 1 | 2 | 3,
     strokes: decoded,
     viewport: {
       zoom: CodecPrimitives.number(
@@ -60,6 +126,8 @@ function decodeDocument(
       ),
     },
     background,
+    backgroundSettings,
+    lastWritingView,
     tools: {
       width: CodecPrimitives.number(
         CodecPrimitives.own(tools, "width"),

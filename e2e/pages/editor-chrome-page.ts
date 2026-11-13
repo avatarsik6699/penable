@@ -21,12 +21,12 @@ export class EditorChromePage {
     const pen = this.page.getByRole("button", { name: "Перо", exact: true });
 
     const boardMenu = this.page.getByRole("button", {
-      name: "Меню доски",
+      name: "Настройки доски",
       exact: true,
     });
 
     const save = this.page.getByRole("button", {
-      name: "Хранение",
+      name: "Состояние сохранения",
       exact: true,
     });
 
@@ -49,9 +49,7 @@ export class EditorChromePage {
       await this.page.keyboard.press("Enter");
       await expect(trigger).toHaveAttribute("aria-expanded", "true");
 
-      await expect(
-        this.page.locator('button[aria-expanded="true"]'),
-      ).toHaveCount(1);
+      await expect(this.page.getByRole("dialog")).toHaveCount(1);
 
       expect(await surface.boundingBox()).toEqual(initialBox);
 
@@ -102,11 +100,11 @@ export class EditorChromePage {
       const bounds = [];
 
       for (const name of [
-        "Меню доски",
+        "Настройки доски",
         "Перо",
-        "Хранение",
+        "Состояние сохранения",
         "Помощь",
-        "Показать все записи",
+        "Миникарта",
       ]) {
         const button = this.page.getByRole("button", { name, exact: true });
 
@@ -137,11 +135,11 @@ export class EditorChromePage {
       }
 
       await this.page
-        .getByRole("button", { name: "Меню доски", exact: true })
+        .getByRole("button", { name: "Настройки доски", exact: true })
         .click();
 
       await expect(
-        this.page.getByRole("button", { name: "Импорт", exact: true }),
+        this.page.getByRole("tab", { name: "Вид", exact: true }),
       ).toBeVisible();
 
       await this.page.keyboard.press("Escape");

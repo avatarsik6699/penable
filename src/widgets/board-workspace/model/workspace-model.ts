@@ -9,6 +9,8 @@ import type {
 } from "./workspace-model.types";
 import {
   type BoardSnapshot,
+  type BackgroundSettings,
+  type WritingView,
   type BackgroundMode,
   type DrawingTool,
   type HistoryState,
@@ -54,6 +56,8 @@ export class WorkspaceModel {
       width: 3,
       stabilization: 65,
       background: "blank",
+      backgroundSettings: Object.freeze({ contrast: 45, spacing: 24 }),
+      lastWritingView: null,
       history: Object.freeze({ canUndo: false, canRedo: false, busy: false }),
       storage: Object.freeze({
         phase: "loading",
@@ -69,9 +73,11 @@ export class WorkspaceModel {
       diagnostics: Object.freeze(dependencies.diagnostics),
       generation: 0,
       hasBoard: false,
+      hasInk: false,
       unavailable: "",
       dialogOpen: false,
       uiRevision: 0,
+      navigationMessage: "",
     });
   }
 
@@ -112,6 +118,13 @@ export class WorkspaceModel {
       strokes: scene?.strokes ?? initial.strokes,
       viewport: { ...(scene?.viewport ?? initial.viewport) },
       background: this.state.background,
+      backgroundSettings: { ...this.state.backgroundSettings },
+      lastWritingView: this.state.lastWritingView
+        ? {
+            center: { ...this.state.lastWritingView.center },
+            zoom: this.state.lastWritingView.zoom,
+          }
+        : null,
       tools: {
         width: this.state.width,
         stabilization: this.state.stabilization,
@@ -165,6 +178,7 @@ export class WorkspaceModel {
 
         this.patch({
           hasBoard: true,
+          hasInk: board.strokes.length > 0,
           tool: "pen",
           selectionShape: "rectangle",
           width: board.tools.width,
@@ -172,7 +186,12 @@ export class WorkspaceModel {
             board.tools.stabilization,
           ),
           background: board.background,
+          backgroundSettings: Object.freeze({
+            ...(board.backgroundSettings ?? { contrast: 45, spacing: 24 }),
+          }),
+          lastWritingView: board.lastWritingView ?? null,
           unavailable: "",
+          navigationMessage: "",
           history: Object.freeze({
             canUndo: false,
             canRedo: false,
@@ -256,6 +275,45 @@ export class WorkspaceModel {
     }
   };
 
+  readonly changeBackgroundSettings = (
+    backgroundSettings: BackgroundSettings,
+  ) => {
+    if (!this.canWrite() || this.controls.current?.isBusy()) return;
+
+    if (
+      !Number.isInteger(backgroundSettings.contrast) ||
+      backgroundSettings.contrast < 0 ||
+      backgroundSettings.contrast > 100 ||
+      !Number.isInteger(backgroundSettings.spacing) ||
+      backgroundSettings.spacing < 12 ||
+      backgroundSettings.spacing > 64 ||
+      backgroundSettings.spacing % 2 !== 0
+    )
+      return;
+
+    this.patch({
+      backgroundSettings: Object.freeze({ ...backgroundSettings }),
+    });
+
+    this.documentChanged(false);
+  };
+
+  readonly navigationNoticeChanged = (navigationMessage: string) =>
+    this.patch({ navigationMessage });
+
+  readonly scenePresenceChanged = (hasInk: boolean) => this.patch({ hasInk });
+
+  readonly writingCommitted = (lastWritingView: WritingView) => {
+    if (!this.canWrite()) return;
+
+    this.patch({
+      lastWritingView: {
+        center: { ...lastWritingView.center },
+        zoom: lastWritingView.zoom,
+      },
+    });
+  };
+
   readonly changeShape = (selectionShape: SelectionShape) => {
     this.controls.current?.selectionShape(selectionShape);
     this.patch({ selectionShape });
@@ -328,6 +386,23 @@ export class WorkspaceModel {
   readonly exportPrevious = () => this.backup(false);
 
   readonly exportUpgrade = () => this.backup(true);
+
+  readonly exportSchema3 = () => {
+    try {
+      const record = this.session?.schema3Record;
+
+      if (!record?.exists) throw new Error("Копии до обновления пока нет.");
+
+      this.dependencies.download(
+        DocumentCodec.serializeRawBackup(record.value),
+        "penable-before-schema3.json",
+      );
+
+      return "Копия до обновления передана браузеру. Проверьте файл в загрузках.";
+    } catch (error) {
+      return DocumentErrors.messageOf(error);
+    }
+  };
 
   readonly retry = () => {
     if (this.session?.canWrite) {

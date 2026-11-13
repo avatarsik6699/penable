@@ -12,6 +12,7 @@
   border-radius: 12px;
   box-shadow: var(--chrome-shadow);
 }
+
 .navigation button {
   padding: 0;
   min-width: 40px;
@@ -20,25 +21,44 @@
   align-items: center;
   justify-content: center;
 }
+
 .navigation .value {
   min-width: 57px;
   font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
+
 .value span {
   font-size: 11px;
   color: var(--text-muted);
   margin-left: 2px;
 }
+
 .divider {
   height: 22px;
   width: 1px;
   background: var(--divider);
   margin: 0 3px;
 }
+
 @media (max-width: 700px) {
   .navigation {
     right: 12px;
     bottom: 12px;
   }
+}
+
+.notice {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  right: 0;
+  width: min(300px, calc(100vw - 24px));
+  padding: 12px;
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: var(--popover-shadow);
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.6;
 }

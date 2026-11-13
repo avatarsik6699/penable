@@ -10,3 +10,5 @@ export type {
   JobRequest,
   JobResponse,
 } from "./jobs-protocol";
+
+export type { OverviewResult } from "./modules/overview";

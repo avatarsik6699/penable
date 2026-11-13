@@ -6,7 +6,14 @@ export namespace ViewportControlsTypes {
     onZoomOut: () => void;
     onZoomIn: () => void;
     onResetView: () => void;
-    onFitAll: () => void;
+    onReturnWriting: () => void;
+    navigationMessage: string;
+    canReturnWriting: boolean;
+    minimapOpen: boolean;
+    onMinimapToggle: () => void;
+    bindMinimapTrigger: (
+      node: import("~/shared/lib/overlay").OverlayElements.Button | null,
+    ) => void;
     historyState: HistoryState;
     diagnostics: InputDiagnostics;
     selectionDisabled: boolean;

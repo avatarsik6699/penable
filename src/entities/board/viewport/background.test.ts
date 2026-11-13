@@ -71,3 +71,28 @@ describe("world-anchored board background", () => {
     },
   );
 });
+
+it.each([12, 24, 32, 64])(
+  "anchors a configurable spacing%s and coarsens without moving its lattice",
+  (spacing) => {
+    const view = { zoom: 0.25, x: -25, y: 53 };
+    const layout = BoardBackground.backgroundLayout(view, spacing);
+
+    expect(layout.worldStep / spacing).toBe(
+      2 ** Math.round(Math.log2(layout.worldStep / spacing)),
+    );
+
+    expect(layout.screenStep).toBeGreaterThanOrEqual(12);
+
+    expect(
+      (4 * layout.worldStep * view.zoom + view.x - layout.phaseX) /
+        layout.screenStep,
+    ).toBeCloseTo(
+      Math.round(
+        (4 * layout.worldStep * view.zoom + view.x - layout.phaseX) /
+          layout.screenStep,
+      ),
+      8,
+    );
+  },
+);

@@ -2,22 +2,22 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  opacity: 0.7;
+  opacity: var(--background-contrast, 0.45);
   background-size: var(--background-step, 24px) var(--background-step, 24px);
   background-position: var(--background-x, 0px) var(--background-y, 0px);
 }
 
 .board-background[data-background="grid"] {
   background-image:
-    linear-gradient(to right, var(--divider) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--divider) 1px, transparent 1px);
+    linear-gradient(to right, var(--text-muted) 1px, transparent 1.2px),
+    linear-gradient(to bottom, var(--text-muted) 1px, transparent 1.2px);
 }
 
 .board-background[data-background="dots"] {
   background-image: radial-gradient(
     circle,
-    var(--divider) 0.8px,
-    transparent 1px
+    var(--text-muted) 1px,
+    transparent 1.2px
   );
   background-position: var(--background-dot-x, -12px)
     var(--background-dot-y, -12px);

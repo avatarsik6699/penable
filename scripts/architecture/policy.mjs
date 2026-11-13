@@ -63,6 +63,12 @@ export const platformOwners = {
     "worker-scope",
     "messaging",
   ],
+  "src/widgets/board-workspace/components/writing-surface/native/minimap/minimap.ts":
+    ["dom", "timers"],
+  "src/widgets/board-workspace/components/writing-surface/native/minimap/minimap-presentation.ts":
+    ["canvas", "dom"],
+  "src/widgets/board-workspace/components/writing-surface/native/minimap/minimap.types.ts":
+    ["dom"],
   "src/shared/lib/task-clock/task-clock.ts": ["timers"],
   "src/shared/lib/overlay/overlay.ts": ["dom"],
 };

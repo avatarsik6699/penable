@@ -4,7 +4,7 @@ import type {
   BoardDocument,
   DocumentPersistence,
 } from "../../board-document.types";
-import type { SelectionResult } from "./jobs-protocol";
+import { DocumentProtocol, type SelectionResult } from "./jobs-protocol";
 import type { JobOptions } from "./document-jobs.types";
 import { JobTransport } from "./job-transport";
 
@@ -87,6 +87,15 @@ export class DocumentJobs implements DocumentPersistence {
       strokes: [...document.strokes],
       viewport: { ...document.viewport },
       tools: { ...document.tools },
+      backgroundSettings: {
+        ...(document.backgroundSettings ?? { contrast: 45, spacing: 24 }),
+      },
+      lastWritingView: document.lastWritingView
+        ? {
+            center: { ...document.lastWritingView.center },
+            zoom: document.lastWritingView.zoom,
+          }
+        : null,
     };
 
     const operation = this.tail.then(() =>
@@ -96,6 +105,24 @@ export class DocumentJobs implements DocumentPersistence {
     this.tail = operation.catch(() => {});
 
     return operation.then(() => {});
+  }
+
+  overview(
+    strokes: readonly Stroke[],
+    signal: AbortSignal,
+  ): Promise<import("./modules/overview").OverviewResult> {
+    if (this.closing) return Promise.reject(new Error("Обзор закрывается."));
+
+    return this.transport
+      .execute(
+        "overview",
+        { ...DocumentCodec.emptyDocument(), strokes: [...strokes] },
+        undefined,
+        signal,
+      )
+      .then((result) => {
+        return DocumentProtocol.overviewResult(result.overview);
+      });
   }
 
   cancel() {

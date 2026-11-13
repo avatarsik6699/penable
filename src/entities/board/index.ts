@@ -38,6 +38,8 @@ export type {
   HistoryState,
   RegionInput,
   BoardSnapshot,
+  BackgroundSettings,
+  WritingView,
 } from "./board.types";
 export { BoardNavigation, BoardViewport } from "./viewport";
 export type { BoardWheel } from "./viewport";

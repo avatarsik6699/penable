@@ -73,7 +73,7 @@ test("JSON import/export and invalid import preserve recoverability", async ({
   await board.storage.expectRecovery("previous", previous);
 });
 
-test("legacy first save keeps original schema1 and independent import backup", async ({
+test("legacy first v3 save keeps original schema1 and independent import backup", async ({
   legacyBoard,
   documents,
   samples,
@@ -81,7 +81,7 @@ test("legacy first save keeps original schema1 and independent import backup", a
   await legacyBoard.storage.expectStrokeCount(1);
   await legacyBoard.drawStroke(samples.extraStart, samples.extraEnd);
   await legacyBoard.storage.expectStrokeCount(2);
-  await legacyBoard.storage.expectRecovery("upgrade", documents.legacy);
+  await legacyBoard.storage.expectRecovery("upgrade3", documents.legacy);
   await legacyBoard.storage.expectRecovery("previous", documents.previous);
   await legacyBoard.storage.expectExportMatchesSaved();
 });
@@ -141,4 +141,38 @@ test("floating editor panels preserve canvas, ink and keyboard ownership", async
 }) => {
   await editor.expectStableDisclosures();
   await editor.expectDesktopAndCompactLayout();
+});
+
+test("v2 migration retains raw original and both older recovery copies", async ({
+  v2Board,
+  documents,
+  samples,
+}) => {
+  await v2Board.drawStroke(samples.extraStart, samples.extraEnd);
+  await v2Board.storage.expectRecovery("upgrade3", documents.v2);
+  await v2Board.storage.expectRecovery("upgrade", documents.legacy);
+  await v2Board.storage.expectRecovery("previous", documents.previous);
+  await v2Board.reopenSavedBoard();
+  await v2Board.storage.importDocument(documents.empty);
+  await v2Board.storage.expectRecovery("upgrade3", documents.v2);
+  await v2Board.storage.expectRecovery("upgrade", documents.legacy);
+});
+
+test("writing view and background settings survive navigation, resize and JSON", async ({
+  navigation,
+}) => {
+  await navigation.expectWritingReturnAndBackgroundRoundtrip();
+});
+
+test("minimap navigates distant notes without changing zoom and releases its worker", async ({
+  navigation,
+  documents,
+}) => {
+  await navigation.expectOverviewNavigation(documents.distant);
+});
+
+test("overview worker failure leaves writing and saving intact and can retry", async ({
+  overviewFailureNavigation,
+}) => {
+  await overviewFailureNavigation.expectOverviewFailureRecovery();
 });

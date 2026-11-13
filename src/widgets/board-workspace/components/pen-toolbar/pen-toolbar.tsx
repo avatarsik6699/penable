@@ -20,35 +20,39 @@ export const PenToolbar: React.FC<PenToolbarTypes.Props> = (props) => {
       aria-label="Инструменты доски"
       data-editor-chrome=""
     >
-      <ToolControls
-        tool={props.tool}
-        onToolChange={props.onToolChange}
-        readOnly={props.readOnly}
-        historyState={props.historyState}
-        selectionDisabled={props.selectionDisabled}
-        penOpen={props.penOpen}
-        onPenParameters={() => props.onPenOpenChange(!props.penOpen)}
-        bindPenTrigger={panel.bindTrigger}
-      />
-      <span className={styles.divider} aria-hidden="true" />
-      <HistoryControls
-        onUndo={props.onUndo}
-        onRedo={props.onRedo}
-        readOnly={props.readOnly}
-        historyState={props.historyState}
-      />
-      <span className={styles.divider} aria-hidden="true" />
-      {props.tool === "pen" ? (
-        <InkSettings
-          width={props.width}
-          onWidthChange={props.onWidthChange}
+      <div className={styles.primary}>
+        <ToolControls
+          tool={props.tool}
+          onToolChange={props.onToolChange}
           readOnly={props.readOnly}
+          historyState={props.historyState}
+          selectionDisabled={props.selectionDisabled}
+          penOpen={props.penOpen}
+          onPenParameters={() => props.onPenOpenChange(!props.penOpen)}
+          bindPenTrigger={panel.bindTrigger}
         />
-      ) : props.tool === "eraser" ? (
-        <span className={styles.eraser}>Штрих целиком</span>
-      ) : (
-        props.selectionControls
-      )}
+        <span className={styles.divider} aria-hidden="true" />
+        <HistoryControls
+          onUndo={props.onUndo}
+          onRedo={props.onRedo}
+          readOnly={props.readOnly}
+          historyState={props.historyState}
+        />
+      </div>
+      <div className={styles.context}>
+        {props.tool === "pen" ? (
+          <InkSettings
+            width={props.width}
+            onWidthChange={props.onWidthChange}
+            readOnly={props.readOnly}
+          />
+        ) : props.tool === "eraser" ? (
+          <span className={styles.eraser}>Штрих целиком</span>
+        ) : (
+          props.selectionControls
+        )}
+      </div>
+      <div className={styles.trailing}>{props.trailingControls}</div>
       {props.penOpen && (
         <PenSettings
           width={props.width}

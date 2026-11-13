@@ -299,3 +299,30 @@ describe("two-axis wheel navigation", () => {
     expect(navigation.wheel(wheel())).toBe(true);
   });
 });
+
+describe("writing view bookmarks", () => {
+  it("restores the captured world centre and zoom across window sizes", () => {
+    const view = { zoom: 2, x: -800, y: 120 };
+    const saved = BoardViewport.writingView(view, 1200, 800);
+
+    expect(saved).toEqual({ center: { x: 700, y: 140 }, zoom: 2 });
+    expect(BoardViewport.restoreWritingView(saved, 1200, 800)).toEqual(view);
+
+    const resized = BoardViewport.restoreWritingView(saved, 800, 600);
+
+    expect(BoardViewport.screenToWorld({ x: 400, y: 300 }, resized)).toEqual(
+      saved.center,
+    );
+  });
+
+  it("validates extreme restored views rather than clamping them into a different area", () => {
+    const saved = { center: { x: -4e9, y: 0 }, zoom: 0.25 };
+
+    expect(
+      BoardViewport.isValid(BoardViewport.restoreWritingView(saved, 1200, 800)),
+    ).toBe(false);
+
+    expect(BoardViewport.isValid({ zoom: 1, x: 1e9, y: -1e9 })).toBe(true);
+    expect(BoardViewport.isValid({ zoom: Infinity, x: 0, y: 0 })).toBe(false);
+  });
+});

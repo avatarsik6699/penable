@@ -1,12 +1,19 @@
 import type { BackgroundMode } from "~/entities/board";
-import type { Stroke, Viewport } from "~/entities/board";
+import type {
+  Stroke,
+  Viewport,
+  BackgroundSettings,
+  WritingView,
+} from "~/entities/board";
 
 export type BoardDocument = {
   format: "penable-board";
-  schemaVersion: 1 | 2;
+  schemaVersion: 1 | 2 | 3;
   strokes: Stroke[];
   viewport: Viewport;
   background: BackgroundMode;
+  backgroundSettings?: BackgroundSettings;
+  lastWritingView?: WritingView | null;
   tools: {
     width: number;
     stabilization: number;
@@ -18,6 +25,7 @@ export type DocumentRepository = {
     main: StoredRecord;
     beforeImport: StoredRecord;
     beforeSchema2?: StoredRecord;
+    beforeSchema3?: StoredRecord;
   }>;
   write: (document: BoardDocument) => Promise<void>;
   replace: (previous: unknown, candidate: BoardDocument) => Promise<void>;
@@ -46,6 +54,7 @@ export type StorageState = {
   importing: boolean;
   hasPrevious: boolean;
   hasUpgradeCopy?: boolean;
+  hasSchema3Copy?: boolean;
   canReconnect: boolean;
   message: string;
 };

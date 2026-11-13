@@ -101,6 +101,15 @@ export class JobTransport {
       strokes: [...input.strokes],
       viewport: { ...input.viewport },
       tools: { ...input.tools },
+      backgroundSettings: {
+        ...(input.backgroundSettings ?? { contrast: 45, spacing: 24 }),
+      },
+      lastWritingView: input.lastWritingView
+        ? {
+            center: { ...input.lastWritingView.center },
+            zoom: input.lastWritingView.zoom,
+          }
+        : null,
     };
 
     const capturedRegion = region

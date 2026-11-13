@@ -6,6 +6,8 @@ function empty(): BoardSnapshot {
     strokes: [],
     viewport: { zoom: 1, x: 0, y: 0 },
     background: "blank",
+    backgroundSettings: { contrast: 45, spacing: 24 },
+    lastWritingView: null,
     tools: { width: 3, stabilization: 65 },
   };
 }
@@ -48,6 +50,15 @@ function clone(document: BoardSnapshot): BoardSnapshot {
       y: document.viewport.y,
     },
     background: document.background,
+    backgroundSettings: {
+      ...(document.backgroundSettings ?? { contrast: 45, spacing: 24 }),
+    },
+    lastWritingView: document.lastWritingView
+      ? {
+          center: { ...document.lastWritingView.center },
+          zoom: document.lastWritingView.zoom,
+        }
+      : null,
     tools: {
       width: document.tools.width,
       stabilization: document.tools.stabilization,

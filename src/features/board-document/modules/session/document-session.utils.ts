@@ -15,6 +15,15 @@ function isSchema1(value: unknown): boolean {
   );
 }
 
+function isLegacy(value: unknown): boolean {
+  return Boolean(
+    value &&
+    typeof value === "object" &&
+    "schemaVersion" in value &&
+    (value.schemaVersion === 1 || value.schemaVersion === 2),
+  );
+}
+
 function sameState(
   previous: StorageState | null,
   state: StorageState,
@@ -28,6 +37,7 @@ function sameState(
     previous.canImport === state.canImport &&
     previous.importing === state.importing &&
     previous.hasUpgradeCopy === state.hasUpgradeCopy &&
+    previous.hasSchema3Copy === state.hasSchema3Copy &&
     previous.hasPrevious === state.hasPrevious &&
     previous.canReconnect === state.canReconnect &&
     previous.message === state.message,
@@ -35,4 +45,4 @@ function sameState(
 }
 
 export const DocumentErrors = { messageOf };
-export const SessionUtils = { isSchema1, sameState };
+export const SessionUtils = { isSchema1, isLegacy, sameState };

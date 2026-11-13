@@ -1,4 +1,6 @@
-export type SurfaceElements = {
+import type { MinimapElements } from "./minimap";
+
+export type SurfaceElements = MinimapElements & {
   canvas: HTMLCanvasElement | null;
   completed: HTMLCanvasElement | null;
   background: HTMLDivElement | null;

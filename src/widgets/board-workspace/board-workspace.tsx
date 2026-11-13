@@ -22,32 +22,10 @@ export const BoardWorkspace: React.FC<BoardWorkspaceTypes.Props> = () => {
 
   return (
     <main className={styles.app} aria-label="Личная доска">
-      <StoragePanel
-        state={workspace.ui.storage}
-        hasDocument={workspace.ui.hasBoard}
-        busy={workspace.ui.history.busy}
-        onExport={workspace.model.exportCurrent}
-        onUpgrade={workspace.model.exportUpgrade}
-        onOverlayChange={workspace.model.overlayChanged}
-        onPrevious={workspace.model.exportPrevious}
-        onRetry={workspace.model.retry}
-        onBeginImport={workspace.model.beginImport}
-        onEndImport={workspace.model.endImport}
-        onConfirm={workspace.model.confirmImport}
-        openPanel={
-          workspace.panel === "board" || workspace.panel === "save"
-            ? workspace.panel
-            : null
-        }
-        onPanelChange={workspace.changePanel}
-        backgroundControl={
-          <BackgroundControl
-            background={workspace.ui.background}
-            readOnly={readOnly || workspace.ui.history.busy}
-            onBackgroundChange={workspace.model.changeBackground}
-          />
-        }
-      />
+      <div className={styles.brand} aria-label="penable">
+        penable
+        <span className={styles.brandDot} />
+      </div>
       <PenToolbar
         tool={workspace.ui.tool}
         onToolChange={workspace.changeTool}
@@ -62,6 +40,37 @@ export const BoardWorkspace: React.FC<BoardWorkspaceTypes.Props> = () => {
         selectionDisabled={unavailable}
         penOpen={workspace.panel === "pen"}
         onPenOpenChange={(open) => workspace.changePanel(open ? "pen" : null)}
+        trailingControls={
+          <StoragePanel
+            state={workspace.ui.storage}
+            hasDocument={workspace.ui.hasBoard}
+            busy={workspace.ui.history.busy}
+            onExport={workspace.model.exportCurrent}
+            onUpgrade={workspace.model.exportUpgrade}
+            onOverlayChange={workspace.model.overlayChanged}
+            onPrevious={workspace.model.exportPrevious}
+            onSchema3={workspace.model.exportSchema3}
+            onRetry={workspace.model.retry}
+            onBeginImport={workspace.model.beginImport}
+            onEndImport={workspace.model.endImport}
+            onConfirm={workspace.model.confirmImport}
+            openPanel={
+              workspace.panel === "board" || workspace.panel === "save"
+                ? workspace.panel
+                : null
+            }
+            onPanelChange={workspace.changePanel}
+            backgroundControl={
+              <BackgroundControl
+                background={workspace.ui.background}
+                settings={workspace.ui.backgroundSettings}
+                onSettingsChange={workspace.model.changeBackgroundSettings}
+                readOnly={readOnly || workspace.ui.history.busy}
+                onBackgroundChange={workspace.model.changeBackground}
+              />
+            }
+          />
+        }
         selectionControls={
           workspace.ui.tool === "selection" &&
           workspace.ui.hasBoard &&
@@ -92,7 +101,16 @@ export const BoardWorkspace: React.FC<BoardWorkspaceTypes.Props> = () => {
         onZoomOut={() => workspace.model.controls.current?.zoomOut()}
         onZoomIn={() => workspace.model.controls.current?.zoomIn()}
         onResetView={() => workspace.model.controls.current?.reset()}
-        onFitAll={() => workspace.model.controls.current?.fitAll()}
+        onReturnWriting={() =>
+          workspace.model.controls.current?.returnToWriting?.()
+        }
+        navigationMessage={workspace.ui.navigationMessage}
+        canReturnWriting={
+          Boolean(workspace.ui.lastWritingView) && workspace.ui.hasInk
+        }
+        minimapOpen={workspace.minimapOpen}
+        onMinimapToggle={() => workspace.changeMinimap(!workspace.minimapOpen)}
+        bindMinimapTrigger={workspace.minimapPanel.bindTrigger}
         historyState={workspace.ui.history}
         diagnostics={workspace.ui.diagnostics}
         selectionDisabled={unavailable}
@@ -135,6 +153,14 @@ export const BoardWorkspace: React.FC<BoardWorkspaceTypes.Props> = () => {
             width={workspace.ui.width}
             stabilization={workspace.ui.stabilization}
             background={workspace.ui.background}
+            backgroundSettings={workspace.ui.backgroundSettings}
+            lastWritingView={workspace.ui.lastWritingView}
+            onWritingCommitted={workspace.model.writingCommitted}
+            onNavigationNotice={workspace.model.navigationNoticeChanged}
+            onScenePresence={workspace.model.scenePresenceChanged}
+            minimapOpen={workspace.minimapOpen}
+            onMinimapClose={workspace.minimapPanel.closeAndFocus}
+            bindMinimapRoot={workspace.minimapPanel.bindRoot}
             canWrite={workspace.model.canWrite}
             modalOpen={workspace.ui.dialogOpen}
             uiRevision={workspace.ui.uiRevision}

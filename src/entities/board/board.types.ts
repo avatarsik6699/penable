@@ -71,10 +71,16 @@ export type RegionInput = {
   points: Position[];
 };
 
+export type BackgroundSettings = { contrast: number; spacing: number };
+
+export type WritingView = { center: Position; zoom: number };
+
 export type BoardSnapshot = {
   strokes: Stroke[];
   viewport: Viewport;
   background: BackgroundMode;
+  backgroundSettings?: BackgroundSettings;
+  lastWritingView?: WritingView | null;
   tools: {
     width: number;
     stabilization: number;

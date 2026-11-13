@@ -63,7 +63,59 @@ function create(options: EditorCommandTypes.ControlsOptions): SurfaceControls {
     },
 
     reset: () => {
-      if (!interactionsBlocked()) navigation.reset();
+      if (
+        interactionsBlocked() ||
+        drawingPointerId() !== null ||
+        navigation.pointerId !== null ||
+        selection.busy
+      )
+        return;
+
+      const view = BoardViewport.zoomAt(navigation.viewport, 1, center());
+
+      if (!BoardViewport.isValid(view)) {
+        options.notice(
+          "Этот участок слишком далеко для масштаба 100%. Выберите более близкую область.",
+        );
+
+        return;
+      }
+
+      options.notice("");
+      navigation.setViewport(view);
+    },
+
+    returnToWriting: () => {
+      const view = options.lastWritingView();
+
+      if (
+        !view ||
+        !scene.strokes.length ||
+        interactionsBlocked() ||
+        selection.busy ||
+        drawingPointerId() !== null ||
+        navigation.pointerId !== null
+      )
+        return;
+
+      const bounds = canvas.getBoundingClientRect();
+
+      const destination = BoardViewport.restoreWritingView(
+        view,
+        bounds.width,
+        bounds.height,
+      );
+
+      if (!BoardViewport.isValid(destination)) {
+        options.notice(
+          "Место письма слишком далеко для перехода в этом окне. Выберите участок на миникарте.",
+        );
+
+        return;
+      }
+
+      options.notice("");
+      navigation.setViewport(destination);
     },
 
     undo: () => {

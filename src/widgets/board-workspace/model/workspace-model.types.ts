@@ -1,4 +1,10 @@
-import type { Stroke, Viewport, SelectionShape } from "~/entities/board";
+import type {
+  Stroke,
+  Viewport,
+  SelectionShape,
+  BackgroundSettings,
+  WritingView,
+} from "~/entities/board";
 
 export type SelectionState = {
   selected: boolean;
@@ -39,6 +45,7 @@ export type SurfaceControls = {
   zoomOut: () => void;
   reset: () => void;
   fitAll: () => void;
+  returnToWriting?: () => void;
   selection: (command: SelectionCommand) => void;
   selectionShape: (shape: SelectionShape) => void;
   undo: () => void;
@@ -66,14 +73,18 @@ export type WorkspaceState = Readonly<{
   width: number;
   stabilization: number;
   background: BackgroundMode;
+  backgroundSettings: BackgroundSettings;
+  lastWritingView: WritingView | null;
   history: Readonly<HistoryState>;
   storage: Readonly<StorageState>;
   diagnostics: Readonly<InputDiagnostics>;
   generation: number;
   hasBoard: boolean;
+  hasInk: boolean;
   unavailable: string;
   dialogOpen: boolean;
   uiRevision: number;
+  navigationMessage: string;
 }>;
 
 export type WorkspaceDependencies = {

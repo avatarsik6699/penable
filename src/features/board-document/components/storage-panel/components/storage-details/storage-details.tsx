@@ -3,28 +3,12 @@ import type { StorageDetailsTypes } from "./storage-details.types";
 import styles from "./storage-details.module.css";
 import { Button } from "~/shared/ui/button";
 import { EditorIcon } from "~/shared/ui/editor-icon";
+import { StorageStatus } from "../storage-status";
 
 export const StorageDetails: React.FC<StorageDetailsTypes.Props> = (props) => (
-  <div
-    ref={(node) => {
-      props.bindRoot(node);
-    }}
-    id="storage-popover"
-    className={styles.panel}
-    role="dialog"
-    aria-labelledby="storage-title"
-  >
-    <div className={styles.heading}>
-      <h2 id="storage-title">
-        {props.state.phase === "error"
-          ? "Нужна резервная копия"
-          : props.state.readOnly
-            ? "Только просмотр"
-            : "Хранение и копии"}
-      </h2>
-      <Button onClick={props.onClose} aria-label="Закрыть сведения о хранении">
-        <EditorIcon name="close" />
-      </Button>
+  <div className={styles.content}>
+    <div className={styles.state}>
+      <StorageStatus state={props.state} />
     </div>
     {props.state.message && (
       <p className={props.state.phase === "error" ? styles.error : undefined}>
@@ -32,56 +16,67 @@ export const StorageDetails: React.FC<StorageDetailsTypes.Props> = (props) => (
       </p>
     )}
     {props.notice && <p role="status">{props.notice}</p>}
-    {props.state.phase === "error" && props.state.writable && (
-      <>
-        <p>
-          Не удалось записать последние изменения. Они остаются на полотне.
-          Скачайте отдельную копию.
-        </p>
-        <Button className={styles.primary} onClick={props.onRetry}>
-          <EditorIcon name="retry" />
-          Повторить сохранение
-        </Button>
-      </>
-    )}
-    {props.state.canReconnect &&
-      !(props.state.phase === "error" && props.state.writable) && (
+    {props.state.phase === "error" && props.state.writable ? (
+      <Button className={styles.primary} onClick={props.onRetry}>
+        <EditorIcon name="retry" />
+        Повторить сохранение
+      </Button>
+    ) : (
+      props.state.canReconnect && (
         <Button className={styles.secondary} onClick={props.onRetry}>
           <EditorIcon name="retry" />
           Повторить подключение
         </Button>
+      )
+    )}
+    <div className={styles.actions}>
+      <Button
+        disabled={!props.hasDocument}
+        aria-label="Скачать копию"
+        onClick={() => props.onFeedback(props.onExport())}
+      >
+        <EditorIcon name="download" />
+        Скачать JSON-копию
+      </Button>
+      <Button
+        disabled={!props.state.canImport || props.busy || props.state.importing}
+        aria-label="Импорт"
+        onClick={props.onImport}
+      >
+        <EditorIcon name="upload" />
+        Импортировать копию
+      </Button>
+    </div>
+    <div className={styles.recovery}>
+      <h3>Восстановительные копии</h3>
+      {props.state.hasPrevious && (
+        <Button onClick={() => props.onFeedback(props.onPrevious())}>
+          <EditorIcon name="history" />
+          Копия до замены
+        </Button>
       )}
-    <Button
-      className={styles.secondary}
-      disabled={!props.hasDocument}
-      onClick={() => props.onFeedback(props.onExport())}
-    >
-      <EditorIcon name="download" />
-      Скачать копию
-    </Button>
-    {props.state.hasPrevious && (
-      <Button
-        className={styles.secondary}
-        onClick={() => props.onFeedback(props.onPrevious())}
-      >
-        <EditorIcon name="history" />
-        Копия до замены
-      </Button>
-    )}
-    {props.state.hasUpgradeCopy && (
-      <Button
-        className={styles.secondary}
-        onClick={() => props.onFeedback(props.onUpgrade())}
-      >
-        <EditorIcon name="history" />
-        Копия до обновления
-      </Button>
-    )}
+      {props.state.hasSchema3Copy && (
+        <Button onClick={() => props.onFeedback(props.onSchema3())}>
+          <EditorIcon name="history" />
+          Копия до обновления
+        </Button>
+      )}
+      {props.state.hasUpgradeCopy && (
+        <Button onClick={() => props.onFeedback(props.onUpgrade())}>
+          <EditorIcon name="history" />
+          {props.state.hasSchema3Copy
+            ? "Более ранняя копия до обновления"
+            : "Копия до обновления"}
+        </Button>
+      )}
+      {!props.state.hasPrevious &&
+        !props.state.hasSchema3Copy &&
+        !props.state.hasUpgradeCopy && <p>Восстановительных копий пока нет.</p>}
+    </div>
     <p className={styles.help}>
-      Данные хранятся в этом профиле браузера, без облачной копии. Очистка
-      данных сайта может удалить доску. Регулярно скачивайте JSON-копию.
-      Незавершённый штрих в неё не входит. Скачивание передаёт файл браузеру;
-      проверьте его в загрузках.
+      Записи хранятся в этом профиле браузера. JSON-копия защищает от очистки
+      данных сайта. Незавершённый штрих в неё не входит; проверьте скачанный
+      файл в загрузках.
     </p>
   </div>
 );

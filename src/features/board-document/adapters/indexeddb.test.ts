@@ -150,6 +150,7 @@ describe("native IndexedDB adapter transaction boundary", () => {
       main: { exists: true, value: undefined },
       beforeImport: { exists: false, value: undefined },
       beforeSchema2: { exists: false, value: undefined },
+      beforeSchema3: { exists: false, value: undefined },
     });
 
     await repository.close();
@@ -220,7 +221,10 @@ describe("atomic schema2 upgrade copy", () => {
           schemaVersion: 1,
           originalUnknownField: { keep: true },
         },
-        candidate = DocumentCodec.emptyDocument();
+        candidate = {
+          ...DocumentCodec.emptyDocument(),
+          schemaVersion: 2 as const,
+        };
 
       const writing =
         mode === "write"
@@ -260,7 +264,10 @@ describe("atomic schema2 upgrade copy", () => {
 
     const repository = await h.opened;
 
-    const writing = repository.write(DocumentCodec.emptyDocument()),
+    const writing = repository.write({
+        ...DocumentCodec.emptyDocument(),
+        schemaVersion: 2,
+      }),
       tx = h.transactions.at(-1)!;
 
     const main = tx.reads.get("value:main")!,
@@ -288,7 +295,10 @@ describe("schema2 preservation read budget", () => {
 
     const repository = await h.opened;
 
-    const first = repository.write(DocumentCodec.emptyDocument()),
+    const first = repository.write({
+        ...DocumentCodec.emptyDocument(),
+        schemaVersion: 2,
+      }),
       aborted = h.transactions.at(-1)!;
 
     const failed = expect(first).rejects.toThrow();
@@ -296,14 +306,20 @@ describe("schema2 preservation read budget", () => {
     aborted.onabort?.();
     await failed;
 
-    const retry = repository.write(DocumentCodec.emptyDocument()),
+    const retry = repository.write({
+        ...DocumentCodec.emptyDocument(),
+        schemaVersion: 2,
+      }),
       retried = h.transactions.at(-1)!;
 
     expect(retried.reads.has("value:main")).toBe(true);
     retried.oncomplete?.();
     await retry;
 
-    const second = repository.write(DocumentCodec.emptyDocument()),
+    const second = repository.write({
+        ...DocumentCodec.emptyDocument(),
+        schemaVersion: 2,
+      }),
       saved = h.transactions.at(-1)!;
 
     expect(saved.reads.size).toBe(0);
@@ -312,7 +328,7 @@ describe("schema2 preservation read budget", () => {
 
     const replacement = repository.replace(
         { before: "memory" },
-        DocumentCodec.emptyDocument(),
+        { ...DocumentCodec.emptyDocument(), schemaVersion: 2 },
       ),
       replaced = h.transactions.at(-1)!;
 
@@ -320,6 +336,90 @@ describe("schema2 preservation read budget", () => {
     expect(replaced.puts).toHaveLength(2);
     replaced.oncomplete?.();
     await replacement;
+    await repository.close();
+  });
+});
+
+describe("atomic schema3 upgrade copy", () => {
+  it.each(["write", "replace"] as const)(
+    "preserves exact old source once in %s transaction",
+    async (mode) => {
+      const h = fakeDatabase();
+
+      h.opening.onsuccess?.();
+
+      const repository = await h.opened;
+
+      const raw = {
+        ...DocumentCodec.emptyDocument(),
+        schemaVersion: 2,
+        unknown: { retain: true },
+      };
+
+      const candidate = DocumentCodec.emptyDocument();
+
+      const writing =
+        mode === "write"
+          ? repository.write(candidate)
+          : repository.replace({ memory: true }, candidate);
+
+      const tx = h.transactions.at(-1)!;
+
+      const main = tx.reads.get("value:main")!,
+        key = tx.reads.get("key:before-schema3")!;
+
+      key.result = undefined;
+      key.onsuccess?.();
+      expect(tx.puts.some(([, key]) => key === "before-schema3")).toBe(false);
+      main.result = raw;
+      main.onsuccess?.();
+      expect(tx.puts.find(([, key]) => key === "before-schema3")![0]).toBe(raw);
+      expect(tx.puts.some(([, key]) => key === "before-schema2")).toBe(false);
+
+      expect(tx.puts.some(([, key]) => key === "before-import")).toBe(
+        mode === "replace",
+      );
+
+      tx.oncomplete?.();
+      await writing;
+
+      const next = repository.write(candidate),
+        nextTx = h.transactions.at(-1)!;
+
+      expect(nextTx.reads.size).toBe(0);
+      nextTx.oncomplete?.();
+      await next;
+      await repository.close();
+    },
+  );
+
+  it("retains an existing pre-v3 copy and retries preservation after an aborted transaction", async () => {
+    const h = fakeDatabase();
+
+    h.opening.onsuccess?.();
+
+    const repository = await h.opened;
+
+    const writing = repository.write(DocumentCodec.emptyDocument()),
+      tx = h.transactions.at(-1)!;
+
+    tx.reads.get("value:main")!.result = { schemaVersion: 1 };
+    tx.reads.get("value:main")!.onsuccess?.();
+    tx.reads.get("key:before-schema3")!.result = "before-schema3";
+    tx.reads.get("key:before-schema3")!.onsuccess?.();
+    expect(tx.puts.some(([, key]) => key === "before-schema3")).toBe(false);
+
+    const failed = expect(writing).rejects.toThrow();
+
+    tx.onabort?.();
+    await failed;
+
+    const retry = repository.write(DocumentCodec.emptyDocument()),
+      retryTx = h.transactions.at(-1)!;
+
+    expect(retryTx.reads.has("value:main")).toBe(true);
+    retryTx.oncomplete?.();
+    await retry;
     await repository.close();
   });
 });

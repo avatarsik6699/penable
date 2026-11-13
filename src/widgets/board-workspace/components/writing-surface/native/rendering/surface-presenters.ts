@@ -1,16 +1,23 @@
 import {
   BoardBackground,
   type Viewport,
+  type BackgroundSettings,
   type BoardSelection,
   type DrawingTool,
 } from "~/entities/board";
 
-function background(element: HTMLDivElement | null, viewport: Viewport) {
+function background(
+  element: HTMLDivElement | null,
+  viewport: Viewport,
+  settings: BackgroundSettings = { contrast: 45, spacing: 24 },
+) {
   const style = element?.style;
 
   if (!style) return;
 
-  const layout = BoardBackground.backgroundLayout(viewport);
+  const layout = BoardBackground.backgroundLayout(viewport, settings.spacing);
+
+  style.setProperty("--background-contrast", String(settings.contrast / 100));
 
   style.setProperty("--background-step", `${layout.screenStep}px`);
   style.setProperty("--background-x", `${layout.phaseX}px`);

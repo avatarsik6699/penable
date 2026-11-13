@@ -23,7 +23,11 @@ export namespace EditorIconTypes {
     | "minus"
     | "plus"
     | "fit"
-    | "help";
+    | "help"
+    | "settings"
+    | "map"
+    | "writing-return"
+    | "lock";
 
   export type Props = { name: Name; className?: string };
 }

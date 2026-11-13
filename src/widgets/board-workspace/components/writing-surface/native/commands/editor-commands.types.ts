@@ -6,6 +6,7 @@ import type {
   StrokeHistory,
   Scene,
   Viewport,
+  WritingView,
   HistoryState,
   HistoryAction,
 } from "~/entities/board";
@@ -48,5 +49,7 @@ export namespace EditorCommandTypes {
     publishSelection: () => void;
     applyHistory: (action: HistoryAction) => void;
     surface: ReturnType<typeof SurfaceBindings.bind>;
+    notice: (message: string) => void;
+    lastWritingView: () => WritingView | null;
   };
 }

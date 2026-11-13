@@ -8,8 +8,11 @@ export class StoragePage {
 
   async expectSaved() {
     await expect(
-      this.page.getByText("Сохранено локально", { exact: true }),
-    ).toBeVisible();
+      this.page.getByRole("button", {
+        name: "Состояние сохранения",
+        exact: true,
+      }),
+    ).toHaveAccessibleDescription(/Сохранено локально/);
   }
 
   async records(): Promise<TestBoardTypes.Records> {
@@ -29,6 +32,7 @@ export class StoragePage {
               ["main", "main"],
               ["before-import", "previous"],
               ["before-schema2", "upgrade"],
+              ["before-schema3", "upgrade3"],
             ]) {
               const read = tx.objectStore("documents").get(key!);
 
@@ -130,7 +134,7 @@ export class StoragePage {
   }
 
   async expectRecovery(
-    kind: "previous" | "upgrade",
+    kind: "previous" | "upgrade" | "upgrade3",
     document: TestBoardTypes.Document,
   ) {
     await expect
@@ -140,7 +144,7 @@ export class StoragePage {
 
   async openBoardMenu() {
     const trigger = this.page.getByRole("button", {
-      name: "Меню доски",
+      name: "Настройки доски",
       exact: true,
     });
 
@@ -148,8 +152,16 @@ export class StoragePage {
       await trigger.click();
   }
 
-  async beginImport() {
+  async openFiles() {
     await this.openBoardMenu();
+
+    await this.page
+      .getByRole("tab", { name: "Файлы и копии", exact: true })
+      .click();
+  }
+
+  async beginImport() {
+    await this.openFiles();
 
     await this.page
       .getByRole("button", { name: "Импорт", exact: true })
@@ -158,18 +170,11 @@ export class StoragePage {
 
   async closeDetails() {
     const close = this.page.getByRole("button", {
-      name: "Закрыть сведения о хранении",
+      name: "Закрыть настройки доски",
       exact: true,
     });
 
     if (await close.isVisible()) await close.click();
-
-    const boardClose = this.page.getByRole("button", {
-      name: "Закрыть меню доски",
-      exact: true,
-    });
-
-    if (await boardClose.isVisible()) await boardClose.click();
   }
 
   async importDocument(document: unknown) {
@@ -228,7 +233,7 @@ export class StoragePage {
   }
 
   async exportDocument(): Promise<TestBoardTypes.Document> {
-    await this.openBoardMenu();
+    await this.openFiles();
 
     const pending = this.page.waitForEvent("download");
 
@@ -258,15 +263,18 @@ export class StoragePage {
 
     expect(exported).toEqual((await this.records()).main);
     expect(exported.format).toBe("penable-board");
-    expect(exported.schemaVersion).toBe(2);
+    expect(exported.schemaVersion).toBe(3);
   }
 
   async expectReadOnly() {
-    await this.openBoardMenu();
+    await this.openFiles();
 
     await expect(
-      this.page.getByText("Только просмотр", { exact: true }),
-    ).toBeVisible();
+      this.page.getByRole("button", {
+        name: "Состояние сохранения",
+        exact: true,
+      }),
+    ).toHaveAccessibleDescription(/Только просмотр/);
 
     await expect(
       this.page.getByRole("button", { name: "Перо", exact: true }),
@@ -281,13 +289,16 @@ export class StoragePage {
 
   async expectSaveError() {
     await expect(
-      this.page.getByText("Не удалось сохранить", { exact: true }),
-    ).toBeVisible();
+      this.page.getByRole("button", {
+        name: "Состояние сохранения",
+        exact: true,
+      }),
+    ).toHaveAccessibleDescription(/Не удалось сохранить/);
   }
 
   async retrySave() {
     await this.page
-      .getByRole("button", { name: "Хранение", exact: true })
+      .getByRole("button", { name: "Состояние сохранения", exact: true })
       .click();
 
     await expect(

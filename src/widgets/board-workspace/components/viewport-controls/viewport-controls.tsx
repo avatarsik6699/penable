@@ -13,6 +13,11 @@ export const ViewportControls: React.FC<ViewportControlsTypes.Props> = (
     aria-label="Масштаб доски"
     data-editor-chrome=""
   >
+    {props.navigationMessage && (
+      <p className={styles.notice} role="status">
+        {props.navigationMessage}
+      </p>
+    )}
     <Button
       onClick={props.onZoomOut}
       aria-label="Уменьшить масштаб доски"
@@ -24,8 +29,8 @@ export const ViewportControls: React.FC<ViewportControlsTypes.Props> = (
     <Button
       className={styles.value}
       onClick={props.onResetView}
-      aria-label={`Масштаб ${Math.round(props.diagnostics.zoom * 100)} процентов. Вернуть исходный вид`}
-      title="Вернуть 100% и исходное положение"
+      aria-label={`Масштаб ${Math.round(props.diagnostics.zoom * 100)} процентов. Установить 100%`}
+      title="Установить 100% вокруг центра экрана"
       disabled={props.historyState.busy}
     >
       {Math.round(props.diagnostics.zoom * 100)}
@@ -41,12 +46,31 @@ export const ViewportControls: React.FC<ViewportControlsTypes.Props> = (
     </Button>
     <span className={styles.divider} aria-hidden="true" />
     <Button
-      disabled={props.selectionDisabled || props.historyState.busy}
-      onClick={props.onFitAll}
-      aria-label="Показать все записи"
-      title="Показать все записи"
+      disabled={
+        props.selectionDisabled ||
+        props.historyState.busy ||
+        !props.canReturnWriting
+      }
+      onClick={props.onReturnWriting}
+      aria-label="К месту письма"
+      title={
+        props.canReturnWriting
+          ? "Вернуться к последнему рабочему виду"
+          : "Завершите штрих, чтобы запомнить место письма"
+      }
     >
-      <EditorIcon name="fit" />
+      <EditorIcon name="writing-return" />
+    </Button>
+    <Button
+      ref={(node) => props.bindMinimapTrigger(node)}
+      aria-label="Миникарта"
+      title="Миникарта"
+      aria-expanded={props.minimapOpen}
+      aria-controls="board-minimap-panel"
+      disabled={props.selectionDisabled}
+      onClick={props.onMinimapToggle}
+    >
+      <EditorIcon name="map" />
     </Button>
   </div>
 );

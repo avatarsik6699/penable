@@ -275,3 +275,71 @@ describe("tab and editor ownership", () => {
     expect(first.model.clipboard).not.toBe(second.model.clipboard);
   });
 });
+
+describe("workspace view metadata", () => {
+  it("coalesces background settings and captures detached metadata in the durable snapshot", async () => {
+    vi.useFakeTimers();
+
+    const h = harness(),
+      stop = h.model.start();
+
+    try {
+      await microtasks();
+      h.model.controls.current = controls();
+      h.model.changeBackground("dots");
+
+      for (let contrast = 1; contrast <= 73; contrast++)
+        h.model.changeBackgroundSettings({ contrast, spacing: 32 });
+
+      const anchor = { center: { x: 500, y: -100 }, zoom: 2 };
+
+      h.model.writingCommitted(anchor);
+      anchor.center.x = 999;
+
+      const snapshot = h.model.readBoardSnapshot();
+
+      expect(snapshot.backgroundSettings).toEqual({
+        contrast: 73,
+        spacing: 32,
+      });
+
+      expect(snapshot.lastWritingView).toEqual({
+        center: { x: 500, y: -100 },
+        zoom: 2,
+      });
+
+      snapshot.backgroundSettings!.contrast = 0;
+      snapshot.lastWritingView!.center.x = 0;
+      expect(h.model.getSnapshot().backgroundSettings.contrast).toBe(73);
+      expect(h.model.getSnapshot().lastWritingView!.center.x).toBe(500);
+      expect(h.repository.write).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(300);
+      expect(h.repository.write).toHaveBeenCalledOnce();
+
+      expect(vi.mocked(h.repository.write).mock.calls[0]![0]).toMatchObject({
+        schemaVersion: 3,
+        backgroundSettings: { contrast: 73, spacing: 32 },
+        lastWritingView: { center: { x: 500, y: -100 }, zoom: 2 },
+      });
+
+      h.model.changeBackground("blank");
+
+      expect(h.model.getSnapshot().backgroundSettings).toEqual({
+        contrast: 73,
+        spacing: 32,
+      });
+
+      h.invalidate();
+
+      const ui = h.model.getSnapshot();
+
+      h.model.changeBackgroundSettings({ contrast: 80, spacing: 24 });
+      h.model.writingCommitted({ center: { x: 0, y: 0 }, zoom: 1 });
+      expect(h.model.getSnapshot()).toBe(ui);
+    } finally {
+      stop();
+      await h.sessions[0]!.dispose();
+      vi.useRealTimers();
+    }
+  });
+});

@@ -17,5 +17,6 @@ export namespace PenToolbarTypes {
     penOpen: boolean;
     onPenOpenChange: (open: boolean) => void;
     selectionControls: React.ReactNode;
+    trailingControls: React.ReactNode;
   };
 }

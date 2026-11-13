@@ -28,3 +28,5 @@ export type {
 } from "./board-document.types";
 export { StoragePanel } from "./components/storage-panel";
 export { SelectionDocuments } from "./adapters/selection-documents";
+
+export type { OverviewResult } from "./modules/jobs";

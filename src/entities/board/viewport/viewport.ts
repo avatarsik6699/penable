@@ -187,6 +187,9 @@ export const BoardViewport = {
   worldToScreen: ViewportTransforms.worldToScreen,
   screenToWorld: ViewportTransforms.screenToWorld,
   zoomAt: ViewportTransforms.zoomAt,
+  isValid: ViewportTransforms.isValid,
+  writingView: ViewportTransforms.writingView,
+  restoreWritingView: ViewportTransforms.restoreWritingView,
   fitAll: ViewportTransforms.fitAll,
 };
 

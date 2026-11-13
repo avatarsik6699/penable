@@ -6,6 +6,8 @@ import type {
 import type { RefObject } from "react";
 import type {
   BackgroundMode,
+  BackgroundSettings,
+  WritingView,
   BoardSnapshot,
   DrawingTool,
   HistoryState,
@@ -22,6 +24,16 @@ export namespace WritingSurfaceTypes {
     width: number;
     stabilization: number;
     background: BackgroundMode;
+    backgroundSettings: BackgroundSettings;
+    lastWritingView: WritingView | null;
+    onNavigationNotice: (message: string) => void;
+    onScenePresence: (hasInk: boolean) => void;
+    onWritingCommitted: (view: WritingView) => void;
+    minimapOpen: boolean;
+    onMinimapClose: () => void;
+    bindMinimapRoot: (
+      node: import("~/shared/lib/overlay").OverlayElements.Container | null,
+    ) => void;
     initialDocument: BoardSnapshot;
     canWrite: () => boolean;
     modalOpen: boolean;

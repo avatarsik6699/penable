@@ -1,7 +1,10 @@
 import type React from "react";
 import { ImportDialog } from "./components/import-dialog";
 import { StorageDetails } from "./components/storage-details";
-import { StorageStatus } from "./components/storage-status";
+import {
+  StorageStatus,
+  StorageStatusPresentation,
+} from "./components/storage-status";
 import { BoardMenu } from "./components/board-menu";
 import { Button } from "~/shared/ui/button";
 import { EditorIcon } from "~/shared/ui/editor-icon";
@@ -12,18 +15,50 @@ import { useStoragePanel } from "./hooks/use-storage-panel";
 export const StoragePanel: React.FC<StoragePanelTypes.Props> = (props) => {
   const panel = useStoragePanel(props);
 
+  const status =
+    props.state.phase === "error"
+      ? "error"
+      : props.state.readOnly || props.state.phase === "loading"
+        ? "idle"
+        : props.state.phase === "saved"
+          ? "saved"
+          : "pending";
+
   return (
-    <section
-      className={styles.storage}
-      aria-label="Локальное сохранение и копии"
-    >
-      <div className={styles.board} data-editor-chrome="">
+    <section className={styles.storage} aria-label="Настройки и сохранение">
+      <div className={styles.controls}>
+        {props.state.phase === "error" && (
+          <span className={styles.errorText}>Не удалось сохранить</span>
+        )}
         <Button
-          ref={(node) => {
-            panel.board.bindTrigger(node);
-          }}
-          className={styles.brandButton}
-          aria-label="Меню доски"
+          ref={(node) => panel.save.bindTrigger(node)}
+          className={styles.statusButton}
+          aria-label="Состояние сохранения"
+          aria-describedby="storage-summary"
+          aria-haspopup="dialog"
+          aria-expanded={props.openPanel === "save"}
+          aria-controls="board-menu"
+          onClick={() =>
+            props.onPanelChange(props.openPanel === "save" ? null : "save")
+          }
+          title={StorageStatusPresentation.label(props.state)}
+        >
+          <span
+            className={[styles.statusDot, styles[status]].join(" ")}
+            aria-hidden="true"
+          />
+          {props.state.readOnly && props.state.loaded && (
+            <EditorIcon name="lock" />
+          )}
+        </Button>
+        <span className={styles.srOnly} id="storage-summary">
+          <StorageStatus state={props.state} />
+        </span>
+        <Button
+          ref={(node) => panel.board.bindTrigger(node)}
+          className={styles.gear}
+          aria-label="Настройки доски"
+          title="Настройки доски"
           aria-haspopup="dialog"
           aria-expanded={props.openPanel === "board"}
           aria-controls="board-menu"
@@ -31,73 +66,38 @@ export const StoragePanel: React.FC<StoragePanelTypes.Props> = (props) => {
             props.onPanelChange(props.openPanel === "board" ? null : "board")
           }
         >
-          <span className={styles.brand}>
-            penable
-            <span className={styles.dot} />
-          </span>
-          <EditorIcon name="chevron-down" />
+          <EditorIcon name="settings" />
         </Button>
       </div>
-      <div
-        className={[
-          styles.status,
-          props.state.phase === "error" ? styles.error : "",
-        ].join(" ")}
-        data-editor-chrome=""
-      >
-        <Button
-          ref={(node) => {
-            panel.save.bindTrigger(node);
+      {props.openPanel && (
+        <BoardMenu
+          tab={props.openPanel}
+          onTab={props.onPanelChange}
+          backgroundControl={props.backgroundControl}
+          bindRoot={(node) => {
+            panel.board.bindRoot(node);
+            panel.save.bindRoot(node);
           }}
-          className={styles.saveButton}
-          aria-label="Хранение"
-          aria-haspopup="dialog"
-          aria-expanded={props.openPanel === "save"}
-          aria-controls="storage-popover"
-          onClick={() =>
-            props.onPanelChange(props.openPanel === "save" ? null : "save")
+          onClose={
+            props.openPanel === "board"
+              ? panel.board.closeAndFocus
+              : panel.save.closeAndFocus
           }
         >
-          <EditorIcon
-            name={
-              props.state.phase === "error"
-                ? "retry"
-                : props.state.readOnly
-                  ? "device"
-                  : "check"
-            }
+          <StorageDetails
+            state={props.state}
+            busy={props.busy}
+            hasDocument={props.hasDocument}
+            onExport={props.onExport}
+            onPrevious={props.onPrevious}
+            onUpgrade={props.onUpgrade}
+            onSchema3={props.onSchema3}
+            onRetry={props.onRetry}
+            notice={panel.notice}
+            onFeedback={panel.feedback}
+            onImport={panel.importDialog.begin}
           />
-          <StorageStatus state={props.state} />
-          <span className={styles.saveDot} aria-hidden="true" />
-        </Button>
-      </div>
-      {props.openPanel === "board" && (
-        <BoardMenu
-          state={props.state}
-          hasDocument={props.hasDocument}
-          busy={props.busy}
-          onExport={() => panel.feedback(props.onExport())}
-          onImport={panel.importDialog.begin}
-          onPrevious={() => panel.feedback(props.onPrevious())}
-          onUpgrade={() => panel.feedback(props.onUpgrade())}
-          backgroundControl={props.backgroundControl}
-          bindRoot={panel.board.bindRoot}
-          onClose={panel.board.closeAndFocus}
-        />
-      )}
-      {props.openPanel === "save" && (
-        <StorageDetails
-          state={props.state}
-          hasDocument={props.hasDocument}
-          onExport={props.onExport}
-          onUpgrade={props.onUpgrade}
-          onPrevious={props.onPrevious}
-          onRetry={props.onRetry}
-          bindRoot={panel.save.bindRoot}
-          onClose={panel.save.closeAndFocus}
-          notice={panel.notice}
-          onFeedback={panel.feedback}
-        />
+        </BoardMenu>
       )}
       <ImportDialog state={props.state} dialog={panel.importDialog} />
     </section>

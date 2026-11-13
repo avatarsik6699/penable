@@ -1,4 +1,5 @@
 import { test as base, expect, type Page } from "@playwright/test";
+import { BoardNavigationPage } from "./pages/board-navigation-page";
 import { EditorChromePage } from "./pages/editor-chrome-page";
 import { BoardPage } from "./pages/board-page";
 import { StoragePage } from "./pages/storage-page";
@@ -42,7 +43,7 @@ function monitor(
   };
 }
 
-async function seedLegacy(page: Page) {
+async function seedLegacy(page: Page, secondVersion = false) {
   const url = "http://127.0.0.1:4185/__e2e_seed";
 
   await page.route(url, (route) =>
@@ -56,7 +57,7 @@ async function seedLegacy(page: Page) {
   await page.goto(url);
 
   await page.evaluate(
-    ({ main, previous }) =>
+    ({ main, previous, beforeSchema2 }) =>
       new Promise<void>((resolve, reject) => {
         const request = indexedDB.open("penable", 1);
 
@@ -73,6 +74,9 @@ async function seedLegacy(page: Page) {
           tx.objectStore("documents").put(main, "main");
           tx.objectStore("documents").put(previous, "before-import");
 
+          if (beforeSchema2)
+            tx.objectStore("documents").put(beforeSchema2, "before-schema2");
+
           tx.oncomplete = () => {
             db.close();
             resolve();
@@ -84,7 +88,11 @@ async function seedLegacy(page: Page) {
           };
         };
       }),
-    { main: testBoards.legacy(), previous: testBoards.previous() },
+    {
+      main: secondVersion ? testBoards.previousV2() : testBoards.legacy(),
+      previous: testBoards.previous(),
+      beforeSchema2: secondVersion ? testBoards.legacy() : null,
+    },
   );
 
   await page.unroute(url);
@@ -107,16 +115,25 @@ type Fixtures = {
     heavy: TestBoardTypes.Document;
     legacy: TestBoardTypes.Document;
     previous: TestBoardTypes.Document;
+    v2: TestBoardTypes.Document;
+    distant: TestBoardTypes.Document;
   };
   samples: Samples;
   board: BoardPage;
   editor: EditorChromePage;
+  navigation: BoardNavigationPage;
+  overviewFailureNavigation: BoardNavigationPage;
   secondBoard: BoardPage;
   legacyBoard: BoardPage;
+  v2Board: BoardPage;
   saveFailureBoard: BoardPage;
 };
 
 export const test = base.extend<Fixtures>({
+  navigation: async ({ page, board }, use) => {
+    await use(new BoardNavigationPage(page, board));
+  },
+
   editor: async ({ page, board }, use) => {
     await use(new EditorChromePage(page, board));
   },
@@ -127,6 +144,8 @@ export const test = base.extend<Fixtures>({
       heavy: testBoards.heavy(),
       legacy: testBoards.legacy(),
       previous: testBoards.previous(),
+      v2: testBoards.previousV2(),
+      distant: testBoards.distant(),
     });
   },
 
@@ -180,6 +199,56 @@ export const test = base.extend<Fixtures>({
       await board.open();
       await use(board);
     } finally {
+      verify();
+    }
+  },
+
+  v2Board: async ({ page }, use) => {
+    const verify = monitor(page);
+
+    await seedLegacy(page, true);
+
+    const board = new BoardPage(page, new StoragePage(page));
+
+    try {
+      await board.open();
+      await use(board);
+    } finally {
+      verify();
+    }
+  },
+
+  overviewFailureNavigation: async ({ page }, use) => {
+    let active = true,
+      blocked = 0;
+
+    const verify = monitor(page, () => active);
+    const worker = /\/assets\/[^/]*worker[^/]*\.js$/i;
+    const board = new BoardPage(page, new StoragePage(page));
+
+    await board.open();
+    await board.drawStroke();
+
+    await page.route(worker, (route) => {
+      blocked++;
+
+      return route.abort("failed");
+    });
+
+    const release = async () => {
+      expect(
+        blocked,
+        "Actual overview worker must have failed",
+      ).toBeGreaterThan(0);
+
+      await page.unroute(worker);
+      active = false;
+    };
+
+    try {
+      await use(new BoardNavigationPage(page, board, release));
+    } finally {
+      await page.unroute(worker);
       verify();
     }
   },

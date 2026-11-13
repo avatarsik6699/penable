@@ -42,3 +42,31 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+.brand {
+  position: absolute;
+  z-index: 4;
+  left: 28px;
+  top: 29px;
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -0.035em;
+  pointer-events: none;
+}
+
+.brandDot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--focus);
+}
+
+@media (max-width: 700px) {
+  .brand {
+    left: 20px;
+    font-size: 17px;
+  }
+}

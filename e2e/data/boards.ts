@@ -1,7 +1,7 @@
 import type { TestBoardTypes } from "./board.types";
 
 export const testBoards = {
-  document(schemaVersion: 1 | 2 = 2): TestBoardTypes.Document {
+  document(schemaVersion: 1 | 2 | 3 = 3): TestBoardTypes.Document {
     return {
       format: "penable-board",
       schemaVersion,
@@ -9,6 +9,12 @@ export const testBoards = {
       viewport: { x: 0, y: 0, zoom: 1 },
       background: "blank",
       tools: { width: 3, stabilization: 65 },
+      ...(schemaVersion === 3
+        ? {
+            backgroundSettings: { contrast: 45, spacing: 24 },
+            lastWritingView: null,
+          }
+        : {}),
     };
   },
 
@@ -49,6 +55,29 @@ export const testBoards = {
         stabilization: { strength: 65, captureZoom: 1 },
       },
     ];
+
+    return result;
+  },
+
+  previousV2(): TestBoardTypes.Document {
+    return { ...testBoards.legacy(), schemaVersion: 2, background: "dots" };
+  },
+
+  distant(): TestBoardTypes.Document {
+    const result = testBoards.document();
+    const stroke = testBoards.legacy().strokes[0]!;
+
+    result.strokes = [
+      stroke,
+      {
+        ...stroke,
+        id: 8,
+        source: "test_remote",
+        translation: { x: 20000, y: 0 },
+      },
+    ];
+
+    result.lastWritingView = { center: { x: 640, y: 450 }, zoom: 1 };
 
     return result;
   },

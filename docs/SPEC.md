@@ -12,7 +12,7 @@
 
 | Поле | Значение |
 |------|----------|
-| Версия | 1.0 — approved floating editor UI |
+| Версия | 1.1 — board settings, schema3 and predictable navigation |
 | Дата | 2026-11-13 |
 | Архитектор / владелец | Пользователь |
 | Предметная область | Личные рукописные конспекты в браузере |
@@ -154,12 +154,12 @@ React-render на каждое движение. Контроллер не за�
 ### 5.3 Design System
 
 Updated by owner approval on2026-11-13 of docs/design/editor-v1: light full-window board,
-floating horizontal tool dock top-center; board menu top-left, save status top-right, zoom/fit
+floating horizontal tool dock top-center with settings gear/compact status; static brand top-left, zoom/return/minimap
 bottom-right, help/diagnostics bottom-left. Width is inline; repeat selected Pen opens stabilization.
 The approved reference is the actual HTML/CSS and PNGs; synthetic handwriting remains demo content.
 
 White paper/chrome, ink#182230, muted#526176, blue#175CD3, error#B42318, subtle offset shadows,
-40px minimum interactive targets, system Segoe UI with sans-serif fallback and one authored SVG
+40px minimum interactive targets, system Segoe UI with sans-serif fallback and one Lucide SVG
 icon family. No font/network dependency in production. Tool/status panels are out of flow and never
 resize or remount the canvas. Secondary actions are disclosed without adding permanent instruction rows.
 Existing loading/error/read-only/busy/import/recovery and selection feedback remain explicit.
@@ -174,7 +174,7 @@ zoom in и возврат к исходному виду. Диапазон со�
 над рабочим полем масштабируют доску вокруг курсора; Space + основная кнопка и средняя
 кнопка перемещают её. Во время навигации штрих не создаётся. Обычные browser Ctrl+plus/minus
 остаются браузерными командами. За пределами рабочего поля wheel не перехватывается.
-Кнопки +/− масштабируют вокруг центра поля; 100% возвращает zoom=1 и исходное смещение.
+Кнопки +/− масштабируют вокруг центра поля; 100% возвращает zoom=1 вокруг текущего центра (§5.15), сохраняя рассматриваемую область.
 
 Сохраняются сырые точки и pressure, а геометрия линии строится детерминированно из точек.
 Одна и та же функция пути используется при письме, завершении и повторной отрисовке;
@@ -399,8 +399,8 @@ Wheel остаётся canvas-only/nonpassive; на границе zoom и пр�
 и его inertia блокируются до паузы≥150ms между wheel events. Для этого годится clock в pure
 controller, без таймеров на каждый sample. Read-only позволяет смотреть/pan/zoom без сохранения.
 
-**Стабильные элементы интерфейса.** В Change15 статус находится справа сверху, экспорт/импорт
-и резервные копии — в меню доски слева сверху. Подробные message/notice и retry находятся
+**Стабильные элементы интерфейса.** Начиная с Change16 статус и настройки находятся в
+центральной верхней панели (§5.15), экспорт/импорт и резервные копии — во вкладке «Файлы и копии». Подробные message/notice и retry находятся
 в nonmodal popover вне layout flow; прежняя постоянная строка заменена композицией §5.14.
 Динамические статусы/сообщения/появление recovery actions не меняют bounds canvas при том же
 viewport, не отменяют текущий жест и не крадут focus автоматически. Ошибка всегда заметна
@@ -677,4 +677,50 @@ close/Escape and replacement by another panel. Existing
 modal import retains protected focus and command blocking. Toolbar/control interaction must not
 write ink. Feedback and saving changes do not change board dimensions or reset the view/history.
 All existing capabilities stay reachable: tool/width/stabilization, undo/redo, rectangle/lasso and
-all selection commands/PNG, import/export/recovery/background, zoom/reset/fit and diagnostics.
+all selection commands/PNG, import/export/recovery/background and diagnostics; navigation is refined by §5.15.
+
+
+### 5.15 Board settings and predictable navigation
+
+Approved2026-11-13: logo is noninteractive; gear and compact status are inside the main central top dock,
+not in a separate right-hand pill. Gear opens View and compact status opens
+Files in ONE settings panel. Healthy statuses are a small dot (green saved, yellow dirty/saving,
+gray loading/read-only with textual/lock semantics); error is red plus persistent short text.
+Hover/focus/accessibility expose status text; no color-only meaning. File export/import/recovery/
+retry appear once. Existing modal import, outside/Escape/focus and busy/readonly guards retained.
+
+100% changes zoom around current screen center, never resets camera to world origin. Return-to-writing
+restores world center+zoom captured only on successful completed pen stroke, before durable save
+capture. Navigation/eraser/undo/redo/paste/import/cancel don't invent a new last writing location.
+Imports use their saved metadata; old1/2 documents have null lastWritingView until new pen commit.
+Resize restores the same world center/zoom, not old pixel offsets. Empty/no-anchor return is disabled.
+
+Minimap is initially hidden, click-only (no drag v1), bottom-right above navigation. It stays visible
+during drawing/pan, main panels/diagnostics replace it. It shows approximate occupied content regions
+and current viewport; outside-domain camera is indicated at the edge, not silently reframing on pan.
+Scene bounds/domain change only with accepted scene revisions. Clicking changes center at current
+zoom. All-content framing is secondary inside map; if zoom>=25% cannot fit all notes, don't jump
+into an empty gap: explain and let the user choose the region on map. Empty scenes have no jump.
+
+Background kind stays blank/dots/grid. Shared contrast0–100 step1 default45 (% opacity of neutral
+#526176), world spacing12–64 step2 default24. Fixed screen-sized dots/lines, world-anchored phase,
+adaptive coarsening at low zoom retained. Blank hides controls but retains settings. Changes preview
+immediately, autosave through existing debounce, no ink/history mutation. Read-only disables edits.
+
+Schema3 adds backgroundSettings {contrast,spacing} and nullable lastWritingView {center:{x,y},zoom}.
+The center is finite and bounded±1e10; existing viewport/ink coordinate limits stay unchanged.
+New navigation requests outside valid persisted viewport bounds leave the view unchanged with a short explanation.
+Read1/2 with defaults; write3. Preserve the exact raw pre-v3 main atomically on first upgrade in
+before-schema3, without overwriting before-import/before-schema2. Store structure staysIDBv1;
+recovery copies are listed once in Files with distinct purposes. Strict metadata validation and
+bounded chunked worker envelopes/roundtrips must preserve every new field.
+
+Minimap work is lazy and separate from selection/durable worker, cancellable/generation checked.
+Portable overview data bounded256×160, bitmap cap512×320; raw scene stays out of React. Cached
+content changes after canonical edits, viewport outline updates cheaply on camera movement. Closing
+releases resources. No new dependency, automatic main-cluster heuristic, bookmarks or home view.
+
+
+Owner refinement during Change16: use lucide-react named imports for all production icons instead
+of authored glyphs. Main top-center dock groups tools/history/contextual controls plus status/settings;
+bottom navigation and Help remain. Existing established light style and compact touch targets retained.

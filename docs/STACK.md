@@ -10,6 +10,7 @@
 |-------|------------|
 | Frontend | React + TypeScript, Vite SPA, colocated CSS Modules, Canvas 2D |
 | Input | Pointer Events, world-coordinate controller outside React's rendering cycle |
+| Icons | lucide-react1.72.0, static named imports |
 | Selection geometry | polygon-clipping0.15.7; normalized local vector clips and source lineage |
 | Background jobs | Native module Worker; bounded transferable point chunks for large selection/validation/save |
 | Backend | n/a — browser only |
@@ -416,3 +417,15 @@ smoke (4192 if4191 already contains notes); never open or mutate the owner's loc
 commands on4180. Full Gate still owns4185. Desktop1440×900/1280×720 and compact390×844 checks
 include real command disclosure, one panel at a time, keyboard/focus, import/recovery/busy/read-only,
 stable canvas dimensions/generation and no ink from UI. Hardware latency and OS clipboard separate.
+
+## Change16 — Board settings and overview
+
+SPEC5.15 governs schema3 metadata, unified settings, return-to-writing/100% and minimap. Use the
+existing Fast/Full commands, Playwriter first; owner-authorized lucide-react1.72.0 supplies static named SVG icons. Parent may run an isolated
+Pages preview on4196 for native Change16 tests (strict port), never mutate localhost owner data.
+Performance baseline source is captured in.artifacts/change-16/baseline-src, build via existing
+PENABLE_BENCH_SOURCE/PENABLE_BENCH_OUT with bench:build;4180 serves change16-baseline/candidate
+folders. Minimap uses a separate lazy worker; existing two ink layers keep their budget and overview
+backing caps512×320. No whole-folder platform exemption; each new native/worker owner is explicit.
+Read legacy1/2; firstwrite3 preserves raw before-schema3 in the same transaction. Native same-origin
+fault injection is on owned test page only. Hardware pen/OS clipboard claims remain separate.

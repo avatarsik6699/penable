@@ -1,7 +1,7 @@
 import type React from "react";
 import type { StorageStatusTypes } from "./storage-status.types";
 import styles from "./storage-status.module.css";
-import { StorageStatusConfig } from "./storage-status.config";
+import { StorageStatusPresentation } from "./storage-status.utils";
 
 export const StorageStatus: React.FC<StorageStatusTypes.Props> = (props) => (
   <span
@@ -12,10 +12,6 @@ export const StorageStatus: React.FC<StorageStatusTypes.Props> = (props) => (
     role="status"
     aria-live="polite"
   >
-    {props.state.phase === "error"
-      ? StorageStatusConfig.labels.error
-      : props.state.readOnly && props.state.loaded
-        ? "Только просмотр"
-        : StorageStatusConfig.labels[props.state.phase]}
+    {StorageStatusPresentation.label(props.state)}
   </span>
 );

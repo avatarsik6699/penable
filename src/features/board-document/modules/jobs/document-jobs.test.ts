@@ -38,6 +38,7 @@ function factory(auto = true) {
     messages: JobRequest[];
     terminated: boolean;
     finish: () => void;
+    waitForFinish: () => Promise<void>;
   }> = [];
 
   return {
@@ -47,7 +48,8 @@ function factory(auto = true) {
       const messages: JobRequest[] = [];
 
       let lastStrokes: StrokeMetadata[] = [],
-        id = 0;
+        id = 0,
+        uploadFinished = deferred<void>();
 
       const record = {
         messages,
@@ -55,6 +57,8 @@ function factory(auto = true) {
         worker: null as unknown as JobWorker,
 
         finish: () => {},
+
+        waitForFinish: () => uploadFinished.promise,
       };
 
       const worker: JobWorker = {
@@ -72,12 +76,16 @@ function factory(auto = true) {
           if (message.type === "start") {
             id = message.id;
             lastStrokes = [];
+            uploadFinished = deferred<void>();
           }
 
           if (message.type === "strokes") lastStrokes.push(...message.values);
 
-          if (message.type === "finish" && auto)
-            queueMicrotask(() => record.finish());
+          if (message.type === "finish") {
+            uploadFinished.resolve();
+
+            if (auto) queueMicrotask(() => record.finish());
+          }
 
           if (message.type === "close")
             queueMicrotask(() =>
@@ -392,6 +400,8 @@ describe("background validation root", () => {
     document.viewport = { x: 123, y: -456, zoom: 4 };
     document.background = "dots";
     document.tools.width = 1.2;
+    document.backgroundSettings = { contrast: 73, spacing: 32 };
+    document.lastWritingView = { center: { x: 50, y: -10 }, zoom: 2 };
 
     const validating = jobs.validate(
       [ink(1)],
@@ -401,6 +411,8 @@ describe("background validation root", () => {
 
     document.viewport.x = 999;
     document.tools.width = 9;
+    document.backgroundSettings.contrast = 0;
+    document.lastWritingView.center.x = 999;
     await validating;
 
     const start = f.instances[0]!.messages.find(
@@ -410,6 +422,126 @@ describe("background validation root", () => {
     expect(start.root.viewport).toEqual({ x: 123, y: -456, zoom: 4 });
     expect(start.root.tools.width).toBe(1.2);
     expect(start.root.background).toBe("dots");
+
+    expect(start.root.backgroundSettings).toEqual({
+      contrast: 73,
+      spacing: 32,
+    });
+
+    expect(start.root.lastWritingView).toEqual({
+      center: { x: 50, y: -10 },
+      zoom: 2,
+    });
+
     await jobs.close();
+  });
+});
+
+describe("independent overview jobs", () => {
+  it("accepts only the fixed bounded overview result and keeps no raw points in it", async () => {
+    const f = factory(false),
+      jobs = new DocumentJobs({ worker: f.create });
+
+    expect(f.instances).toHaveLength(0);
+
+    const building = jobs.overview([ink(1)], new AbortController().signal);
+
+    await f.instances[0]!.waitForFinish();
+
+    const record = f.instances[0]!,
+      start = record.messages.find((message) => message.type === "start")!,
+      overview = {
+        width: 256,
+        height: 160,
+        values: new Uint8Array(256 * 160),
+        bounds: null,
+      };
+
+    expect(start.kind).toBe("overview");
+
+    record.worker.onmessage?.call(
+      record.worker as Worker,
+      { data: { id: start.id, overview } } as MessageEvent<JobResponse>,
+    );
+
+    expect(await building).toBe(overview);
+    expect(overview).not.toHaveProperty("strokes");
+
+    const malformed = jobs.overview([], new AbortController().signal),
+      assertion = expect(malformed).rejects.toThrow("корректный обзор");
+
+    await record.waitForFinish();
+
+    const next = record.messages
+      .filter((message) => message.type === "start")
+      .at(-1)!;
+
+    record.worker.onmessage?.call(
+      record.worker as Worker,
+      {
+        data: {
+          id: next.id,
+          overview: { ...overview, values: new Uint8Array(1) },
+        },
+      } as MessageEvent<JobResponse>,
+    );
+
+    await assertion;
+    await jobs.close();
+    expect(record.terminated).toBe(true);
+  });
+
+  it("cancels overview upload and releases its worker without interrupting selection or saving", async () => {
+    const mapFactory = factory(false),
+      selectionFactory = factory(false),
+      saveFactory = factory(false),
+      blocker = deferred<void>(),
+      paused = deferred<void>();
+
+    let clock = 0;
+
+    const map = new DocumentJobs({
+        worker: mapFactory.create,
+        now: () => clock++,
+
+        yield: () => {
+          paused.resolve();
+
+          return blocker.promise;
+        },
+      }),
+      selection = new DocumentJobs({ worker: selectionFactory.create }),
+      writer = new DocumentJobs({ worker: saveFactory.create }),
+      controller = new AbortController(),
+      overview = map.overview([ink(1, 10000)], controller.signal),
+      selected = selection.validate([ink(2)], new AbortController().signal),
+      saving = writer.write({
+        ...DocumentCodec.emptyDocument(),
+        strokes: [ink(3)],
+      }),
+      cancelled = expect(overview).rejects.toMatchObject({
+        name: "AbortError",
+      });
+
+    await paused.promise;
+
+    await Promise.all([
+      selectionFactory.instances[0]!.waitForFinish(),
+      saveFactory.instances[0]!.waitForFinish(),
+    ]);
+
+    controller.abort();
+    blocker.resolve();
+    await cancelled;
+    expect(mapFactory.instances[0]!.terminated).toBe(true);
+    expect(selectionFactory.instances[0]!.terminated).toBe(false);
+    expect(saveFactory.instances[0]!.terminated).toBe(false);
+    selectionFactory.instances[0]!.finish();
+    saveFactory.instances[0]!.finish();
+    await selected;
+    await saving;
+    await map.close();
+    await selection.close();
+    await writer.close();
   });
 });
