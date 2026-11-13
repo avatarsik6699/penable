@@ -6,7 +6,7 @@
 |---|---|
 | Change |18|
 | Slug |editor-ux-clipboard|
-| Status |ready for local ship|
+| Status |shipped locally|
 | Branch |feature/18-editor-ux-clipboard|
 
 ## Goal
@@ -45,7 +45,7 @@ and sidebar; superseded cross-board transfer picker/receipt/undo proposals are o
 - [x] T1 Extend behavioral E2E fixtures/Page Objects for native clipboard paths/fallbacks/permissions, insertion focus/retry, library UX and fixed dock rectangles; preserve prior assertions with intentional menu updates — _Depends on:_ F4
 - [x] T2 Exact platform ownership/public boundaries, Fast Gate/LSP, documentation and user instructions; independent source/security review and fix findings — _Depends on:_ F4
 - [x] T3 Native Chrome functionality/performance/resource checks,672 raster cases/3 valid warmed pairs, bounded desktop/compact visual review and recorded limits — _Depends on:_ T1,T2
-- [ ] T4 Full Gate, implementation commit, local merge/archive and cleanup; no push/deploy — _Depends on:_ T3
+- [x] T4 Full Gate, implementation commit, local merge/archive and cleanup; no push/deploy — _Depends on:_ T3
 
 ## Files
 
@@ -108,6 +108,8 @@ No push or Pages deployment is part of this local ship.
 - [x] No architect review issues recorded
 
 ## Implementation Notes
+
+- Full Gate and native-tested production bytes matched before implementation commit ffc1498; local main fast-forwarded to that implementation. Owner hardware/OS acceptance and public release remain separate.
 
 - Chrome's native paste event may expose PNG while filtering a coexisting editable custom format. When async read is explicitly denied, provenance cannot be established without adding another public representation: show a permission error rather than silently flatten handwriting. Event-image fallback remains for an absent async API with no detectable own format. No text/HTML marker is added to the clipboard.
 
