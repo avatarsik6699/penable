@@ -388,3 +388,19 @@ whether a coordinator/algorithm is cohesive.
 Source writer uses format:source; policy writer uses format:architecture. Final format:check covers
 all code. Preserve416 pre-existing behavioral cases,672 raster cases and the original9 browser
 scenarios; add cursor/native pan/modal/slider regression to exercise decomposed UI/bindings.
+
+
+## Change14 — Isolated design mock
+
+`npm run mock:serve` serves only docs/design/editor-v1 on loopback4190, using Python3 standard HTTP
+server. It fails on occupied port; do not stop another process or change origins silently.
+`npm run format:mock` owns mock HTML/CSS/JS/JSON formatting; Markdown follows existing exclusions,
+and authored SVG is validated as XML. `npm run lint:mock` is included in lint,
+and format:check also checks the mock. No new package dependencies or production source changes.
+
+Browser smoke for14 uses five mock states at1440×900 and1280×720; screenshots in the mock's previews/
+folder are proposal artifacts. State/slider/menu interactions are demonstrative, with no storage,
+clipboard, file access or external network actions; only same-origin mock assets are fetched. PRODUCT.md is high-level design context linked to SPEC;
+mock BRIEF/DESIGN documents are explicitly proposals, not current implementation authority.
+The Full Gate still runs production checks; unchanged source and Pages build bytes establish that
+engine performance/raster acceptance remains unchanged. No physical pen acceptance claimed for mock.

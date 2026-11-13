@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-13T14:20:00Z",
+  "title": "Design System: penable editor proposal",
+  "extensions": {
+    "shadows": [
+      {
+        "name": "chrome",
+        "value": "0 3px 14px rgb(24 34 48 / 8%), 0 1px 3px rgb(24 34 48 / 5%)",
+        "purpose": "Subtle lift for the floating dock and corner controls."
+      },
+      {
+        "name": "popover",
+        "value": "0 6px 24px rgb(24 34 48 / 12%), 0 1px 4px rgb(24 34 48 / 5%)",
+        "purpose": "Separate contextual panels from the board."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "mock-compact-review",
+        "value": "1100px",
+        "purpose": "Mock-only switch for review chrome; not a mobile design breakpoint."
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Floating Tool Dock",
+      "kind": "custom",
+      "refersTo": "floating-dock",
+      "description": "White horizontal toolbar centered near the top of the writing board.",
+      "html": "<nav class=\"ds-dock\" aria-label=\"Инструменты доски\"><button class=\"ds-tool ds-tool-selected\" aria-pressed=\"true\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m14 4 6 6-9 9-7 1 1-7Z M11 7l6 6 M4 20l4-4\"/></svg><span class=\"ds-tooltip\">Перо</span></button><span class=\"ds-divider\" aria-hidden=\"true\"></span><span class=\"ds-width\">Толщина <output>3.0 px</output></span></nav>",
+      "css": ".ds-dock { display: flex; align-items: center; gap: 8px; height: 56px; padding: 8px; color: #182230; background: #fff; border-radius: 12px; box-shadow: 0 3px 14px rgb(24 34 48 / 8%), 0 1px 3px rgb(24 34 48 / 5%); font: 13px \"Segoe UI\", system-ui, sans-serif; } .ds-tool { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0; color: inherit; background: transparent; border: 0; border-radius: 8px; cursor: pointer; } .ds-tool svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; } .ds-tool:hover { background: #f1f4f8; } .ds-tool:active { background: #e6ebf2; } .ds-tool:focus-visible { outline: 2px solid #175cd3; outline-offset: 3px; } .ds-tool-selected { color: #175cd3; background: #eaf1ff; } .ds-tooltip { position: absolute; top: calc(100% + 12px); left: 50%; padding: 7px 10px; color: #fff; background: #263445; border-radius: 6px; font-size: 11px; white-space: nowrap; transform: translateX(-50%); } .ds-divider { width: 1px; height: 22px; background: #e0e5ec; } .ds-width { display: flex; align-items: center; gap: 8px; padding: 0 8px; } .ds-width output { color: #182230; font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Primary Action",
+      "kind": "button",
+      "description": "Blue, full-width action used for recovery in the save-error panel.",
+      "html": "<button class=\"ds-primary\" type=\"button\">Повторить</button>",
+      "css": ".ds-primary { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 40px; padding: 9px 12px; color: #fff; background: #175cd3; border: 0; border-radius: 8px; font: 12px \"Segoe UI\", system-ui, sans-serif; cursor: pointer; } .ds-primary:hover { background: #124cb1; } .ds-primary:active { background: #124cb1; } .ds-primary:focus-visible { outline: 2px solid #175cd3; outline-offset: 3px; }"
+    },
+    {
+      "name": "Range Input",
+      "kind": "input",
+      "description": "Compact accent slider used for inline width and pen stabilization.",
+      "html": "<label class=\"ds-range-label\">Толщина пера <input class=\"ds-range\" type=\"range\" min=\"0.5\" max=\"12\" value=\"3\" aria-label=\"Толщина пера\"></label>",
+      "css": ".ds-range-label { display: grid; gap: 4px; color: #182230; font: 13px \"Segoe UI\", system-ui, sans-serif; } .ds-range { width: 100%; height: 40px; accent-color: #175cd3; cursor: pointer; } .ds-range:focus-visible { outline: 2px solid #175cd3; outline-offset: 3px; }"
+    },
+    {
+      "name": "Menu Row",
+      "kind": "nav",
+      "description": "Quiet full-width row for board and selection actions.",
+      "html": "<button class=\"ds-menu-row\" type=\"button\"><span>Скачать копию доски</span><span class=\"ds-trailing\">JSON</span></button>",
+      "css": ".ds-menu-row { display: flex; align-items: center; gap: 11px; width: 100%; min-height: 40px; padding: 8px; color: #182230; text-align: left; background: transparent; border: 0; border-radius: 7px; font: 12px \"Segoe UI\", system-ui, sans-serif; cursor: pointer; } .ds-menu-row:hover { background: #f1f4f8; } .ds-menu-row:active { background: #e6ebf2; } .ds-menu-row:focus-visible { outline: 2px solid #175cd3; outline-offset: 3px; } .ds-trailing { margin-left: auto; color: #526176; }"
+    },
+    {
+      "name": "Context Panel",
+      "kind": "card",
+      "description": "White, softly elevated container for settings and contextual actions.",
+      "html": "<section class=\"ds-panel\"><h2>Перо</h2><p>Сглаживает движения пера. Применяется к следующему штриху.</p></section>",
+      "css": ".ds-panel { width: 284px; padding: 16px; color: #182230; background: #fff; border-radius: 14px; box-shadow: 0 6px 24px rgb(24 34 48 / 12%), 0 1px 4px rgb(24 34 48 / 5%); font-family: \"Segoe UI\", system-ui, sans-serif; } .ds-panel h2 { margin: 0 0 14px; font-size: 14px; font-weight: 600; } .ds-panel p { margin: 0; color: #526176; font-size: 12px; line-height: 1.6; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Writing-First Notebook",
+    "overview": "The proposal gives the writing surface most of the screen and places frequent actions in one floating horizontal dock. Familiar notebook controls, light paper, compact labels, and precise blue selection keep the editor legible without adding a permanent tutorial row. The visual language follows the mock's solid white chrome, system UI type, and single authored SVG icon family.\n\nThe board menu, pen settings, selection actions, and save recovery are shown as contextual panels around a synthetic note. All interface behavior and content in the mock are demonstrations; they do not operate on application data.",
+    "keyCharacteristics": [
+      "Writing-first, light digital notebook composition.",
+      "Floating horizontal dock with inline width and click-to-open stabilization.",
+      "Russian labels, system UI typography, and compact controls.",
+      "Owner review is required before any app implementation."
+    ],
+    "rules": [],
+    "dos": [
+      "Do keep the writing surface visually dominant and the frequent actions together in the floating horizontal dock.",
+      "Do keep width inline and open stabilization on a repeated click of the selected pen.",
+      "Do preserve the five mock states: writing, pen settings, selection, board menu, and save error.",
+      "Do keep text labels, selected states, focus, and disabled treatments distinct."
+    ],
+    "donts": [
+      "Don't add a permanent tutorial or status row inside the proposed product frame.",
+      "Don't present the synthetic note as real user content or proof of handwriting quality.",
+      "Don't treat this proposal or its static previews as production, application, or Wacom acceptance.",
+      "Don't move this proposal into the app until the owner reviews it and a separate change authorizes implementation."
+    ]
+  }
+}

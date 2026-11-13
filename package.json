@@ -12,7 +12,7 @@
     "build:pages": "npm run build -- --base=/penable/",
     "preview": "vite preview",
     "preview:pages": "vite preview --base=/penable/",
-    "lint": "npm run lint:code && npm run lint:architecture && npm run test:architecture && npm run lint:spacing && npm run test:spacing",
+    "lint": "npm run lint:code && npm run lint:architecture && npm run test:architecture && npm run lint:spacing && npm run test:spacing && npm run lint:mock",
     "typecheck": "tsc --noEmit",
     "test:unit": "vitest run",
     "scan:secrets": "gitleaks dir . --config .gitleaks.toml --redact --no-banner",
@@ -25,7 +25,7 @@
     "lint:architecture": "node scripts/architecture/check.mjs",
     "test:architecture": "node --test scripts/architecture/*.test.mjs",
     "format": "prettier src scripts e2e vite.config.ts playwright.config.ts prettier.config.mjs package.json tsconfig.json .oxlintrc.json --write && node scripts/formatting/spacing.mjs --write && prettier src scripts e2e vite.config.ts playwright.config.ts prettier.config.mjs package.json tsconfig.json .oxlintrc.json --write",
-    "format:check": "npm run lint:spacing && prettier src scripts e2e vite.config.ts playwright.config.ts prettier.config.mjs package.json tsconfig.json .oxlintrc.json --check",
+    "format:check": "npm run lint:spacing && prettier src scripts e2e vite.config.ts playwright.config.ts prettier.config.mjs package.json tsconfig.json .oxlintrc.json --check && prettier docs/design/editor-v1 --check",
     "test:e2e": "npm run build:pages && npm run test:e2e:run",
     "test:e2e:run": "playwright test",
     "test:e2e:install": "playwright install chromium",
@@ -35,7 +35,10 @@
     "lint:spacing": "node scripts/formatting/spacing.mjs",
     "test:spacing": "node --test scripts/formatting/*.test.mjs",
     "format:spacing": "node scripts/formatting/spacing.mjs --write",
-    "format:e2e": "prettier e2e --write && node scripts/formatting/spacing.mjs --write e2e && prettier e2e --write"
+    "format:e2e": "prettier e2e --write && node scripts/formatting/spacing.mjs --write e2e && prettier e2e --write",
+    "mock:serve": "python3 -m http.server 4190 --bind 127.0.0.1 --directory docs/design/editor-v1",
+    "format:mock": "prettier docs/design/editor-v1 --write && node scripts/formatting/spacing.mjs --write docs/design/editor-v1 && prettier docs/design/editor-v1 --write",
+    "lint:mock": "oxlint docs/design/editor-v1 --deny-warnings"
   },
   "dependencies": {
     "polygon-clipping": "0.15.7",

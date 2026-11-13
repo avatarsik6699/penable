@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" fill="none" role="img" aria-labelledby="note-title note-description">
+  <title id="note-title">Синтетический пример рукописного конспекта: градиентный спуск</title>
+  <desc id="note-description">Монохромная рукописная заметка с формулой обновления, краткими шагами и графиком параболы.</desc>
+  <g fill="#182230" font-family="Caveat, cursive" font-weight="500">
+    <text x="278" y="205" font-size="36" letter-spacing="0.1">Градиентный спуск</text>
+    <text x="280" y="250" font-size="26" letter-spacing="0.05">Ищем минимум функции маленькими шагами.</text>
+
+    <text x="282" y="344" font-size="38" letter-spacing="0.15">x<tspan font-size="24" baseline-shift="sub">след.</tspan><tspan font-size="38" baseline-shift="baseline"> = x − η · ∇f(x)</tspan></text>
+    <text x="286" y="395" font-size="27">Для f(x) = x² градиент равен 2x</text>
+
+    <text x="286" y="504" font-size="26">1. Считаем градиент</text>
+    <text x="286" y="550" font-size="26">2. Делаем шаг в обратную сторону</text>
+    <text x="286" y="596" font-size="26">3. Повторяем, пока шаги не станут малыми</text>
+  </g>
+
+  <g stroke="#182230" stroke-linecap="round" stroke-linejoin="round">
+    <!-- A small, clean coordinate plot of a convex bowl. -->
+    <path d="M879 542V366M879 542H1152" stroke-width="2.1" />
+    <path d="M879 366l-5 10m5-10 5 10M1152 542l-10-5m10 5-10 5" stroke-width="2.1" />
+    <path d="M895 397C930 459 966 520 1015 535C1064 520 1100 459 1135 397" stroke-width="2.8" />
+
+    <!-- Iterates approach the minimum from the right, following the slope. -->
+    <path d="M1120 416C1098 447 1074 476 1050 498C1038 511 1027 522 1018 531" stroke-width="1.8" stroke-dasharray="4 7" />
+    <circle cx="1120" cy="416" r="5.5" fill="#182230" stroke="none" />
+    <circle cx="1081" cy="465" r="5" fill="#182230" stroke="none" />
+    <circle cx="1048" cy="500" r="4.7" fill="#182230" stroke="none" />
+    <circle cx="1018" cy="531" r="4.4" fill="#182230" stroke="none" />
+    <circle cx="1015" cy="535" r="3.1" fill="#182230" stroke="none" />
+    <path d="M1005 535H1025M1015 525V545" stroke-width="1.7" />
+  </g>
+
+  <g fill="#182230" font-family="Caveat, cursive" font-size="21" font-weight="500">
+    <text x="858" y="365">f(x)</text>
+    <text x="1158" y="550">x</text>
+    <text x="1002" y="575">минимум</text>
+    <text x="1100" y="399">старт</text>
+  </g>
+</svg>

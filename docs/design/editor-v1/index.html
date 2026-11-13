@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>penable — макет редактора</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="mock.css" />
+    <script src="mock.js" type="module"></script>
+  </head>
+  <body>
+    <!--
+    THESIS: writing owns the screen; frequent controls share one compact floating dock.
+    OWN-WORLD: light personal notebook, white chrome, blue #175cd3, monochrome ink,
+    Segoe UI controls, consistent authored SVG icons and locally bundled synthetic handwriting.
+    STORY: write, adjust the pen, select a region, manage the board, recover a save failure.
+    FIRST VIEWPORT: note on dotted paper; tools top-center, board top-left, save top-right,
+    navigation bottom-right, help bottom-left; review controls outside the product frame.
+    FORM: owner-pinned floating horizontal Operate dock; no random concept roll or comp round.
+    FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+    -->
+    <header class="review-bar" id="review-bar">
+      <div class="review-heading">
+        <strong>Макет редактора</strong
+        ><span
+          >Предложение. Конспект синтетический; данные приложения не
+          используются.</span
+        >
+      </div>
+      <nav aria-label="Состояние макета" class="state-switcher">
+        <button type="button" data-state="writing" aria-pressed="true">
+          Письмо
+        </button>
+        <button type="button" data-state="pen" aria-pressed="false">
+          Параметры пера
+        </button>
+        <button type="button" data-state="selection" aria-pressed="false">
+          Выделение
+        </button>
+        <button type="button" data-state="board" aria-pressed="false">
+          Меню доски
+        </button>
+        <button type="button" data-state="error" aria-pressed="false">
+          Ошибка сохранения
+        </button>
+      </nav>
+    </header>
+    <main
+      class="editor"
+      id="editor"
+      data-state="writing"
+      aria-label="Визуальный макет личной доски"
+    >
+      <div class="paper" aria-hidden="true"></div>
+      <div class="note-scene" id="note-scene"></div>
+      <svg class="selection-region" viewBox="0 0 1440 900" aria-hidden="true">
+        <rect x="245" y="285" width="560" height="170" rx="1" />
+        <path
+          class="lasso-region"
+          d="M252 302Q480 265 782 300Q830 350 787 444Q500 478 259 443Q228 372 252 302Z"
+        />
+      </svg>
+      <div class="board-chrome chrome" data-chrome>
+        <button
+          class="board-button"
+          id="board-trigger"
+          type="button"
+          aria-label="Меню доски"
+          aria-haspopup="dialog"
+          aria-expanded="false"
+          aria-controls="board-panel"
+        >
+          <span class="brand">penable<span class="brand-dot"></span></span
+          ><span data-icon="chevron-down" class="icon small"></span>
+        </button>
+      </div>
+      <div
+        class="tool-dock chrome"
+        data-chrome
+        role="group"
+        aria-label="Инструменты доски"
+      >
+        <div class="tool-group" role="group" aria-label="Инструмент">
+          <button
+            class="icon-button tool-button is-selected"
+            type="button"
+            data-tool="pen"
+            aria-label="Перо"
+            aria-pressed="true"
+            aria-haspopup="dialog"
+            aria-controls="pen-panel"
+            aria-expanded="false"
+          >
+            <span class="icon" data-icon="pen"></span
+            ><span class="tooltip">Перо · повторно — параметры</span
+            ><span class="tool-chevron" data-icon="chevron-down"></span>
+          </button>
+          <button
+            class="icon-button tool-button"
+            type="button"
+            data-tool="eraser"
+            aria-label="Ластик"
+            aria-pressed="false"
+          >
+            <span class="icon" data-icon="eraser"></span
+            ><span class="tooltip">Ластик: штрих целиком</span>
+          </button>
+          <button
+            class="icon-button tool-button"
+            type="button"
+            data-tool="selection"
+            aria-label="Выделение"
+            aria-pressed="false"
+          >
+            <span class="icon" data-icon="selection"></span
+            ><span class="tooltip">Выделение</span>
+          </button>
+        </div>
+        <span class="divider" aria-hidden="true"></span>
+        <div class="tool-group" role="group" aria-label="История действий">
+          <button
+            class="icon-button"
+            type="button"
+            data-demo="undo"
+            aria-label="Отменить действие"
+          >
+            <span class="icon" data-icon="undo"></span
+            ><span class="tooltip">Отменить · Ctrl+Z</span>
+          </button>
+          <button
+            class="icon-button"
+            type="button"
+            disabled
+            aria-label="Вернуть действие"
+          >
+            <span class="icon" data-icon="redo"></span
+            ><span class="tooltip">Вернуть · Ctrl+Shift+Z</span>
+          </button>
+        </div>
+        <span class="divider" aria-hidden="true"></span>
+        <div class="width-setting" id="width-setting">
+          <span class="width-preview" aria-hidden="true"
+            ><span id="width-dot"></span
+          ></span>
+          <label class="sr-only" for="pen-width">Толщина пера</label
+          ><input
+            id="pen-width"
+            type="range"
+            min="0.5"
+            max="12"
+            step="0.1"
+            value="3"
+          />
+          <output id="width-value" for="pen-width">3.0<span>px</span></output>
+        </div>
+        <div class="eraser-setting" id="eraser-setting" hidden>
+          Штрих целиком
+        </div>
+        <div
+          class="selection-setting"
+          id="selection-setting"
+          hidden
+          role="group"
+          aria-label="Способ выделения"
+        >
+          <button
+            class="shape-button is-selected"
+            type="button"
+            data-shape="rectangle"
+            aria-pressed="true"
+          >
+            Рамка</button
+          ><button
+            class="shape-button"
+            type="button"
+            data-shape="lasso"
+            aria-pressed="false"
+          >
+            Лассо
+          </button>
+          <button
+            class="actions-button"
+            type="button"
+            id="actions-trigger"
+            aria-label="Действия выделения"
+            aria-haspopup="dialog"
+            aria-expanded="false"
+            aria-controls="selection-panel"
+          >
+            <span class="icon" data-icon="more"></span>
+          </button>
+        </div>
+      </div>
+      <div class="save-chrome chrome" data-chrome>
+        <button
+          class="save-button"
+          type="button"
+          id="save-trigger"
+          aria-haspopup="dialog"
+          aria-controls="save-panel"
+          aria-expanded="false"
+        >
+          <span
+            class="save-symbol icon small"
+            id="save-icon"
+            data-icon="check"
+          ></span
+          ><span id="save-label">Сохранено локально</span
+          ><span class="save-dot" aria-hidden="true"></span>
+        </button>
+      </div>
+      <section
+        class="popover pen-panel"
+        id="pen-panel"
+        role="dialog"
+        aria-label="Параметры пера"
+        hidden
+      >
+        <div class="panel-heading">
+          <h2>Перо</h2>
+          <button
+            class="mini-close icon-button"
+            type="button"
+            data-close
+            aria-label="Закрыть параметры пера"
+          >
+            <span class="icon small" data-icon="close"></span>
+          </button>
+        </div>
+        <div class="stroke-sample" aria-hidden="true">
+          <svg viewBox="0 0 252 50">
+            <path
+              d="M10 36C32 36 35 10 54 14S77 44 95 31 119 8 132 22 146 44 164 26 186 11 199 24 220 36 242 17"
+            />
+          </svg>
+        </div>
+        <div class="setting-caption">
+          <label for="stabilization">Стабилизация</label
+          ><output for="stabilization" id="stabilization-value"
+            >65<span>%</span></output
+          >
+        </div>
+        <input
+          id="stabilization"
+          type="range"
+          min="0"
+          max="100"
+          value="65"
+          aria-describedby="stabilization-help"
+        />
+        <div class="range-endpoints" aria-hidden="true">
+          <span>Естественнее</span><span>Плавнее</span>
+        </div>
+        <p class="panel-help" id="stabilization-help">
+          Сглаживает движения пера.<br />Применяется к следующему штриху.
+        </p>
+      </section>
+      <section
+        class="popover selection-panel"
+        id="selection-panel"
+        role="dialog"
+        aria-label="Действия с выделением"
+        hidden
+      >
+        <div class="menu-heading">Выделенная область</div>
+        <button type="button" data-demo="copy">
+          <span class="icon small" data-icon="copy"></span
+          ><span>Копировать</span><kbd>Ctrl+C</kbd>
+        </button>
+        <button type="button" data-demo="cut">
+          <span class="icon small" data-icon="cut"></span><span>Вырезать</span
+          ><kbd>Ctrl+X</kbd>
+        </button>
+        <button type="button" disabled>
+          <span class="icon small" data-icon="paste"></span><span>Вставить</span
+          ><kbd>Ctrl+V</kbd>
+        </button>
+        <button type="button" data-demo="duplicate">
+          <span class="icon small" data-icon="duplicate"></span
+          ><span>Дублировать</span><kbd>Ctrl+D</kbd>
+        </button>
+        <div class="menu-divider"></div>
+        <button type="button" data-demo="image">
+          <span class="icon small" data-icon="image"></span
+          ><span>Копировать изображение</span>
+        </button>
+        <button
+          type="button"
+          disabled
+          title="Доступно после подготовки изображения"
+        >
+          <span class="icon small" data-icon="download"></span
+          ><span>Скачать PNG</span>
+        </button>
+        <div class="menu-divider"></div>
+        <button class="destructive" type="button" data-demo="delete">
+          <span class="icon small" data-icon="trash"></span><span>Удалить</span
+          ><kbd>Del</kbd>
+        </button>
+        <button type="button" data-demo="clear">
+          <span class="icon small" data-icon="close"></span
+          ><span>Снять выделение</span><kbd>Esc</kbd>
+        </button>
+      </section>
+      <section
+        class="popover board-panel"
+        id="board-panel"
+        role="dialog"
+        aria-label="Меню доски"
+        hidden
+      >
+        <div class="panel-heading">
+          <h2>Доска</h2>
+          <button
+            class="mini-close icon-button"
+            type="button"
+            data-close
+            aria-label="Закрыть меню доски"
+          >
+            <span class="icon small" data-icon="close"></span>
+          </button>
+        </div>
+        <div class="board-menu-actions">
+          <button type="button" data-demo="export">
+            <span class="icon small" data-icon="download"></span
+            ><span>Скачать JSON-копию</span>
+          </button>
+          <button type="button" data-demo="import">
+            <span class="icon small" data-icon="upload"></span
+            ><span>Импортировать копию</span>
+          </button>
+        </div>
+        <div class="menu-divider"></div>
+        <div class="background-section">
+          <h3>Фон доски</h3>
+          <div class="background-options" role="group" aria-label="Фон доски">
+            <button type="button" data-background="blank" aria-pressed="false">
+              <span class="background-preview blank"></span
+              ><span>Без фона</span></button
+            ><button
+              type="button"
+              data-background="dots"
+              aria-pressed="true"
+              class="is-selected"
+            >
+              <span class="background-preview dots"></span
+              ><span>Точки</span></button
+            ><button type="button" data-background="grid" aria-pressed="false">
+              <span class="background-preview grid"></span><span>Клетка</span>
+            </button>
+          </div>
+        </div>
+        <div class="menu-divider"></div>
+        <div class="recovery-section">
+          <h3>Резервные копии</h3>
+          <button type="button" data-demo="previous">
+            <span class="icon small" data-icon="history"></span
+            ><span>До последнего импорта</span
+            ><span
+              class="icon small trailing"
+              data-icon="download"
+            ></span></button
+          ><button type="button" data-demo="upgrade">
+            <span class="icon small" data-icon="history"></span
+            ><span>До обновления формата</span
+            ><span class="icon small trailing" data-icon="download"></span>
+          </button>
+        </div>
+        <p class="local-note">
+          <span class="icon small" data-icon="device"></span
+          ><span
+            >Копия хранится в этом браузере.<br />JSON-файл поможет сохранить её
+            отдельно.</span
+          >
+        </p>
+      </section>
+      <section
+        class="popover save-panel"
+        id="save-panel"
+        role="dialog"
+        aria-label="Состояние сохранения"
+        hidden
+      >
+        <div class="panel-heading">
+          <h2 id="save-title">Записи сохранены</h2>
+          <button
+            class="mini-close icon-button"
+            type="button"
+            data-close
+            aria-label="Закрыть сведения о сохранении"
+          >
+            <span class="icon small" data-icon="close"></span>
+          </button>
+        </div>
+        <p id="save-description">
+          Доска сохранена локально в этом браузере. Для отдельной копии скачайте
+          JSON-файл.
+        </p>
+        <div class="save-recovery" id="save-recovery" hidden>
+          <p class="error-detail">
+            Не удалось записать последние изменения. Они остаются на полотне.
+          </p>
+          <button class="primary-button" type="button" id="retry-button">
+            <span class="icon small" data-icon="retry"></span>Повторить
+            сохранение
+          </button>
+        </div>
+        <button class="secondary-button" type="button" data-demo="backup">
+          <span class="icon small" data-icon="download"></span>Скачать копию
+        </button>
+      </section>
+      <div
+        class="canvas-navigation chrome"
+        data-chrome
+        role="group"
+        aria-label="Масштаб доски"
+      >
+        <button
+          class="icon-button"
+          type="button"
+          data-demo="zoom-out"
+          aria-label="Уменьшить масштаб"
+        >
+          <span class="icon small" data-icon="minus"></span></button
+        ><button
+          class="zoom-value"
+          type="button"
+          data-demo="reset"
+          aria-label="Вернуть исходный вид"
+        >
+          100<span>%</span></button
+        ><button
+          class="icon-button"
+          type="button"
+          data-demo="zoom-in"
+          aria-label="Увеличить масштаб"
+        >
+          <span class="icon small" data-icon="plus"></span></button
+        ><span class="divider"></span
+        ><button
+          class="icon-button"
+          type="button"
+          data-demo="fit"
+          aria-label="Показать все записи"
+        >
+          <span class="icon" data-icon="fit"></span
+          ><span class="tooltip above align-end">Показать все записи</span>
+        </button>
+      </div>
+      <div class="help-chrome chrome" data-chrome>
+        <button
+          class="icon-button"
+          id="help-trigger"
+          type="button"
+          aria-label="Помощь"
+          aria-haspopup="dialog"
+          aria-controls="help-panel"
+          aria-expanded="false"
+        >
+          <span class="icon" data-icon="help"></span>
+        </button>
+      </div>
+      <section
+        class="popover help-panel"
+        id="help-panel"
+        role="dialog"
+        aria-label="Помощь"
+        hidden
+      >
+        <div class="panel-heading">
+          <h2>Работа с доской</h2>
+          <button
+            class="mini-close icon-button"
+            type="button"
+            data-close
+            aria-label="Закрыть помощь"
+          >
+            <span class="icon small" data-icon="close"></span>
+          </button>
+        </div>
+        <dl>
+          <div>
+            <dt>Перемещение</dt>
+            <dd>Два пальца на тачпаде<br />или пробел + перетаскивание</dd>
+          </div>
+          <div>
+            <dt>Масштаб</dt>
+            <dd>Ctrl + колесо / жест щипка</dd>
+          </div>
+          <div>
+            <dt>Отмена</dt>
+            <dd>Ctrl+Z</dd>
+          </div>
+        </dl>
+        <button class="secondary-button" type="button" data-demo="diagnostics">
+          <span class="icon small" data-icon="device"></span>Диагностика ввода
+        </button>
+      </section>
+      <div class="demo-notice" id="demo-notice" role="status" hidden></div>
+    </main>
+  </body>
+</html>
