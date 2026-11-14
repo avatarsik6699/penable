@@ -7,7 +7,7 @@
 | Change | `23` |
 | Slug | `writing-tools-templates` |
 | Title | Writing instruments and vector templates |
-| Status | `active` |
+| Status | `shipped locally` |
 | Branch | `feature/23-writing-tools-templates` |
 
 ## Goal
