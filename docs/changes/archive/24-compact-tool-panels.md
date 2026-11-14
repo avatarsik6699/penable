@@ -7,7 +7,7 @@
 | Change | `24` |
 | Slug | `compact-tool-panels` |
 | Title | Compact writing and template controls |
-| Status | `active` |
+| Status | `shipped locally` |
 | Branch | `feature/24-compact-tool-panels` |
 
 ## Goal
@@ -65,7 +65,16 @@ tasks. Existing native ink code/layout remain unchanged, so accepted raster evid
 
 ## Implementation Notes
 
-None
+- Native UI evidence uses Playwriter desktop and an isolated ChromeDevTools narrow capture after
+  Playwriter screenshot timeout. Hardware Wacom feel remains owner acceptance; ink geometry is unchanged.
+
+## Delivery Evidence
+
+Full Gate PASS2026-11-14: npm ci, build, build:pages, typecheck,646unit tests, lint,
+format:check,76E2E tests, secrets scan and dependency audit. Independent source/UX/security/
+visual review PASS. Native16range edits produced no>=50ms LongTasks; no paint/hardware latency
+claim. Detailed ignored artifacts: .artifacts/change-24/acceptance.md and full-gate.json.
+Local ship only; no push/Pages deployment.
 
 ## Commit Message
 
