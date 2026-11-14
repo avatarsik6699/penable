@@ -6,6 +6,8 @@ import { Button } from "~/shared/ui/button";
 import { EditorIcon } from "~/shared/ui/editor-icon";
 import { RangeInput } from "~/shared/ui/range-input";
 import { InkPalette } from "../ink-palette";
+import { HelpHint } from "~/shared/ui/help-hint";
+import { InstrumentPicker } from "./components/instrument-picker";
 
 export const PenSettings: React.FC<PenSettingsTypes.Props> = (props) => (
   <div
@@ -17,46 +19,21 @@ export const PenSettings: React.FC<PenSettingsTypes.Props> = (props) => (
   >
     <div className={styles.heading}>
       <h2>Инструмент письма</h2>
-      <Button onClick={props.onClose} aria-label="Закрыть параметры пера">
-        <EditorIcon name="close" />
-      </Button>
+      <div className={styles.actions}>
+        <HelpHint
+          label="О настройках письма"
+          text="Настройки применяются к следующему штриху. Стабилизация сглаживает дрожание. Сила нажима меняет разницу толщины при письме пером; мышь рисует ровной линией."
+        />
+        <Button onClick={props.onClose} aria-label="Закрыть параметры пера">
+          <EditorIcon name="close" />
+        </Button>
+      </div>
     </div>
-    <div
-      className={styles.instruments}
-      role="radiogroup"
-      aria-label="Инструмент письма"
-    >
-      <label>
-        <input
-          type="radio"
-          name="ink-instrument"
-          checked={props.writing.instrument === "pen"}
-          disabled={props.readOnly}
-          onChange={() => props.onInstrumentChange("pen")}
-        />
-        Ручка
-      </label>
-      <label>
-        <input
-          type="radio"
-          name="ink-instrument"
-          checked={props.writing.instrument === "pressure"}
-          disabled={props.readOnly}
-          onChange={() => props.onInstrumentChange("pressure")}
-        />
-        Перо с нажимом
-      </label>
-      <label>
-        <input
-          type="radio"
-          name="ink-instrument"
-          checked={props.writing.instrument === "highlighter"}
-          disabled={props.readOnly}
-          onChange={() => props.onInstrumentChange("highlighter")}
-        />
-        Маркер
-      </label>
-    </div>
+    <InstrumentPicker
+      value={props.writing.instrument}
+      disabled={props.readOnly}
+      onChange={props.onInstrumentChange}
+    />
     <div className={styles.sample}>
       <StrokeSample writing={props.writing} />
     </div>
@@ -79,7 +56,6 @@ export const PenSettings: React.FC<PenSettingsTypes.Props> = (props) => (
       step="1"
       value={props.stabilization}
       disabled={props.readOnly}
-      aria-describedby="stabilization-help"
       onChange={(event) =>
         props.onStabilizationChange(Number(event.target.value))
       }
@@ -109,9 +85,6 @@ export const PenSettings: React.FC<PenSettingsTypes.Props> = (props) => (
             })
           }
         />
-        <p>
-          Меняет выраженность толщины от нажима пера. Мышь рисует ровной линией.
-        </p>
       </div>
     )}
     {props.writing.instrument === "highlighter" && (
@@ -139,6 +112,5 @@ export const PenSettings: React.FC<PenSettingsTypes.Props> = (props) => (
         />
       </div>
     )}
-    <p id="stabilization-help">Настройки применяются к следующему штриху.</p>
   </div>
 );

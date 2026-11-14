@@ -473,3 +473,14 @@ No physical Wacom/OS clipboard claims from synthetic pressure/native isolated au
 Existing Fast/Full commands, exact native capability policies and source-level review apply.
 Engine benchmark adds instrumentRaster, styled ink fixtures via ink's optional fourth instrument
 argument and mixedContent; original672 legacy raster comparisons remain unchanged.
+
+
+## Change24 — Compact tool panels
+
+SPEC5.20 refines existing writing/template controls and adds pure bounded nice-step recommendation.
+Document5/generator1/catalog2/IDB1, dependencies and accepted ink/template rendering stay unchanged.
+One source writer owns src; parent owns E2E/docs/shared gates/native evidence/Git. Native Pages
+preview4204 is task-owned; automated E2E owns4185. Check desktop1280×720/1440×900 without panel
+scroll, narrow390×844 and short viewport with reachable controls, manual draft/error retention,
+help hover/focus/click and repeated math edits with PerformanceObserver. Full Gate and independent
+review precede automatic local ship. Release remains separate.

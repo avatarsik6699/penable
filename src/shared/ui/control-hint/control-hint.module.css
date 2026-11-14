@@ -1,0 +1,40 @@
+.anchor {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+}
+
+.hint {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  z-index: 10;
+  width: max-content;
+  max-width: 170px;
+  padding: 6px 9px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 11px;
+  line-height: 1.4;
+  text-align: center;
+  transform: translateX(-50%);
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.anchor:hover > .hint,
+.anchor:focus-within > .hint {
+  visibility: visible;
+}
+
+.anchor[data-align="start"] > .hint {
+  left: 0;
+  transform: none;
+}
+
+.anchor[data-align="end"] > .hint {
+  right: 0;
+  left: auto;
+  transform: none;
+}

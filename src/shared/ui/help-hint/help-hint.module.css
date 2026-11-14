@@ -1,0 +1,40 @@
+.anchor {
+  position: relative;
+  display: inline-flex;
+}
+
+.trigger {
+  width: 28px;
+  height: 28px;
+  min-height: 28px;
+  padding: 4px;
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+}
+
+.trigger svg {
+  width: 17px;
+  height: 17px;
+}
+
+.hint {
+  position: absolute;
+  z-index: 12;
+  top: calc(100% + 6px);
+  right: 0;
+  width: min(260px, calc(100vw - 56px));
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: var(--ink);
+  background: var(--paper);
+  box-shadow: var(--popover-shadow);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  visibility: hidden;
+}
+
+.anchor[data-open] .hint {
+  visibility: visible;
+}

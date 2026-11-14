@@ -12,7 +12,7 @@
 
 | Поле | Значение |
 |------|----------|
-| Версия | 1.2 — writing instruments, vector templates and schema5 |
+| Версия | 1.3 — compact tools and readable mathematical templates |
 | Дата | 2026-11-14 |
 | Архитектор / владелец | Пользователь |
 | Предметная область | Личные рукописные конспекты в браузере |
@@ -1012,3 +1012,39 @@ focus, desktop/narrow/short viewport, stable dock and fresh console. Preserve ex
 run paired engine CPU checks and long mixed scenes without new attributable>=50ms ordinary tasks.
 Full Gate and independent source/security/visual review precede automatic local ship; no release
 in this change. Physical Wacom pressure/writing acceptance remains an explicit owner check.
+
+
+## 5.20 — Compact writing and template controls (Change24)
+
+Owner-approved 2026-11-14. Refine the current visual world; retain fixed dock dimensions,
+two ink layers, native input ownership, instrument geometry and document5/generator1.
+
+Writing uses one horizontal icon radio group, a compact live sample, a tightly packed fixed
+palette and only the current instrument's sliders. Figures use a compact icon chooser grouped
+into geometry and mathematics. Icons have accessible names and hover/focus hints; help also
+opens by clicking. Palette circles have subtle highlight/shadow and a separate selection ring.
+No custom colors/dependencies. Remove permanent instructional paragraphs from the panels.
+
+Remove numeric width/height controls. Preserve click placement and default viewport-fit size;
+insertion selects the item with existing resize handles. Outline width uses a0.5–12 slider
+with0.5 step and numeric output. Only applicable fill/dash/math options are visible. Compact
+preview is approximately100CSSpx high. At1280×720 and1440×900 primary panel controls and placement
+fit without scrolling. Narrow/short displays may scroll but all actions remain reachable.
+Opening tools/help never resizes the dock or drawing surface; one tool panel at a time.
+
+Number-line/XY default to automatic tick spacing. A bounded pure helper recommends a valid
+1/2/5×10^n step considering existing layout spacing, label lengths and tick-count limits.
+Range bounds stay±10000, include zero and increase; existing schema validation stays strict.
+Show effective step, allow manual mode initialized from it. A too-dense/sparse manual value
+shows a concrete suggested-step action and disables placement while preserving the last valid
+preview. Incomplete/invalid inputs keep their draft text and last valid preview, with errors
+associated with the offending field and stale preview clearly distinguished. Auto/manual mode
+and drafts are panel-local; only a concrete validated config is inserted/persisted. Changing
+size after insertion scales that immutable template without regenerating ticks. Old items
+and exported documents retain exact geometry; no migration or generator change.
+
+Acceptance covers all instruments/templates/colors, sliders, icon/help keyboard access, invalid
+drafts and preview retention, manual suggestion, automatic fractional/asymmetric/extreme ranges,
+placement/resize/undo/redo/reload, existing document compatibility, responsive panels and fixed
+dock geometry. Run native visual/console inspection, bounded UI performance checks, independent
+review and Full Gate before automatic local ship. Release/Pages publishing is separate.

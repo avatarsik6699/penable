@@ -2,6 +2,12 @@ export namespace EditorIconTypes {
   export type Name =
     | "chevron-down"
     | "pen"
+    | "pressure-pen"
+    | "highlighter"
+    | "shape-arrow"
+    | "shape-rectangle"
+    | "shape-ellipse"
+    | "shape-triangle"
     | "eraser"
     | "selection"
     | "undo"

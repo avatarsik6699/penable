@@ -54,6 +54,7 @@ export { BoardTransforms } from "./transforms";
 
 export { BoardWriting } from "./writing";
 export { BoardTemplates } from "./templates";
+export { BoardTemplateSteps } from "./templates";
 export { BoardPressure, LivePressureOutline } from "./writing";
 export type { PressureDisc, PressureSegment, PressureOutline } from "./writing";
 export type { TemplatePrimitive, TemplateLayout } from "./templates";

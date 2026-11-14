@@ -14,6 +14,7 @@ import { testBoards } from "./data/boards";
 import type { TestBoardTypes } from "./data/board.types";
 import { WritingToolsPage } from "./pages/writing-tools-page";
 import { TemplatesPage } from "./pages/templates-page";
+import { ToolPanelsPage } from "./pages/tool-panels-page";
 
 function monitor(
   page: Page,
@@ -172,6 +173,7 @@ type Samples = {
 type Fixtures = {
   writing: WritingToolsPage;
   templates: TemplatesPage;
+  toolPanels: ToolPanelsPage;
   clipboardAccess: void;
   clipboard: BoardClipboardPage;
   clipboardFailure: BoardClipboardPage;
@@ -216,6 +218,10 @@ type Fixtures = {
 export const test = base.extend<Fixtures>({
   writing: async ({ page, board }, use) => {
     await use(new WritingToolsPage(page, board));
+  },
+
+  toolPanels: async ({ page, board }, use) => {
+    await use(new ToolPanelsPage(page, board));
   },
 
   templates: async ({ page, board }, use) => {

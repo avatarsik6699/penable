@@ -165,21 +165,20 @@ export class TemplatesPage {
       exact: true,
     });
 
-    const step = this.page.getByRole("spinbutton", {
-      name: "Шаг делений",
-      exact: true,
-    });
+    await this.page
+      .getByRole("radio", { name: "Шаг вручную", exact: true })
+      .check();
+
+    const step = this.page.getByLabel("Шаг делений", { exact: true });
 
     await step.fill("0.001");
     await expect(place).toBeDisabled();
-    await expect(this.page.getByRole("alert")).toContainText(/делени/);
+    await expect(this.page.getByRole("alert")).toContainText(/делени/i);
     await this.board.storage.expectStrokeCount(0);
     await step.fill("1");
     await expect(place).toBeEnabled();
 
-    await this.page
-      .getByRole("spinbutton", { name: "До", exact: true })
-      .fill("-10");
+    await this.page.getByLabel("До", { exact: true }).fill("-10");
 
     await expect(place).toBeDisabled();
     await this.board.storage.expectStrokeCount(0);
