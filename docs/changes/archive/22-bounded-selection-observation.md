@@ -7,7 +7,7 @@
 | Change | `22` |
 | Slug | `bounded-selection-observation` |
 | Title | Bounded selection test observation |
-| Status | `active` |
+| Status | `shipped locally` |
 | Branch | `feature/22-bounded-selection-observation` |
 
 ## Goal
