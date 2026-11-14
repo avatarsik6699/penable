@@ -461,3 +461,15 @@ owners. No new capabilities or broad exemptions. One source writer; parent owns 
 shared gates/browser/Git/docs. Native Pages4201 and E2E4185 isolate owner data. Test100-board
 cold/warm catalog-only opening, storage read/worker absence and ordinary input, plus migration,
 readonly, errors and short-screen focus. Current native painting algorithm is unchanged.
+
+## Change23 — Writing instruments and vector templates
+
+SPEC5.19 authorizes styled constant ink, pressure pen, highlighter and bounded versioned vector
+templates, document5 reading1–4 with per-board before-schema5 raw backup. Catalog2/IDB1 and runtime
+dependencies remain. One source writer; parent owns E2E/policies/performance/docs/shared gates/Git.
+Native Pages4203, E2E4185 and actual-engine4180 use owned data only. Baseline af2760f source is
+captured in .artifacts/change-23/baseline-src; native benchmark build is change23-baseline.
+No physical Wacom/OS clipboard claims from synthetic pressure/native isolated automation.
+Existing Fast/Full commands, exact native capability policies and source-level review apply.
+Engine benchmark adds instrumentRaster, styled ink fixtures via ink's optional fourth instrument
+argument and mixedContent; original672 legacy raster comparisons remain unchanged.

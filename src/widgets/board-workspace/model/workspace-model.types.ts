@@ -8,7 +8,7 @@ import type {
 
 export type SelectionState = {
   insertion?: {
-    phase: "idle" | "choosing" | "processing" | "success" | "error";
+    phase: "idle" | "choosing" | "processing" | "success" | "error" | "placing";
     message: string;
   };
   images?: boolean;
@@ -48,6 +48,10 @@ export type InputDiagnostics = {
 export type SurfaceControls = {
   transform?: (width: number, height: number, angle: number) => void;
   insertImage?: () => void;
+  insertTemplate?: (
+    config: import("~/entities/board").TemplateConfig,
+    explicitSize?: boolean,
+  ) => void;
   dismissInsertion?: () => void;
   zoomIn: () => void;
   zoomOut: () => void;
@@ -85,6 +89,7 @@ export type WorkspaceState = Readonly<{
   tool: DrawingTool;
   width: number;
   stabilization: number;
+  writing: import("~/entities/board").WritingSettings;
   background: BackgroundMode;
   backgroundSettings: BackgroundSettings;
   lastWritingView: WritingView | null;

@@ -85,6 +85,7 @@ export type BoardSnapshot = {
   tools: {
     width: number;
     stabilization: number;
+    writing?: WritingSettings;
   };
 };
 
@@ -117,13 +118,14 @@ export type ImageItem = {
   translation?: Position;
 };
 
-export type BoardItem = Stroke | ImageItem;
+export type BoardItem = Stroke | ImageItem | TemplateItem;
 
 export type Stroke = {
   kind?: "ink";
   matrix?: AffineMatrix;
   id: number;
-  color: typeof INK;
+  color: InkColor;
+  style?: InkStyle;
   width: number;
   points: Point[];
   stabilization?: StabilizationProfile;
@@ -133,3 +135,74 @@ export type Stroke = {
 };
 
 export type BackgroundMode = "blank" | "dots" | "grid";
+
+export type InkColor =
+  | "#182230"
+  | "#667085"
+  | "#175cd3"
+  | "#0ba5ec"
+  | "#0e9384"
+  | "#2e7d32"
+  | "#f4c430"
+  | "#e87518"
+  | "#d92d20"
+  | "#7f56d9";
+
+export type InkInstrument = "pen" | "pressure" | "highlighter";
+
+export type InkStyle = Readonly<{
+  instrument: InkInstrument;
+  opacity: number;
+  pressureStrength: number;
+}>;
+
+export type InstrumentSettings = Readonly<{
+  color: InkColor;
+  width: number;
+  stabilization: number;
+  opacity: number;
+  pressureStrength: number;
+}>;
+
+export type WritingSettings = Readonly<{
+  instrument: InkInstrument;
+  instruments: Readonly<Record<InkInstrument, InstrumentSettings>>;
+}>;
+
+export type TemplateKind =
+  | "line"
+  | "arrow"
+  | "rectangle"
+  | "ellipse"
+  | "triangle"
+  | "number-line"
+  | "axes"
+  | "circle";
+
+export type TemplateConfig = Readonly<{
+  kind: TemplateKind;
+  width: number;
+  height: number;
+  color: InkColor;
+  lineWidth: number;
+  dashed: boolean;
+  fill: InkColor | null;
+  min: number;
+  max: number;
+  step: number;
+  numbers: boolean;
+  grid: boolean;
+  labels: boolean;
+  rays: boolean;
+}>;
+
+export type TemplateItem = {
+  readonly kind: "template";
+  id: number;
+  readonly generatorVersion: 1;
+  readonly template: TemplateConfig;
+  matrix: AffineMatrix;
+  source?: string;
+  clip?: ClipMask;
+  translation?: Position;
+};

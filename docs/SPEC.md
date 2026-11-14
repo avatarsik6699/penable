@@ -12,8 +12,8 @@
 
 | Поле | Значение |
 |------|----------|
-| Версия | 1.1 — board settings, schema3 and predictable navigation |
-| Дата | 2026-11-13 |
+| Версия | 1.2 — writing instruments, vector templates and schema5 |
+| Дата | 2026-11-14 |
 | Архитектор / владелец | Пользователь |
 | Предметная область | Личные рукописные конспекты в браузере |
 | Стек | React + TypeScript, Vite + Canvas 2D, IndexedDB; см. [STACK.md](STACK.md) |
@@ -948,3 +948,67 @@ manual duplicate/fallback, stable rename/reload and save/cancel/failure guards. 
 long names/short phone, no canvas/dock mutation and no thumbnail requests on100-board opening.
 Native Chrome cold/warm sidebar and ordinary input must avoid attributable>=50ms main tasks.
 Run Full Gate and local ship; release remains separate and owner hardware acceptance explicit.
+
+## 5.19 — Writing instruments and vector templates (Change23)
+
+Owner-approved extension, 2026-11-14. Keep the accepted floating UI, fixed dock dimensions per
+breakpoint, two-layer raster budget, native per-sample ownership and exact fragment selection.
+No new runtime dependency, router, drawing SDK or persistent catalog/IndexedDB structure change.
+
+**Writing.** One writing-tool slot chooses pen (existing constant-width handwriting), pressure pen
+or highlighter. Preserve legacy geometry exactly. Pressure pen uses actual recorded pressure for
+variable thickness and exposes pressure strength independently of stabilization; mouse uses constant
+width. Highlighter uses constant width, default20 (range4–64), opacity30% (range10–70%). One stroke's
+self-overlap must not darken; distinct overlapping strokes may darken. Existing pen width0.5–12
+and stabilization0–100 remain. Fix profiles at pointerdown; setting changes affect subsequent
+strokes only. Re-render and commit use the same geometry without endpoint jumps or alpha seams.
+
+Fixed palette only: existing dark ink, gray, blue, light blue, teal, green, yellow, orange, red,
+violet. No custom color or user presets. Remember each instrument's settings in the board document;
+legacy width/stabilization initialize constant pen. Toolbar shows color and width, with type,
+stabilization, pressure or opacity in one nonmodal settings panel and a live stroke sample.
+Tool changes must not resize the dock/canvas. UI keeps cached coarse projections, not raw scenes.
+
+**Templates.** Add a single Figures and templates trigger. Figures: line segment, arrow,
+rectangle, ellipse, triangle. Mathematics: number line, XY axes, unit trigonometric circle.
+Configuration is available BEFORE placement only. Figures configure size, palette outline color,
+width, solid/dashed stroke and optional palette fill for closed shapes. Number line/XY configure
+range, tick step and numbers; XY also grid. Defaults−5…5, step1, numbers on, grid off. Circle uses
+radians only, principal π/6 and π/4 angles and their multiples, coordinate axes and unit marks,
+with angle-label/ray toggles. No degrees, point coordinates, formula parser or function graphs.
+Preview must stay legible; invalid ranges/dense ticks explain the cause and disable placement.
+
+Choosing a template arms a world-coordinate preview at the cursor. Default dimensions initially
+fit the visible board with a maximum major dimension around320CSSpx. Explicitly edited dimensions
+use board units at current zoom, shrinking only to fit the viewport and never enlarging a small
+configured shape. The fit/configured choice is ephemeral placement state, not persisted metadata.
+Show visible instruction “Нажмите на доску
+для вставки · Esc — отмена”. A primary click places one item/undo action and selects it; Escape,
+tool/board replacement, authority loss or disposal cancels safely. A click through UI never inserts.
+Keep ordinary pan/zoom usable when armed, and preview placement consistent with the current view.
+
+An inserted template is ONE vector item, with frozen validated configuration and generator version,
+affine placement and local clip mask. It is not a bitmap or hundreds of independent strokes.
+Pure entity-owned geometry/layout supports main/native PNG rendering, accurate bounds, minimap and
+worker selection. Include labels in layout/bounds and redraw them at the current resolution.
+Ordinary selection supports whole-object move/scale/rotate/copy/delete and exact partial clipping,
+including labels. No post-insertion parameter editor or ungrouping. Whole-stroke eraser skips
+templates like images. Cross-board copy remains the existing unified editable/PNG clipboard.
+
+**Format and ownership.** Document schema5 reads1–4; first upgraded durable write atomically backs
+up the exact previous raw board under a per-board before-schema5 key and exposes recovery download.
+IDB1/catalog2 stay. Old editable fragments remain readable; new fragments carry schema5 content.
+Do not reinterpret pressure on legacy strokes. Typed style/template data, geometry generation and
+hit/bounds belong in entities/board; Canvas/placement/React composition in widget submodules;
+strict codec, bounded worker transport and durable migration in board-document. Extend geometry
+cache keys with style/profile, preserve weak ownership and ordered alpha compositing. Rejoining
+same-source clipped pieces must not cause seams, double opacity or reorder intervening content.
+
+**Acceptance.** Unit cases cover pressure/duplicates/dots/turns, active/commit equivalence,
+highlighter self/cross overlaps, template math/layout/range limits, styles and mixed exact clipping.
+Browser scenarios cover all tools/palette, cursor placement/cancellation, transformations/partial cut,
+undo/redo/reload, schema1–4 upgrades/backup/abort/read-only, old/new clipboard and PNG. Cover keyboard,
+focus, desktop/narrow/short viewport, stable dock and fresh console. Preserve existing raster suite;
+run paired engine CPU checks and long mixed scenes without new attributable>=50ms ordinary tasks.
+Full Gate and independent source/security/visual review precede automatic local ship; no release
+in this change. Physical Wacom pressure/writing acceptance remains an explicit owner check.

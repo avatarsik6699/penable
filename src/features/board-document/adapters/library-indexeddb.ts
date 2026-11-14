@@ -158,11 +158,19 @@ function open(
             if (raw.exists) {
               for (const name of [
                 "before-library",
-                ...(document.schemaVersion === 4 &&
+                ...(document.schemaVersion === 5 &&
                 raw.value &&
                 typeof raw.value === "object" &&
                 "schemaVersion" in raw.value &&
-                raw.value.schemaVersion !== 4
+                [1, 2, 3, 4].includes(raw.value.schemaVersion as number)
+                  ? ["before-schema5"]
+                  : []),
+                ...((document.schemaVersion === 4 ||
+                  document.schemaVersion === 5) &&
+                raw.value &&
+                typeof raw.value === "object" &&
+                "schemaVersion" in raw.value &&
+                [1, 2, 3].includes(raw.value.schemaVersion as number)
                   ? ["before-schema4"]
                   : []),
               ]) {
@@ -208,6 +216,7 @@ function open(
                 "before-schema2",
                 "before-schema3",
                 "before-schema4",
+                "before-schema5",
                 "before-library",
               ])
                 store.delete(

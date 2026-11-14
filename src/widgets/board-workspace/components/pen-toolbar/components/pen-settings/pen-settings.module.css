@@ -2,8 +2,8 @@
   position: absolute;
   z-index: 5;
   top: calc(100% + 12px);
-  left: -24px;
-  width: 284px;
+  left: 144px;
+  width: 300px;
   max-height: calc(100dvh - 110px);
   overflow: auto;
   overscroll-behavior: contain;
@@ -66,7 +66,7 @@
   font-size: 11px;
   color: var(--text-muted);
 }
-.panel input {
+.panel input[type="range"] {
   width: 100%;
   display: block;
   margin-top: 8px;
@@ -92,5 +92,35 @@
   .panel {
     left: 0;
     width: min(284px, calc(100vw - 24px));
+  }
+}
+
+.instruments {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 14px;
+}
+.instruments label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.instruments input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--focus);
+  margin: 0;
+}
+.parameter {
+  margin-top: 18px;
+}
+
+@media (max-width: 650px) {
+  .panel {
+    max-height: calc(100dvh - 260px);
   }
 }

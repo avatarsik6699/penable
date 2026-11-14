@@ -25,7 +25,7 @@ await build({
   },
 });
 
-const { BoardSourceGeometry } = await import(
+const { BoardSourceGeometry, BoardPressure } = await import(
   pathToFileURL(resolve(out, "cache.mjs")).href
 );
 
@@ -40,6 +40,15 @@ function populate() {
       color: "#182230",
       points: [],
       stabilization: { strength: 65, captureZoom: 1 },
+      ...(j % 3
+        ? {
+            style: {
+              instrument: j % 3 === 1 ? "pressure" : "highlighter",
+              opacity: j % 3 === 1 ? 1 : 0.3,
+              pressureStrength: 65,
+            },
+          }
+        : {}),
     };
 
     references.push(new WeakRef(ink), new WeakRef(ink.points));
@@ -52,10 +61,26 @@ function populate() {
         pressure: 0.5,
       });
 
-      if (i % 50 === 0) sourceGeometry(ink, true);
+      if (i % 50 === 0) {
+        sourceGeometry(ink, true);
+
+        if (ink.style?.instrument === "pressure")
+          BoardPressure.ribbonGeometry(BoardPressure.outline(ink, true));
+      }
     }
 
     if (j % 2 === 0) sourceGeometry(ink); // half committed, half cancelled
+
+    if (ink.style?.instrument === "pressure") {
+      const outline = BoardPressure.outline(ink, j % 2 !== 0);
+      const geometry = BoardPressure.ribbonGeometry(outline);
+
+      if (j % 2 === 0) BoardPressure.segments(ink);
+
+      references.push(new WeakRef(outline));
+
+      if (geometry) references.push(new WeakRef(geometry));
+    }
   }
 }
 
@@ -74,7 +99,7 @@ const result = {
   weakReferences: references.length,
   retained,
   scope:
-    "Node JS live/completed geometry cache ownership; not browser/GPU memory",
+    "Node JS legacy/styled/pressure live/completed geometry and ribbon cache ownership; not browser/GPU memory",
 };
 
 await writeFile(resolve(out, "result.json"), JSON.stringify(result, null, 2));

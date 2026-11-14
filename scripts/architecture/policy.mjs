@@ -54,6 +54,8 @@ export const platformOwners = {
     ["canvas"],
   "src/widgets/board-workspace/components/writing-surface/native/rendering/paint.ts":
     ["canvas"],
+  "src/widgets/board-workspace/components/writing-surface/native/rendering/pressure-paint.ts":
+    ["canvas"],
   "src/widgets/board-workspace/components/writing-surface/native/rendering/path-cache.ts":
     ["canvas"],
   "src/widgets/board-workspace/components/writing-surface/native/rendering/png.ts":
@@ -127,6 +129,8 @@ const rasterBase =
 
 const rasterDependencies = [
   `${rasterBase}/rendering/paint.ts`,
+  `${rasterBase}/rendering/pressure-paint.ts`,
+  `${rasterBase}/rendering/template-paint.ts`,
   `${rasterBase}/rendering/path-cache.ts`,
   `${rasterBase}/rendering/png-dimensions.ts`,
   `${rasterBase}/rendering/rendering-context.types.ts`,

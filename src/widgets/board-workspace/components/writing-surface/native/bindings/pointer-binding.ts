@@ -8,6 +8,7 @@ import type { EdgePan } from "./edge-pan";
 function create(
   options: Pick<
     BindingOptions,
+    | "templatePlacement"
     | "canvas"
     | "navigation"
     | "input"
@@ -52,6 +53,8 @@ function create(
   };
 
   const cancel = () => {
+    options.templatePlacement?.cancel();
+
     const pointerId = drawingPointerId() ?? navigation.pointerId;
 
     input.cancel();
@@ -72,6 +75,22 @@ function create(
     cursor.blurCanvas();
     cursor.sample(event);
     selection.finishNudge();
+
+    if (
+      options.templatePlacement?.active &&
+      !interaction.spaceDown &&
+      event.button === 0 &&
+      event.buttons === 1 &&
+      event.isPrimary &&
+      (event.pointerType === "pen" || event.pointerType === "mouse")
+    ) {
+      if (canWrite() && navigation.pointerId === null)
+        options.templatePlacement.place(event.clientX, event.clientY);
+
+      event.preventDefault();
+
+      return;
+    }
 
     if (
       navigation.startPan(event, interaction.spaceDown) ||
@@ -104,6 +123,9 @@ function create(
 
   const move = (event: PointerEvent) => {
     cursor.sample(event);
+
+    if (event.target === canvas && options.templatePlacement?.active)
+      options.templatePlacement.move(event.clientX, event.clientY);
 
     if (
       (!canWrite() &&

@@ -52,6 +52,8 @@ host.onmessage = ({ data }) => {
             type: "item",
             item: { ...metadata, assetId: asset.id },
           });
+        } else if (item.kind === "template") {
+          host.postMessage({ type: "item", item });
         } else {
           const { points, ...metadata } = item;
 

@@ -22,6 +22,7 @@ export namespace WritingSurfaceTypes {
     onSelectionState: (state: SelectionState) => void;
     getTool: () => DrawingTool;
     width: number;
+    writing?: import("~/entities/board").WritingSettings;
     stabilization: number;
     background: BackgroundMode;
     backgroundSettings: BackgroundSettings;

@@ -170,7 +170,7 @@ const api = {
     scheduling,
   }),
 
-  async ink(count = 10000, batch = 50, strength = 65) {
+  async ink(count = 10000, batch = 50, strength = 65, instrument = null) {
     const { scene, renderer, flush } = setup(),
       work = [],
       intervals = [];
@@ -178,12 +178,32 @@ const api = {
     const history = new StrokeHistory(scene.strokes);
     const samples = Array.from({ length: count }, (_, i) => point(i));
 
+    const settings = {
+      color: instrument === "highlighter" ? "#f4c430" : "#175cd3",
+      width: instrument === "highlighter" ? 20 : 3,
+      stabilization: strength,
+      opacity: instrument === "highlighter" ? 0.3 : 1,
+      pressureStrength: 65,
+    };
+
     const input = new PenInput({
       scene,
       bounds: () => ({ left: 0, top: 0 }),
       viewport: () => ({ zoom: 1, x: 0, y: 0 }),
       width: () => 3,
       stabilization: () => strength,
+      ...(instrument
+        ? {
+            writing: () => ({
+              instrument,
+              instruments: {
+                pen: settings,
+                pressure: settings,
+                highlighter: settings,
+              },
+            }),
+          }
+        : {}),
       onActiveChange: () => renderer.activeChanged(),
 
       onCommit: (ink) => {
@@ -229,6 +249,7 @@ const api = {
         count,
         batch,
         strength,
+        instrument,
         work: stats(work),
         frames: stats(intervals),
         finishMs: performance.now() - t,
@@ -417,6 +438,155 @@ const api = {
     }
 
     return { cycles };
+  },
+
+  instrumentRaster() {
+    const diffs = [];
+    let comparisons = 0;
+
+    for (const instrument of ["pressure", "highlighter"])
+      for (const dpr of [1, 2])
+        for (const zoom of [0.25, 1, 4, 8]) {
+          const ink = note(1, 0);
+
+          ink.width = instrument === "highlighter" ? 20 : 8;
+
+          ink.style = {
+            instrument,
+            opacity: instrument === "highlighter" ? 0.3 : 1,
+            pressureStrength: 80,
+          };
+
+          const contexts = Array.from({ length: 2 }, () => {
+            const canvas = Object.assign(document.createElement("canvas"), {
+              width: 512 * dpr,
+              height: 256 * dpr,
+            });
+
+            return canvas.getContext("2d", { willReadFrequently: true });
+          });
+
+          for (let i = 0; i < 100; i++) {
+            ink.points.push({
+              ...point(i),
+              x: 20 + i * 2.5,
+              y: 100 + Math.sin(i * 0.4) * 50,
+              pressure: 0.05 + (0.9 * (Math.sin(i * 0.3) + 1)) / 2,
+            });
+
+            if (i % 9 !== 0 && i !== 99) continue;
+
+            contexts.forEach((ctx) => {
+              ctx.setTransform(1, 0, 0, 1, 0, 0);
+              ctx.clearRect(0, 0, 512 * dpr, 256 * dpr);
+
+              ctx.setTransform(
+                dpr * zoom,
+                0,
+                0,
+                dpr * zoom,
+                dpr * (20 - 20 * zoom),
+                dpr * (100 - 100 * zoom),
+              );
+            });
+
+            paintStroke(contexts[0], ink, true);
+
+            paintStroke(contexts[1], {
+              ...ink,
+              points: ink.points.map((p) => ({ ...p })),
+            });
+
+            const a = contexts[0].getImageData(0, 0, 512 * dpr, 256 * dpr).data;
+            const b = contexts[1].getImageData(0, 0, 512 * dpr, 256 * dpr).data;
+            let different = 0;
+
+            for (let pixel = 0; pixel < a.length; pixel++)
+              if (a[pixel] !== b[pixel]) different++;
+
+            comparisons++;
+
+            if (different)
+              diffs.push({ instrument, dpr, zoom, prefix: i + 1, different });
+          }
+        }
+
+    return { comparisons, diffs };
+  },
+
+  async mixedContent() {
+    const items = Array.from({ length: 600 }, (_, index) => {
+      const x = (index % 30) * 360,
+        y = Math.floor(index / 30) * 360;
+
+      if (index % 3) {
+        const ink = note(index + 1);
+
+        ink.style = {
+          instrument: index % 3 === 1 ? "pressure" : "highlighter",
+          opacity: index % 3 === 1 ? 1 : 0.3,
+          pressureStrength: 65,
+        };
+
+        return ink;
+      }
+
+      return {
+        kind: "template",
+        id: index + 1,
+        generatorVersion: 1,
+        matrix: [1, 0, 0, 1, x, y],
+        template: {
+          kind: "circle",
+          width: 320,
+          height: 320,
+          color: "#182230",
+          lineWidth: 2,
+          dashed: false,
+          fill: null,
+          min: -5,
+          max: 5,
+          step: 1,
+          numbers: true,
+          grid: false,
+          labels: true,
+          rays: true,
+        },
+      };
+    });
+
+    const { renderer, flush } = setup(items);
+
+    flush();
+
+    const work = [];
+
+    const result = await observe(async () => {
+      for (let frame = 0; frame < 90; frame++) {
+        await nextFrame();
+
+        const start = performance.now();
+
+        renderer.setViewport({
+          zoom: 1 + frame / 180,
+          x: -frame * 4,
+          y: -frame * 3,
+        });
+
+        flush();
+        work.push(performance.now() - start);
+      }
+
+      return {
+        fixture: "mixed-styles-templates",
+        count: items.length,
+        work: stats(work),
+      };
+    });
+
+    renderer.dispose();
+
+    return result;
   },
 
   raster() {

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-13T16:06:53.153816+00:00",
+  "generatedAt": "2026-11-14T08:41:56.855186+00:00",
   "title": "Design System: penable",
   "extensions": {
     "colorMeta": {
@@ -210,7 +210,7 @@
     "breakpoints": [
       {
         "name": "dock-desktop",
-        "value": ">=1200px; fixed 730×56px; board 128px/context 190px; top 16px"
+        "value": ">=1200px; fixed 778×56px; board 128px/context 190px; top 16px"
       },
       {
         "name": "dock-two-row",
@@ -227,7 +227,7 @@
       "name": "Icon Button",
       "kind": "button",
       "description": "Forty-pixel control using decorative Lucide SVG icons and accessible button names.",
-      "html": "<button class=\"ds-icon-button\" type=\"button\" aria-label=\"\u041f\u0435\u0440\u043e\" aria-pressed=\"true\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m14 4 6 6-9 9-7 1 1-7Z M11 7l6 6 M4 20l4-4\"/></svg></button>",
+      "html": "<button class=\"ds-icon-button\" type=\"button\" aria-label=\"Перо\" aria-pressed=\"true\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m14 4 6 6-9 9-7 1 1-7Z M11 7l6 6 M4 20l4-4\"/></svg></button>",
       "css": ".ds-icon-button{width:40px;height:40px;padding:0;display:inline-grid;place-items:center;border:0;border-radius:8px;background:transparent;color:var(--ink,#182230);cursor:pointer;}.ds-icon-button svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}.ds-icon-button:not(:disabled):hover{background:var(--control-hover,#f1f4f8);}.ds-icon-button[aria-pressed=\"true\"]{color:var(--control-selected-text,#175cd3);background:var(--control-selected-bg,#eaf1ff);}.ds-icon-button:focus-visible{outline:2px solid var(--focus,#175cd3);outline-offset:3px;}.ds-icon-button:disabled{color:var(--control-disabled,#86909f);cursor:default;}",
       "refersTo": "icon-button"
     },
@@ -235,7 +235,7 @@
       "name": "Primary Recovery Button",
       "kind": "button",
       "description": "Full-width recovery action in save details.",
-      "html": "<button class=\"ds-primary\" type=\"button\">\u041f\u043e\u0432\u0442\u043e\u0440\u0438\u0442\u044c \u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u0435</button>",
+      "html": "<button class=\"ds-primary\" type=\"button\">Повторить сохранение</button>",
       "css": ".ds-primary{font-family:\"Segoe UI\",system-ui,sans-serif;width:100%;min-height:40px;padding:9px 12px;border:0;border-radius:8px;font-size:12px;color:var(--paper,#fff);background:var(--focus,#175cd3);cursor:pointer;}.ds-primary:not(:disabled):hover{background:#124cb1;}.ds-primary:focus-visible{outline:2px solid var(--focus,#175cd3);outline-offset:3px;}.ds-primary:disabled{color:var(--control-disabled,#86909f);cursor:default;}",
       "refersTo": "primary-button"
     },
@@ -243,21 +243,21 @@
       "name": "Secondary Recovery Button",
       "kind": "button",
       "description": "Quiet outlined download or reconnect action in a contextual panel.",
-      "html": "<button class=\"ds-secondary\" type=\"button\">\u0421\u043a\u0430\u0447\u0430\u0442\u044c \u043a\u043e\u043f\u0438\u044e</button>",
+      "html": "<button class=\"ds-secondary\" type=\"button\">Скачать копию</button>",
       "css": ".ds-secondary{font-family:\"Segoe UI\",system-ui,sans-serif;width:100%;min-height:40px;padding:9px 12px;border:0;border-radius:8px;font-size:12px;color:var(--ink,#182230);background:transparent;box-shadow:inset 0 0 0 1px var(--divider,#e0e5ec);cursor:pointer;}.ds-secondary:not(:disabled):hover{background:var(--control-hover,#f1f4f8);}.ds-secondary:focus-visible{outline:2px solid var(--focus,#175cd3);outline-offset:3px;}.ds-secondary:disabled{color:var(--control-disabled,#86909f);cursor:default;}"
     },
     {
       "name": "Range Input",
       "kind": "input",
       "description": "Forty-pixel hit height with a thin track and accent thumb for width/stabilization.",
-      "html": "<label class=\"ds-range-label\">\u0421\u0442\u0430\u0431\u0438\u043b\u0438\u0437\u0430\u0446\u0438\u044f<input class=\"ds-range\" type=\"range\" min=\"0\" max=\"100\" value=\"65\" aria-label=\"\u0421\u0442\u0430\u0431\u0438\u043b\u0438\u0437\u0430\u0446\u0438\u044f\"></label>",
+      "html": "<label class=\"ds-range-label\">Стабилизация<input class=\"ds-range\" type=\"range\" min=\"0\" max=\"100\" value=\"65\" aria-label=\"Стабилизация\"></label>",
       "css": ".ds-range-label{font-family:\"Segoe UI\",system-ui,sans-serif;display:grid;color:var(--ink,#182230);font-size:13px;}.ds-range{appearance:none;width:100%;min-height:40px;margin:0;background:transparent;accent-color:var(--focus,#175cd3);cursor:pointer;}.ds-range::-webkit-slider-runnable-track{height:3px;border-radius:3px;background:var(--divider,#e0e5ec);}.ds-range::-webkit-slider-thumb{appearance:none;width:13px;height:13px;margin-top:-5px;border-radius:50%;background:var(--focus,#175cd3);box-shadow:0 0 0 2px #fff;}.ds-range:focus-visible{outline:2px solid var(--focus,#175cd3);outline-offset:3px;}.ds-range:disabled{opacity:.5;cursor:default;}"
     },
     {
       "name": "Floating Tool Dock",
       "kind": "nav",
-      "description": "Signature solid white floating toolbar: fixed 730×56px with 128px board and 190px context slots at widths >=1200px; two rows at 651–1199px (104px high, top 80px); three rows at <=650px (152px high, top 80px). The current-board chooser leads the dock with an 11px muted library label above a 14px semibold board name inside its 40px control; tools stay grouped. Image insertion feedback is visible out of flow; its notice has 10px corners.",
-      "html": "<div class=\"ds-dock\" role=\"group\" aria-label=\"\u0418\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u044b \u0434\u043e\u0441\u043a\u0438\"><button class=\"ds-dock-tool\" type=\"button\" aria-label=\"\u041f\u0435\u0440\u043e\" aria-pressed=\"true\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m14 4 6 6-9 9-7 1 1-7Z M11 7l6 6 M4 20l4-4\"/></svg></button><span class=\"ds-dock-divider\" aria-hidden=\"true\"></span><span class=\"ds-dock-readout\">3.0 <small>px</small></span></div>",
+      "description": "Signature solid white floating toolbar: fixed 778×56px with 128px board and 190px context slots at widths >=1200px; two rows at 651–1199px (104px high, top 80px); three rows at <=650px (152px high, top 80px). The current-board chooser leads the dock with an 11px muted library label above a 14px semibold board name inside its 40px control; tools stay grouped. Image insertion feedback is visible out of flow; its notice has 10px corners.",
+      "html": "<div class=\"ds-dock\" role=\"group\" aria-label=\"Инструменты доски\"><button class=\"ds-dock-tool\" type=\"button\" aria-label=\"Перо\" aria-pressed=\"true\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m14 4 6 6-9 9-7 1 1-7Z M11 7l6 6 M4 20l4-4\"/></svg></button><span class=\"ds-dock-divider\" aria-hidden=\"true\"></span><span class=\"ds-dock-readout\">3.0 <small>px</small></span></div>",
       "css": ".ds-dock{font-family:\"Segoe UI\",system-ui,sans-serif;display:inline-flex;align-items:center;gap:8px;height:56px;padding:8px;border-radius:12px;background:var(--paper,#fff);color:var(--ink,#182230);box-shadow:var(--chrome-shadow,0 3px 14px rgb(24 34 48 / 8%),0 1px 3px rgb(24 34 48 / 5%));}.ds-dock-tool{width:40px;height:40px;padding:0;border:0;border-radius:8px;display:grid;place-items:center;background:var(--control-selected-bg,#eaf1ff);color:var(--focus,#175cd3);cursor:pointer;}.ds-dock-tool svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}.ds-dock-tool:hover{background:var(--control-hover,#f1f4f8);}.ds-dock-tool:focus-visible{outline:2px solid var(--focus,#175cd3);outline-offset:3px;}.ds-dock-divider{width:1px;height:22px;margin:0 3px;background:var(--divider,#e0e5ec);}.ds-dock-readout{font-size:13px;font-variant-numeric:tabular-nums;}.ds-dock-readout small{font-size:11px;color:var(--text-muted,#526176);}",
       "refersTo": "floating-dock"
     },
@@ -265,20 +265,20 @@
       "name": "Menu Row",
       "kind": "nav",
       "description": "Full-width icon/label row used in board and selection disclosures.",
-      "html": "<button class=\"ds-menu-row\" type=\"button\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M12 3v12 m-5-5 5 5 5-5 M4 16v5h16v-5\"/></svg><span>\u0421\u043a\u0430\u0447\u0430\u0442\u044c JSON-\u043a\u043e\u043f\u0438\u044e</span></button>",
+      "html": "<button class=\"ds-menu-row\" type=\"button\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M12 3v12 m-5-5 5 5 5-5 M4 16v5h16v-5\"/></svg><span>Скачать JSON-копию</span></button>",
       "css": ".ds-menu-row{font-family:\"Segoe UI\",system-ui,sans-serif;display:flex;align-items:center;gap:11px;width:100%;min-height:40px;padding:8px;border:0;border-radius:8px;color:var(--ink,#182230);background:transparent;text-align:left;font-size:12px;cursor:pointer;}.ds-menu-row svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}.ds-menu-row:not(:disabled):hover{background:var(--control-hover,#f1f4f8);}.ds-menu-row:focus-visible{outline:2px solid var(--focus,#175cd3);outline-offset:3px;}.ds-menu-row:disabled{color:var(--control-disabled,#86909f);cursor:default;}"
     },
     {
       "name": "Context Panel",
       "kind": "card",
       "description": "Solid white, softly elevated container for disclosed settings and selection actions. The board library is a separate left sidebar up to 360px wide with 16px corners, name search, scrollable rows with 44px color/icon covers and 10px corners, per-row appearance/rename/delete actions, and a creation form below the list. The protected delete dialog uses an 18px heading.",
-      "html": "<section class=\"ds-panel\"><h2>\u041f\u0435\u0440\u043e</h2><p>\u0421\u0433\u043b\u0430\u0436\u0438\u0432\u0430\u0435\u0442 \u0434\u0432\u0438\u0436\u0435\u043d\u0438\u044f \u043f\u0435\u0440\u0430.<br>\u041f\u0440\u0438\u043c\u0435\u043d\u044f\u0435\u0442\u0441\u044f \u043a \u0441\u043b\u0435\u0434\u0443\u044e\u0449\u0435\u043c\u0443 \u0448\u0442\u0440\u0438\u0445\u0443.</p></section>",
+      "html": "<section class=\"ds-panel\"><h2>Перо</h2><p>Сглаживает движения пера.<br>Применяется к следующему штриху.</p></section>",
       "css": ".ds-panel{font-family:\"Segoe UI\",system-ui,sans-serif;width:284px;padding:16px;border-radius:14px;color:var(--ink,#182230);background:var(--paper,#fff);box-shadow:var(--popover-shadow,0 6px 24px rgb(24 34 48 / 12%),0 1px 4px rgb(24 34 48 / 5%));}.ds-panel h2{margin:0 0 14px;font-size:14px;font-weight:600;}.ds-panel p{margin:0;color:var(--text-muted,#526176);font-size:12px;line-height:1.6;}"
     }
   ],
   "narrative": {
     "northStar": "The Writing-First Notebook",
-    "overview": "The owner-approved light writing editor uses a stable dock for the current-board chooser, tools, history, status and settings, with static branding, lower navigation and help. The dock is fixed at 730×56px with 128px board and 190px context slots from 1200px upward, two rows and 104px high at 651–1199px, and three rows and 152px high at 650px and below. A left board-library sidebar provides name search, scrollable color/icon cover rows with per-row actions, and a creation form. Lucide icons share one weight; backgrounds and last-writing navigation are configurable and predictable.",
+    "overview": "The owner-approved light writing editor uses a stable dock for the current-board chooser, tools, history, status and settings, with static branding, lower navigation and help. The dock is fixed at 778×56px with 128px board and 190px context slots from 1200px upward, two rows and 104px high at 651–1199px, and three rows and 152px high at 650px and below. A left board-library sidebar provides name search, scrollable color/icon cover rows with per-row actions, and a creation form. Lucide icons share one weight; backgrounds and last-writing navigation are configurable and predictable.",
     "keyCharacteristics": [
       "Light writing field with a compact floating horizontal tool dock.",
       "Inline width, contextual stabilization and restrained peripheral controls.",

@@ -1,3 +1,5 @@
+import { BoardWriting } from "~/entities/board";
+import { WritingDecoder } from "./writing-decoder";
 import { ItemCodec } from "./item-codec";
 import { type BoardDocument } from "../../board-document.types";
 import { CodecConfig } from "./document-codec.config";
@@ -19,13 +21,14 @@ function decodeDocument(
     (schemaVersion !== 1 &&
       schemaVersion !== 2 &&
       schemaVersion !== 3 &&
-      schemaVersion !== 4)
+      schemaVersion !== 4 &&
+      schemaVersion !== 5)
   )
     CodecPrimitives.invalid("format/schemaVersion");
 
   const decoded =
-    schemaVersion === 4
-      ? ItemCodec.decode(root, limits, geometryOnly)
+    schemaVersion === 4 || schemaVersion === 5
+      ? ItemCodec.decode(root, limits, geometryOnly, schemaVersion === 5)
       : StrokeDecoder.decodeStrokes(
           CodecPrimitives.own(root, "strokes"),
           schemaVersion === 1 ? 1 : 2,
@@ -50,7 +53,7 @@ function decodeDocument(
   let backgroundSettings = { contrast: 45, spacing: 24 };
   let lastWritingView: import("~/entities/board").WritingView | null = null;
 
-  if (schemaVersion === 3 || schemaVersion === 4) {
+  if (schemaVersion === 3 || schemaVersion === 4 || schemaVersion === 5) {
     const settings = CodecPrimitives.object(
       CodecPrimitives.own(root, "backgroundSettings"),
       "backgroundSettings",
@@ -115,7 +118,7 @@ function decodeDocument(
 
   const result: BoardDocument = {
     format: "penable-board",
-    schemaVersion: schemaVersion as 1 | 2 | 3 | 4,
+    schemaVersion: schemaVersion as 1 | 2 | 3 | 4 | 5,
     strokes: decoded,
     viewport: {
       zoom: CodecPrimitives.number(
@@ -137,6 +140,13 @@ function decodeDocument(
     backgroundSettings,
     lastWritingView,
     tools: {
+      ...(schemaVersion === 5
+        ? {
+            writing: WritingDecoder.writing(
+              CodecPrimitives.own(tools, "writing"),
+            ),
+          }
+        : {}),
       width: CodecPrimitives.number(
         CodecPrimitives.own(tools, "width"),
         0.5,
@@ -197,7 +207,10 @@ function documentStats(document: BoardDocument) {
     strokes: document.strokes.length,
     points: document.strokes.reduce(
       (sum, stroke) =>
-        sum + (stroke.kind === "image" ? 0 : stroke.points.length),
+        sum +
+        (stroke.kind === "image" || stroke.kind === "template"
+          ? 0
+          : stroke.points.length),
       0,
     ),
   };
@@ -208,7 +221,16 @@ function encodeDocument(document: BoardDocument, geometryOnly = false) {
 
   return {
     ...root,
-    schemaVersion: 4,
+    schemaVersion: 5,
+    tools: {
+      ...document.tools,
+      writing:
+        document.tools.writing ??
+        BoardWriting.defaults(
+          document.tools.width,
+          document.tools.stabilization,
+        ),
+    },
     ...ItemCodec.encode(document.strokes, geometryOnly),
   };
 }

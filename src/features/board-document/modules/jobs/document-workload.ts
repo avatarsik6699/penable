@@ -27,7 +27,11 @@ function heavyDocument(
       if (imageBytes >= 128 * 1024) return true;
     }
 
-    points += stroke.kind === "image" ? 0 : stroke.points.length;
+    points +=
+      stroke.kind === "image" || stroke.kind === "template"
+        ? 0
+        : stroke.points.length;
+
     vertices += stroke.clip ? BoardRegions.vertexCount(stroke.clip) : 0;
 
     if (

@@ -16,6 +16,12 @@ function fakeDatabase(keyPath: string | null = null, autoIncrement = false) {
 
   function transaction() {
     const reads = new Map<string, ReturnType<typeof request>>();
+
+    const requests: Array<{
+      key: string;
+      request: ReturnType<typeof request>;
+    }> = [];
+
     const puts: Array<[unknown, IDBValidKey | undefined]> = [];
 
     const store = {
@@ -26,6 +32,7 @@ function fakeDatabase(keyPath: string | null = null, autoIncrement = false) {
         const req = request();
 
         reads.set(`value:${key}`, req);
+        requests.push({ key: `value:${key}`, request: req });
 
         return req;
       },
@@ -34,6 +41,7 @@ function fakeDatabase(keyPath: string | null = null, autoIncrement = false) {
         const req = request();
 
         reads.set(`key:${key}`, req);
+        requests.push({ key: `key:${key}`, request: req });
 
         return req;
       },
@@ -48,6 +56,7 @@ function fakeDatabase(keyPath: string | null = null, autoIncrement = false) {
     return {
       objectStore: () => store,
       reads,
+      requests,
       puts,
       oncomplete: null as (() => void) | null,
       onabort: null as (() => void) | null,
@@ -152,6 +161,7 @@ describe("native IndexedDB adapter transaction boundary", () => {
       beforeSchema2: { exists: false, value: undefined },
       beforeSchema3: { exists: false, value: undefined },
       beforeSchema4: { exists: false, value: undefined },
+      beforeSchema5: { exists: false, value: undefined },
       beforeLibrary: { exists: false, value: undefined },
     });
 
@@ -431,6 +441,78 @@ describe("atomic schema3 upgrade copy", () => {
     expect(retryTx.reads.has("value:main")).toBe(true);
     retryTx.oncomplete?.();
     await retry;
+    await repository.close();
+  });
+});
+
+describe("atomic schema5 backup", () => {
+  it.each(["write", "replace"] as const)(
+    "preserves exact raw schema4 in the %s transaction and waits for completion",
+    async (mode) => {
+      const h = fakeDatabase();
+
+      h.opening.onsuccess?.();
+
+      const repository = await h.opened;
+
+      const raw = { schemaVersion: 4, unknown: { mustRemain: true } },
+        candidate = DocumentCodec.emptyDocument();
+
+      let saved = false;
+
+      const pending = (
+        mode === "write"
+          ? repository.write(candidate)
+          : repository.replace({ memory: true }, candidate)
+      ).then(() => {
+        saved = true;
+      });
+
+      const tx = h.transactions.at(-1)!;
+
+      for (const entry of tx.requests) {
+        entry.request.result = entry.key === "value:main" ? raw : undefined;
+        entry.request.onsuccess?.();
+      }
+
+      expect(tx.puts.find(([, key]) => key === "before-schema5")![0]).toBe(raw);
+
+      expect(tx.puts.find(([, key]) => key === "main")![0]).toEqual(
+        DocumentCodec.encodeDocument(candidate),
+      );
+
+      expect(saved).toBe(false);
+      tx.oncomplete?.();
+      await pending;
+      expect(saved).toBe(true);
+      await repository.close();
+    },
+  );
+
+  it("does not overwrite an existing raw upgrade copy and rejects an aborted write", async () => {
+    const h = fakeDatabase();
+
+    h.opening.onsuccess?.();
+
+    const repository = await h.opened;
+    const pending = repository.write(DocumentCodec.emptyDocument());
+    const assertion = expect(pending).rejects.toThrow();
+    const tx = h.transactions.at(-1)!;
+
+    for (const entry of tx.requests) {
+      entry.request.result =
+        entry.key === "value:main"
+          ? { schemaVersion: 4 }
+          : entry.key === "key:before-schema5"
+            ? "before-schema5"
+            : undefined;
+
+      entry.request.onsuccess?.();
+    }
+
+    expect(tx.puts.some(([, key]) => key === "before-schema5")).toBe(false);
+    tx.onabort?.();
+    await assertion;
     await repository.close();
   });
 });

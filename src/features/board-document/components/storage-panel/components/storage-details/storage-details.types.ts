@@ -11,6 +11,7 @@ export namespace StorageDetailsTypes {
     | "onUpgrade"
     | "onSchema3"
     | "onSchema4"
+    | "onSchema5"
     | "onLibrary"
     | "onRaw"
     | "onRetry"

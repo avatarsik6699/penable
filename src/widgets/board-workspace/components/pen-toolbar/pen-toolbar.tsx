@@ -1,6 +1,7 @@
 import type React from "react";
 import { Button } from "~/shared/ui/button";
 import { EditorIcon } from "~/shared/ui/editor-icon";
+import { TemplatePanel } from "./components/template-panel";
 import { InkSettings } from "./components/ink-settings";
 import { PenSettings } from "./components/pen-settings";
 import { HistoryControls } from "./components/history-controls";
@@ -13,6 +14,11 @@ export const PenToolbar: React.FC<PenToolbarTypes.Props> = (props) => {
   const panel = usePanelDismiss({
     open: props.penOpen,
     onClose: () => props.onPenOpenChange(false),
+  });
+
+  const templatesPanel = usePanelDismiss({
+    open: props.templatesOpen,
+    onClose: () => props.onTemplatesOpenChange(false),
   });
 
   return (
@@ -33,6 +39,18 @@ export const PenToolbar: React.FC<PenToolbarTypes.Props> = (props) => {
           onClick={props.onInsertImage}
         >
           <EditorIcon name="image" />
+        </Button>
+        <Button
+          ref={(node) => templatesPanel.bindTrigger(node)}
+          className={styles.imageInsert}
+          aria-label="Фигуры и заготовки"
+          title="Фигуры и заготовки"
+          aria-haspopup="dialog"
+          aria-expanded={props.templatesOpen}
+          disabled={props.readOnly || props.historyState.busy}
+          onClick={() => props.onTemplatesOpenChange(!props.templatesOpen)}
+        >
+          <EditorIcon name="shapes" />
         </Button>
         <ToolControls
           tool={props.tool}
@@ -56,6 +74,9 @@ export const PenToolbar: React.FC<PenToolbarTypes.Props> = (props) => {
         {props.tool === "pen" ? (
           <InkSettings
             width={props.width}
+            highlighter={props.writing.instrument === "highlighter"}
+            color={props.writing.instruments[props.writing.instrument].color}
+            onColor={() => props.onPenOpenChange(!props.penOpen)}
             onWidthChange={props.onWidthChange}
             readOnly={props.readOnly}
           />
@@ -71,7 +92,7 @@ export const PenToolbar: React.FC<PenToolbarTypes.Props> = (props) => {
           role={props.insertion.phase === "error" ? "alert" : "status"}
         >
           <span>{props.insertion.message}</span>
-          {["error", "success"].includes(props.insertion.phase) && (
+          {["error", "success", "placing"].includes(props.insertion.phase) && (
             <Button
               className={styles.dismissNotice}
               aria-label="Закрыть сообщение о вставке"
@@ -95,9 +116,20 @@ export const PenToolbar: React.FC<PenToolbarTypes.Props> = (props) => {
           </p>
         )}
       <div className={styles.trailing}>{props.trailingControls}</div>
+      {props.templatesOpen && (
+        <TemplatePanel
+          disabled={props.readOnly || props.historyState.busy}
+          onPlace={props.onInsertTemplate}
+          onClose={templatesPanel.closeAndFocus}
+          bindRoot={templatesPanel.bindRoot}
+        />
+      )}
       {props.penOpen && (
         <PenSettings
           width={props.width}
+          writing={props.writing}
+          onInstrumentChange={props.onInstrumentChange}
+          onInkSettingsChange={props.onInkSettingsChange}
           stabilization={props.stabilization}
           onStabilizationChange={props.onStabilizationChange}
           readOnly={props.readOnly}

@@ -205,7 +205,7 @@ describe("origin-owned board library", () => {
     expect(h.records.get("raw")).toBe(h.original);
 
     expect(h.records.get("main")).toMatchObject({
-      schemaVersion: 4,
+      schemaVersion: 5,
       items: [{ kind: "ink", id: 1 }],
     });
 

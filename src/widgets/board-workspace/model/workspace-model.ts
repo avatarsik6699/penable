@@ -17,6 +17,9 @@ import {
   type SelectionClipboard,
   type SelectionShape,
   BoardStabilization,
+  BoardWriting,
+  type InkInstrument,
+  type InstrumentSettings,
 } from "~/entities/board";
 import {
   DocumentSnapshots,
@@ -56,6 +59,7 @@ export class WorkspaceModel {
         png: false,
       }),
       tool: "pen",
+      writing: BoardWriting.defaults(),
       width: 3,
       stabilization: 65,
       background: "blank",
@@ -135,8 +139,9 @@ export class WorkspaceModel {
           }
         : null,
       tools: {
-        width: this.state.width,
-        stabilization: this.state.stabilization,
+        width: this.state.writing.instruments.pen.width,
+        stabilization: this.state.writing.instruments.pen.stabilization,
+        writing: BoardWriting.clone(this.state.writing),
       },
     };
   };
@@ -191,9 +196,19 @@ export class WorkspaceModel {
           hasInk: board.strokes.length > 0,
           tool: "pen",
           selectionShape: "rectangle",
-          width: board.tools.width,
+          writing: BoardWriting.clone(
+            board.tools.writing ??
+              BoardWriting.defaults(
+                board.tools.width,
+                board.tools.stabilization,
+              ),
+          ),
+          width:
+            board.tools.writing?.instruments[board.tools.writing.instrument]
+              .width ?? board.tools.width,
           stabilization: BoardStabilization.normalizeStrength(
-            board.tools.stabilization,
+            board.tools.writing?.instruments[board.tools.writing.instrument]
+              .stabilization ?? board.tools.stabilization,
           ),
           background: board.background,
           backgroundSettings: Object.freeze({
@@ -295,24 +310,68 @@ export class WorkspaceModel {
     )
       return;
 
+    this.controls.current?.cancelInput();
+
     if (tool !== "selection") this.controls.current?.selection("clear");
 
     this.patch({ tool });
   };
 
-  readonly changeWidth = (width: number) => {
-    if (this.canWrite()) {
-      this.patch({ width });
-      this.documentChanged(false);
-    }
+  readonly changeInstrument = (instrument: InkInstrument) => {
+    if (
+      !this.canWrite() ||
+      this.controls.current?.isBusy() ||
+      !BoardWriting.isInstrument(instrument)
+    )
+      return;
+
+    this.controls.current?.cancelInput();
+    this.controls.current?.selection("clear");
+
+    const writing = { ...this.state.writing, instrument };
+    const settings = writing.instruments[instrument];
+
+    this.patch({
+      writing,
+      tool: "pen",
+      width: settings.width,
+      stabilization: settings.stabilization,
+    });
+
+    this.documentChanged(false);
   };
 
-  readonly changeStabilization = (stabilization: number) => {
-    if (this.canWrite()) {
-      this.patch({ stabilization });
-      this.documentChanged(false);
-    }
+  readonly changeInkSettings = (patch: Partial<InstrumentSettings>) => {
+    if (!this.canWrite()) return;
+
+    const instrument = this.state.writing.instrument;
+
+    const settings = {
+      ...this.state.writing.instruments[instrument],
+      ...patch,
+    };
+
+    if (!BoardWriting.validSettings(settings, instrument)) return;
+
+    this.patch({
+      writing: {
+        ...this.state.writing,
+        instruments: {
+          ...this.state.writing.instruments,
+          [instrument]: settings,
+        },
+      },
+      width: settings.width,
+      stabilization: settings.stabilization,
+    });
+
+    this.documentChanged(false);
   };
+
+  readonly changeWidth = (width: number) => this.changeInkSettings({ width });
+
+  readonly changeStabilization = (stabilization: number) =>
+    this.changeInkSettings({ stabilization });
 
   readonly changeBackground = (background: BackgroundMode) => {
     if (this.canWrite()) {
@@ -467,6 +526,12 @@ export class WorkspaceModel {
       return DocumentErrors.messageOf(error);
     }
   }
+
+  readonly exportSchema5 = () =>
+    this.exportRecord(
+      this.session?.schema5Record,
+      "penable-before-schema5.json",
+    );
 
   readonly exportSchema4 = () =>
     this.exportRecord(

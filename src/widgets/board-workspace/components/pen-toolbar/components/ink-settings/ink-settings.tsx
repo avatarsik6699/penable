@@ -5,16 +5,29 @@ import { RangeInput } from "~/shared/ui/range-input";
 
 export const InkSettings: React.FC<InkSettingsTypes.Props> = (props) => (
   <div className={styles.width}>
-    <span className={styles.preview} aria-hidden="true">
-      <span style={{ width: props.width, height: props.width }} />
-    </span>
+    <button
+      className={styles.preview}
+      type="button"
+      aria-label="Выбрать цвет"
+      title="Цвет и параметры"
+      disabled={props.readOnly}
+      onClick={props.onColor}
+    >
+      <span
+        style={{
+          width: Math.min(16, props.width),
+          height: Math.min(16, props.width),
+          background: props.color,
+        }}
+      />
+    </button>
     <label className={styles.hidden} htmlFor="pen-width">
       Толщина
     </label>
     <RangeInput
       id="pen-width"
-      min="0.5"
-      max="12"
+      min={props.highlighter ? "4" : "0.5"}
+      max={props.highlighter ? "64" : "12"}
       step="0.1"
       value={props.width}
       disabled={props.readOnly}

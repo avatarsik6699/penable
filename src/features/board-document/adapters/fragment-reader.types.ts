@@ -1,4 +1,10 @@
-import type { ClipMask, ImageAsset, ImageItem, Stroke } from "~/entities/board";
+import type {
+  ClipMask,
+  ImageAsset,
+  ImageItem,
+  Stroke,
+  TemplateItem,
+} from "~/entities/board";
 
 export namespace FragmentReaderTypes {
   export type Response =
@@ -13,6 +19,7 @@ export namespace FragmentReaderTypes {
     | {
         type: "item";
         item:
+          | TemplateItem
           | Omit<Stroke, "points">
           | (Omit<ImageItem, "asset"> & { assetId: string });
       }

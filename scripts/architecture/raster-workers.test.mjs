@@ -51,6 +51,44 @@ test("only the registered raster execution root can reach its exact native paint
   );
 });
 
+test("writing and template painters extend only the explicit raster execution closure", () => {
+  for (const name of ["pressure-paint", "template-paint"]) {
+    const child = `${base}/rendering/${name}.ts`;
+
+    const source =
+      name === "pressure-paint"
+        ? "export const render = () => new Path2D();"
+        : "export const render = () => 1;";
+
+    const files = {
+      ...fixture(),
+      [painter]: `import { render } from "./${name}"; export const paint = render;`,
+      [child]: source,
+    };
+
+    assert.deepEqual(check(files), []);
+
+    rejects(
+      {
+        ...files,
+        [child]:
+          "export const render = () => document.createElement('canvas');",
+      },
+      "worker-platform",
+    );
+
+    rejects(
+      {
+        ...files,
+        "src/features/board-document/adapters/ordinary.ts":
+          'new Worker(new URL("./ordinary-worker.ts", import.meta.url));',
+        "src/features/board-document/adapters/ordinary-worker.ts": `import { render } from "~/widgets/board-workspace/components/writing-surface/native/rendering/${name}"; export { render };`,
+      },
+      name === "pressure-paint" ? "worker-platform" : "worker-ui",
+    );
+  }
+});
+
 test("raster exception never admits DOM, frames, clipboard or a nested Worker", () => {
   for (const source of [
     'export const render = () => document.createElement("canvas");',

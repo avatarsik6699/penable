@@ -74,13 +74,14 @@ export const FragmentReader = {
               ...data.item,
               asset: assets.get(data.item.assetId)!,
             });
+          else if (data.item.kind === "template") strokes.push(data.item);
           else strokes.push({ ...data.item, points: [] } as Stroke);
         }
 
         if (data.type === "points") {
           const stroke = strokes.at(-1);
 
-          if (stroke && stroke.kind !== "image") {
+          if (stroke && stroke.kind !== "image" && stroke.kind !== "template") {
             for (let i = 0; i < data.values.length; i += 4)
               stroke.points.push({
                 x: data.values[i]!,

@@ -41,6 +41,8 @@ function metadata(
     return entry;
   }
 
+  if (stroke.kind === "template") return stroke;
+
   const { points: _points, ...entry } = stroke;
 
   return entry;
@@ -72,6 +74,8 @@ async function finish(id: number) {
           ...entry,
           asset: assets.get(entry.asset.id) ?? { ...entry.asset, base64: "" },
         };
+
+      if (entry.kind === "template") return entry;
 
       const { geometry, ...stroke } = entry;
 
@@ -150,7 +154,7 @@ async function finish(id: number) {
         boardId ?? "main",
       );
 
-      await (await repository).write({ ...document, schemaVersion: 4 });
+      await (await repository).write({ ...document, schemaVersion: 5 });
     }
 
     if (selection) {
@@ -182,7 +186,9 @@ async function finish(id: number) {
 
     const used = new Set(
       strokes.flatMap((stroke) =>
-        stroke.kind === "image" ? [] : [stroke.geometry],
+        stroke.kind === "image" || stroke.kind === "template"
+          ? []
+          : [stroke.geometry],
       ),
     );
 

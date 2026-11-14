@@ -54,6 +54,21 @@ export const BoardWorkspace: React.FC<BoardWorkspaceTypes.Props> = () => {
           workspace.changePanel(null);
           workspace.model.controls.current?.insertImage?.();
         }}
+        writing={workspace.ui.writing}
+        onInstrumentChange={workspace.model.changeInstrument}
+        onInkSettingsChange={workspace.model.changeInkSettings}
+        templatesOpen={workspace.panel === "templates"}
+        onTemplatesOpenChange={(open) =>
+          workspace.changePanel(open ? "templates" : null)
+        }
+        onInsertTemplate={(config, explicitSize) => {
+          workspace.changePanel(null);
+
+          workspace.model.controls.current?.insertTemplate?.(
+            config,
+            explicitSize,
+          );
+        }}
         tool={workspace.ui.tool}
         onToolChange={workspace.changeTool}
         width={workspace.ui.width}
@@ -78,6 +93,7 @@ export const BoardWorkspace: React.FC<BoardWorkspaceTypes.Props> = () => {
             onPrevious={workspace.model.exportPrevious}
             onSchema3={workspace.model.exportSchema3}
             onSchema4={workspace.model.exportSchema4}
+            onSchema5={workspace.model.exportSchema5}
             onLibrary={workspace.model.exportLibrary}
             onRaw={workspace.model.exportRaw}
             onRetry={workspace.model.retry}
@@ -188,6 +204,7 @@ export const BoardWorkspace: React.FC<BoardWorkspaceTypes.Props> = () => {
             tool={workspace.ui.tool}
             getTool={workspace.model.getTool}
             width={workspace.ui.width}
+            writing={workspace.ui.writing}
             stabilization={workspace.ui.stabilization}
             background={workspace.ui.background}
             backgroundSettings={workspace.ui.backgroundSettings}

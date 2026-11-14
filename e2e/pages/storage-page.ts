@@ -49,6 +49,7 @@ export class StoragePage {
                 [`${prefix}before-schema2`, "upgrade"],
                 [`${prefix}before-schema3`, "upgrade3"],
                 [`${prefix}before-schema4`, "upgrade4"],
+                [`${prefix}before-schema5`, "upgrade5"],
                 [`${prefix}before-library`, "beforeLibrary"],
               ]) {
                 const read = store.get(recordKey!);
@@ -190,7 +191,18 @@ export class StoragePage {
     const actual = (await this.records()).main!;
 
     expect(actual.viewport).toEqual(document.viewport);
-    expect(actual.tools).toEqual(document.tools);
+    expect(actual.tools.width).toBe(document.tools.width);
+    expect(actual.tools.stabilization).toBe(document.tools.stabilization);
+    expect(actual.tools.writing?.instrument).toBe("pen");
+
+    expect(actual.tools.writing?.instruments.pen.width).toBe(
+      document.tools.width,
+    );
+
+    expect(actual.tools.writing?.instruments.pen.stabilization).toBe(
+      document.tools.stabilization,
+    );
+
     expect(actual.background).toBe(document.background);
     expect(actual.backgroundSettings).toEqual(document.backgroundSettings);
     expect(actual.lastWritingView).toEqual(document.lastWritingView);
@@ -253,12 +265,35 @@ export class StoragePage {
   }
 
   async expectRecovery(
-    kind: "previous" | "upgrade" | "upgrade3" | "upgrade4" | "beforeLibrary",
+    kind:
+      | "previous"
+      | "upgrade"
+      | "upgrade3"
+      | "upgrade4"
+      | "upgrade5"
+      | "beforeLibrary",
     document: TestBoardTypes.Document | TestBoardTypes.StoredDocument,
   ) {
     await expect
       .poll(async () => (await this.records())[kind])
       .toEqual(document);
+  }
+
+  async expectSchema5RecoveryDownload(document: TestBoardTypes.StoredDocument) {
+    await this.openFiles();
+
+    const pending = this.page.waitForEvent("download");
+
+    await this.page
+      .getByRole("button", { name: "До обновления инструментов", exact: true })
+      .click();
+
+    const download = await pending;
+    const path = await download.path();
+
+    expect(path).toBeTruthy();
+    expect(JSON.parse(await readFile(path!, "utf8"))).toEqual(document);
+    await this.closeDetails();
   }
 
   async openBoardMenu() {
@@ -382,7 +417,7 @@ export class StoragePage {
 
     expect(exported).toEqual((await this.records()).main);
     expect(exported.format).toBe("penable-board");
-    expect(exported.schemaVersion).toBe(4);
+    expect(exported.schemaVersion).toBe(5);
   }
 
   async expectReadOnly() {

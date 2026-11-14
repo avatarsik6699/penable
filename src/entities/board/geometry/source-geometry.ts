@@ -13,7 +13,7 @@ const geometryCache = new WeakMap<
 const liveCache = new WeakMap<Stroke, LiveStrokeGeometry>();
 
 function geometryKey(stroke: Stroke) {
-  return JSON.stringify([stroke.width, stroke.stabilization]);
+  return JSON.stringify([stroke.width, stroke.stabilization, stroke.style]);
 }
 
 // Active inputs append immutable samples. Replacing the array/profile or shrinking

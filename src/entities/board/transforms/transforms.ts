@@ -86,7 +86,11 @@ function apply(item: BoardItem, transform: AffineMatrix): BoardItem {
       "Преобразование слишком мало или выходит за пределы доски.",
     );
 
-  if (item.kind !== "image" && translationOnly(result)) {
+  if (
+    item.kind !== "image" &&
+    item.kind !== "template" &&
+    translationOnly(result)
+  ) {
     const { matrix: _matrix, ...rest } = item;
 
     return { ...rest, translation: { x: result[4], y: result[5] } };

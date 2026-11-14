@@ -21,6 +21,7 @@ export type BindingOptions = {
   getTool: () => DrawingTool;
   canWrite: () => boolean;
   interactionsBlocked: () => boolean;
+  templatePlacement?: import("../templates").TemplatePlacement;
   cancelPendingInput?: () => boolean;
   drawingPointerId: () => number | null;
   activeInput: () => PenInput | EraserInput | BoardSelection;

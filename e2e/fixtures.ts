@@ -12,6 +12,8 @@ import { BoardPage } from "./pages/board-page";
 import { StoragePage } from "./pages/storage-page";
 import { testBoards } from "./data/boards";
 import type { TestBoardTypes } from "./data/board.types";
+import { WritingToolsPage } from "./pages/writing-tools-page";
+import { TemplatesPage } from "./pages/templates-page";
 
 function monitor(
   page: Page,
@@ -168,6 +170,8 @@ type Samples = {
 };
 
 type Fixtures = {
+  writing: WritingToolsPage;
+  templates: TemplatesPage;
   clipboardAccess: void;
   clipboard: BoardClipboardPage;
   clipboardFailure: BoardClipboardPage;
@@ -188,6 +192,7 @@ type Fixtures = {
     previous: TestBoardTypes.Document;
     v2: TestBoardTypes.Document;
     v3: TestBoardTypes.Document;
+    v4: TestBoardTypes.StoredDocument;
     corrupt: unknown;
     missingCatalog: TestBoardTypes.LegacyCatalog;
     distant: TestBoardTypes.Document;
@@ -201,12 +206,22 @@ type Fixtures = {
   legacyBoard: BoardPage;
   v2Board: BoardPage;
   v3Board: BoardPage;
+  v4Board: BoardPage;
+  pressureHeavyBoard: BoardPage;
   corruptStorage: StoragePage;
   missingBoardStorage: StoragePage;
   saveFailureBoard: BoardPage;
 };
 
 export const test = base.extend<Fixtures>({
+  writing: async ({ page, board }, use) => {
+    await use(new WritingToolsPage(page, board));
+  },
+
+  templates: async ({ page, board }, use) => {
+    await use(new TemplatesPage(page, board));
+  },
+
   clipboardAccess: [
     async ({ context }, use) => {
       await context.grantPermissions(["clipboard-read", "clipboard-write"], {
@@ -448,6 +463,7 @@ export const test = base.extend<Fixtures>({
       previous: testBoards.previous(),
       v2: testBoards.previousV2(),
       v3: testBoards.previousV3(),
+      v4: testBoards.previousV4(),
       corrupt: testBoards.corrupt(),
       missingCatalog: testBoards.catalogWithMissingBoard(),
       distant: testBoards.distant(),
@@ -535,6 +551,39 @@ export const test = base.extend<Fixtures>({
         "before-schema3": testBoards.previousV2(),
       });
 
+      await board.open();
+      await use(board);
+    } finally {
+      verify();
+    }
+  },
+
+  v4Board: async ({ page }, use) => {
+    const verify = monitor(page),
+      board = new BoardPage(page, new StoragePage(page));
+
+    try {
+      await seedRecords(page, {
+        main: testBoards.previousV4(),
+        "before-import": testBoards.previous(),
+        "before-schema2": testBoards.legacy(),
+        "before-schema3": testBoards.previousV2(),
+        "before-schema4": testBoards.previousV3(),
+      });
+
+      await board.open();
+      await use(board);
+    } finally {
+      verify();
+    }
+  },
+
+  pressureHeavyBoard: async ({ page }, use) => {
+    const verify = monitor(page),
+      board = new BoardPage(page, new StoragePage(page));
+
+    try {
+      await seedRecords(page, { main: testBoards.pressureHeavy() });
       await board.open();
       await use(board);
     } finally {

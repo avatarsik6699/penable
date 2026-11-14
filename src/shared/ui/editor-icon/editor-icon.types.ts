@@ -13,6 +13,7 @@ export namespace EditorIconTypes {
     | "cut"
     | "paste"
     | "duplicate"
+    | "shapes"
     | "image"
     | "download"
     | "upload"

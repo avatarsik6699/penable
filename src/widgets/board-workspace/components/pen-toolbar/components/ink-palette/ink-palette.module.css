@@ -1,0 +1,40 @@
+.palette {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 2px;
+  margin: 12px 0;
+}
+.swatch {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.swatch:hover {
+  background: var(--control-hover);
+}
+.swatch > span:first-child {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
+.selected {
+  position: absolute;
+  inset: 3px;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+}
+.swatch:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.swatch:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}

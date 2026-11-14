@@ -369,7 +369,10 @@ export class BoardPage {
 
     if (ink.kind !== "ink") throw new Error("Expected ink from the pen tool");
 
-    expect(saved.tools).toEqual({ width: 3.1, stabilization: 66 });
+    expect(saved.tools.width).toBe(3.1);
+    expect(saved.tools.stabilization).toBe(66);
+    expect(saved.tools.writing?.instruments.pen.width).toBe(3.1);
+    expect(saved.tools.writing?.instruments.pen.stabilization).toBe(66);
     expect(ink.width).toBe(3.1);
     expect(ink.stabilization?.strength).toBe(66);
   }

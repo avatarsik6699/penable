@@ -52,7 +52,7 @@ describe("versioned document codec", () => {
 
       const decoded = DocumentCodec.parseDocumentJSON(result.json);
 
-      expect(decoded).toEqual({ ...document, schemaVersion: 4 });
+      expect(decoded).toEqual({ ...document, schemaVersion: 5 });
       expect(decoded.strokes[0]).not.toBe(document.strokes[0]);
 
       const path = (stroke: Stroke) =>
@@ -386,7 +386,11 @@ describe("schema2 fragments and schema1 compatibility", () => {
   ];
 
   it("reads schema1 without changing its original accepted source geometry", () => {
-    const original = { ...fixture(), schemaVersion: 1 };
+    const original = {
+      ...fixture(),
+      schemaVersion: 1,
+      tools: { width: 3, stabilization: 65 },
+    };
 
     expect(DocumentCodec.decodeDocument(original)).toEqual(original);
   });
@@ -409,7 +413,7 @@ describe("schema2 fragments and schema1 compatibility", () => {
       DocumentCodec.serializeDocument(document).json,
     );
 
-    expect(result).toEqual({ ...document, schemaVersion: 4 });
+    expect(result).toEqual({ ...document, schemaVersion: 5 });
 
     const [a, b] = result.strokes;
 
@@ -569,7 +573,7 @@ describe("schema3 view metadata", () => {
       DocumentCodec.serializeDocument(source).json,
     );
 
-    expect(result).toEqual({ ...source, schemaVersion: 4 });
+    expect(result).toEqual({ ...source, schemaVersion: 5 });
     expect(result.backgroundSettings).not.toBe(source.backgroundSettings);
 
     expect(result.lastWritingView!.center).not.toBe(

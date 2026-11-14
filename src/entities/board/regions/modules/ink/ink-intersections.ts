@@ -3,6 +3,8 @@ import {
   type ClipMask,
   type BoardItem,
 } from "../../../board.types";
+import { TemplateIntersections } from "./template-intersections";
+import { BoardPressure } from "../../../writing";
 import { BoardSourceGeometry } from "../../../geometry";
 import { RegionMask } from "../mask";
 import { type InkBounds } from "../../regions.types";
@@ -69,6 +71,17 @@ function inkIntersectsMask(stroke: BoardItem, mask: ClipMask): boolean {
   if (!bounds || !source || !InkUtils.overlaps(bounds, source)) return false;
 
   if (stroke.kind === "image") return true;
+
+  if (stroke.kind === "template")
+    return TemplateIntersections.intersects(stroke, mask);
+
+  if (stroke.style?.instrument === "pressure")
+    return BoardPressure.segments(stroke).some(
+      ({ a, b }) =>
+        RegionMask.contains(mask, a) ||
+        RegionMask.contains(mask, b) ||
+        chordDistance(a, b, mask) <= Math.max(a.radius, b.radius),
+    );
 
   const geometry = BoardSourceGeometry.sourceGeometry(stroke),
     radius = stroke.width / 2;

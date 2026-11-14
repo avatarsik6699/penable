@@ -36,10 +36,18 @@ export class PenInput {
 
     if (!point) return false;
 
-    const requestedWidth = this.options.width();
+    const writing = this.options.writing?.();
+    const settings = writing?.instruments[writing.instrument];
+    const requestedWidth = settings?.width ?? this.options.width();
 
     const width = Number.isFinite(requestedWidth)
-      ? Math.min(12, Math.max(0.5, requestedWidth))
+      ? Math.min(
+          writing?.instrument === "highlighter" ? 64 : 12,
+          Math.max(
+            writing?.instrument === "highlighter" ? 4 : 0.5,
+            requestedWidth,
+          ),
+        )
       : 3;
 
     const id = this.options.allocateId
@@ -50,13 +58,23 @@ export class PenInput {
 
     const stroke = {
       id,
-      color: BoardConstants.INK,
+      color: settings?.color ?? BoardConstants.INK,
+      ...(writing && settings
+        ? {
+            style: {
+              instrument: writing.instrument,
+              opacity: settings.opacity,
+              pressureStrength:
+                event.pointerType === "pen" ? settings.pressureStrength : 0,
+            },
+          }
+        : {}),
       width,
       pointerId: event.pointerId,
       points: [point],
       stabilization: {
         strength: BoardStabilization.normalizeStrength(
-          this.options.stabilization?.() ?? 0,
+          settings?.stabilization ?? this.options.stabilization?.() ?? 0,
         ),
         captureZoom: viewport.zoom,
       },

@@ -28,6 +28,7 @@ export class CanvasRenderer {
   private commits: BoardItem[] = [];
   private disposed = false;
   private preview: ReadonlySet<BoardItem> = new Set();
+  private templatePreview: BoardItem | null = null;
   private selectionPreview: SelectionPreview | null = null;
   private canonicalGroups: BoardItem[] | null = null;
   private stationarySource: readonly BoardItem[] | null = null;
@@ -97,6 +98,11 @@ export class CanvasRenderer {
     this.viewport = viewport;
     this.fullDirty = true;
     this.schedule();
+  }
+
+  setTemplatePreview(item: BoardItem | null) {
+    this.templatePreview = item;
+    this.activeChanged();
   }
 
   activeChanged() {
@@ -300,6 +306,9 @@ export class CanvasRenderer {
             selection.delta,
           );
       }
+
+      if (this.templatePreview)
+        this.painter.drawStroke(this.live.context, this.templatePreview);
 
       if (this.scene.active)
         this.painter.drawStroke(this.live.context, this.scene.active, true);

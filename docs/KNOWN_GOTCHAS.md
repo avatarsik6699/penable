@@ -81,3 +81,27 @@ took6.5–6.7s against a10s assertion deadline, so an old saved scene could cons
 budget. Read the active catalog/board only and project clipped translations inside page.evaluate;
 the same predicate then transferred31bytes in about70ms. Keep exact coordinate, worker-path and
 undo/redo/reload assertions; do not solve observation overhead with retries or larger timeouts.
+
+## Native pressure fill cost is not proven by unit or raster parity
+
+A pressure stroke made from overlapping discs/quads in one nonzero fill passed geometry/raster
+checks but the native10k-point fixture took p95265ms per input batch. A single ribbon improved
+this, but rebuilding all border arrays/native commands every update still produced long tasks
+on50k points. Incremental stable ribbon sections, closed256-segment strips and one native prefix
+fill avoid cumulative reconstruction; keep round caps only at the actual endpoints. Never fix
+this by dropping raw samples, using a bitmap stroke or raising test deadlines. Measure actual
+native input/render batches and keep physical Wacom latency separate.
+
+Direct-context and Path2D reference painters can differ in transform rounding. Compare like
+representations, then inspect changed alpha coordinates and white composites; source/batch
+agreement alone can conceal a shared algorithm defect. Preserve exact legacy and active/commit
+checks. Tiny edge-only coverage differences against an experimental contour reference are
+recorded separately from a visible seam or a change to accepted legacy handwriting.
+
+## Design palette names are not production CSS variable names
+
+DESIGN.md calls the blue color accent, but the actual token is --focus; selected/hover controls
+use --control-selected-bg, --control-selected-text, --control-selected-border and --control-hover.
+An undeclared --accent background silently becomes transparent and can make white button text
+invisible; a browser click test alone will still pass. Check computed contrast/focus and inspect
+the rendered primary action, including its hover state.

@@ -102,6 +102,7 @@ export class EditorChromePage {
       for (const name of [
         "Доски",
         "Вставить изображение",
+        "Фигуры и заготовки",
         "Настройки доски",
         "Перо",
         "Состояние сохранения",
@@ -249,6 +250,7 @@ export class EditorChromePage {
       const buttons = [
         "Доски",
         "Вставить изображение",
+        "Фигуры и заготовки",
         ...tools,
         "Отменить действие",
         "Вернуть действие",
@@ -271,7 +273,7 @@ export class EditorChromePage {
       expect(expectedDock.width).toBeLessThanOrEqual(viewport.width - 24);
 
       if (viewport.width >= 1200) {
-        expect(expectedDock.width).toBe(730);
+        expect(expectedDock.width).toBe(778);
         expect(expectedButtons[0]!.width).toBe(128);
       }
 

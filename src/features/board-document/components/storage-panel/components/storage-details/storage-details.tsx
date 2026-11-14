@@ -55,6 +55,11 @@ export const StorageDetails: React.FC<StorageDetailsTypes.Props> = (props) => (
           Исходная запись
         </Button>
       )}
+      {props.state.hasSchema5Copy && props.onSchema5 && (
+        <Button onClick={() => props.onFeedback(props.onSchema5!())}>
+          До обновления инструментов
+        </Button>
+      )}
       {props.state.hasSchema4Copy && (
         <Button onClick={() => props.onFeedback(props.onSchema4())}>
           <EditorIcon name="history" />
@@ -89,6 +94,7 @@ export const StorageDetails: React.FC<StorageDetailsTypes.Props> = (props) => (
       )}
       {!props.state.hasPrevious &&
         !props.state.hasSchema4Copy &&
+        !props.state.hasSchema5Copy &&
         !props.state.hasLibraryCopy &&
         !props.state.hasRawCopy &&
         !props.state.hasSchema3Copy &&

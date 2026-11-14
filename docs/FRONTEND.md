@@ -139,3 +139,23 @@ Do not create all directories or suffix files by template: every one must own ac
   actual Pages worker paths, native raster and paired performance on the real refactored engine.
 - Gates add formatting, architecture policies/self-tests and browser smoke; Full Gate/local ship
   remain mandatory. Release is separate; Wacom/GPU/browser post-GC claims need actual evidence.
+
+## Writing instruments and vector templates
+
+SPEC5.19 extends the existing scene with styled ink and one discriminated template item. Pure
+writing policy, pressure geometry and versioned mathematical layout belong to entities/board.
+Template layout declares bounded path/ellipse/text primitives; it never invokes native Canvas
+or text metrics. Native painters own resolution-independent replay on editor and PNG-worker
+contexts. Glyph layout/bounds belong to the generator; browser text painting stays native-owned.
+
+The widget composes per-instrument settings and template configuration panels through existing
+coarse model subscriptions. Placement preview is transient, uses the existing live layer and
+current world transform, and never enters document history or persistence before commit.
+One placement creates one item and one history action. Shapes remain immutable configurations
+with affine placement/local clips; exact fragments share source lineage instead of duplicating
+hundreds of independent primitives. Settings changes never reinterpret earlier ink.
+
+Document schema5, strict style/template validation, old-fragment compatibility and atomic raw
+before-schema5 recovery belong to board-document. Existing bounded Worker transport/session
+ownership remain authoritative. Raster-worker exceptions name only the exact pressure/template
+painters; document workers cannot import native painting, DOM, UI or React.

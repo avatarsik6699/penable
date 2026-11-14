@@ -33,7 +33,7 @@ function setup(
     main.value &&
     typeof main.value === "object" &&
     "schemaVersion" in main.value &&
-    main.value.schemaVersion === 4 &&
+    (main.value.schemaVersion === 4 || main.value.schemaVersion === 5) &&
     "strokes" in main.value
   )
     main = {
@@ -456,7 +456,7 @@ describe("serialized document session", () => {
 });
 
 describe("schema4 session upgrade state", () => {
-  it("writes schema4 after loading schema1 and exposes the original upgrade copy only after transaction success", async () => {
+  it("writes schema5 after loading schema1 and exposes the original upgrade copy only after transaction success", async () => {
     const raw = {
         ...DocumentCodec.emptyDocument(),
         schemaVersion: 1,
@@ -475,7 +475,7 @@ describe("schema4 session upgrade state", () => {
     const saving = h.session.flush();
 
     await Promise.resolve();
-    expect(h.repository.write.mock.calls[0]![0].schemaVersion).toBe(4);
+    expect(h.repository.write.mock.calls[0]![0].schemaVersion).toBe(5);
     expect(h.session.state.hasSchema4Copy).toBe(false);
     write.resolve();
     await saving;
@@ -514,7 +514,7 @@ describe("schema4 session upgrade state", () => {
     };
 
     await h.session.replace(candidate, () => false);
-    expect(h.repository.replace.mock.calls[0]![1].schemaVersion).toBe(4);
+    expect(h.repository.replace.mock.calls[0]![1].schemaVersion).toBe(5);
     expect(h.session.schema4Record.value).toBe(raw);
     expect(h.session.previousRecord.value).not.toBe(raw);
     expect(h.session.state.hasPrevious).toBe(true);

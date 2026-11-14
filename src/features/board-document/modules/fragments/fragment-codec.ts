@@ -25,7 +25,10 @@ function parse(text: string): SelectionClipboard {
 
   const document = DocumentCodec.decodeDocument(root.document);
 
-  if (document.schemaVersion !== 4 || !document.strokes.length)
+  if (
+    (document.schemaVersion !== 4 && document.schemaVersion !== 5) ||
+    !document.strokes.length
+  )
     throw new Error("Фрагмент Penable пуст или повреждён.");
 
   const region = MaskDecoder.decodeMask(root.region);

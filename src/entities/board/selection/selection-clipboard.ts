@@ -21,7 +21,10 @@ function prepare(
   const points = (strokes: readonly BoardItem[]) =>
     strokes.reduce(
       (sum, stroke) =>
-        sum + (stroke.kind === "image" ? 0 : stroke.points.length),
+        sum +
+        (stroke.kind === "image" || stroke.kind === "template"
+          ? 0
+          : stroke.points.length),
       0,
     );
 

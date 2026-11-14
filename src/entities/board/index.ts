@@ -51,3 +51,21 @@ export type {
   AffineMatrix,
 } from "./board.types";
 export { BoardTransforms } from "./transforms";
+
+export { BoardWriting } from "./writing";
+export { BoardTemplates } from "./templates";
+export { BoardPressure, LivePressureOutline } from "./writing";
+export type { PressureDisc, PressureSegment, PressureOutline } from "./writing";
+export type { TemplatePrimitive, TemplateLayout } from "./templates";
+export type {
+  InkColor,
+  InkInstrument,
+  InkStyle,
+  InstrumentSettings,
+  WritingSettings,
+  TemplateKind,
+  TemplateConfig,
+  TemplateItem,
+} from "./board.types";
+
+export type { RibbonSection, PressureRibbonGeometry } from "./writing";

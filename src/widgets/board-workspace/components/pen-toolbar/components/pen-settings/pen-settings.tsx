@@ -1,34 +1,70 @@
 import type React from "react";
+import { StrokeSample } from "./components/stroke-sample";
 import type { PenSettingsTypes } from "./pen-settings.types";
 import styles from "./pen-settings.module.css";
 import { Button } from "~/shared/ui/button";
 import { EditorIcon } from "~/shared/ui/editor-icon";
 import { RangeInput } from "~/shared/ui/range-input";
+import { InkPalette } from "../ink-palette";
 
 export const PenSettings: React.FC<PenSettingsTypes.Props> = (props) => (
   <div
-    ref={(node) => {
-      props.bindRoot(node);
-    }}
+    ref={(node) => props.bindRoot(node)}
     id="pen-panel"
     className={styles.panel}
     role="dialog"
     aria-label="Параметры пера"
   >
     <div className={styles.heading}>
-      <h2>Перо</h2>
+      <h2>Инструмент письма</h2>
       <Button onClick={props.onClose} aria-label="Закрыть параметры пера">
         <EditorIcon name="close" />
       </Button>
     </div>
-    <div className={styles.sample} aria-hidden="true">
-      <svg viewBox="0 0 252 50">
-        <path
-          style={{ strokeWidth: props.width }}
-          d="M10 36C32 36 35 10 54 14S77 44 95 31 119 8 132 22 146 44 164 26 186 11 199 24 220 36 242 17"
+    <div
+      className={styles.instruments}
+      role="radiogroup"
+      aria-label="Инструмент письма"
+    >
+      <label>
+        <input
+          type="radio"
+          name="ink-instrument"
+          checked={props.writing.instrument === "pen"}
+          disabled={props.readOnly}
+          onChange={() => props.onInstrumentChange("pen")}
         />
-      </svg>
+        Ручка
+      </label>
+      <label>
+        <input
+          type="radio"
+          name="ink-instrument"
+          checked={props.writing.instrument === "pressure"}
+          disabled={props.readOnly}
+          onChange={() => props.onInstrumentChange("pressure")}
+        />
+        Перо с нажимом
+      </label>
+      <label>
+        <input
+          type="radio"
+          name="ink-instrument"
+          checked={props.writing.instrument === "highlighter"}
+          disabled={props.readOnly}
+          onChange={() => props.onInstrumentChange("highlighter")}
+        />
+        Маркер
+      </label>
     </div>
+    <div className={styles.sample}>
+      <StrokeSample writing={props.writing} />
+    </div>
+    <InkPalette
+      color={props.writing.instruments[props.writing.instrument].color}
+      disabled={props.readOnly}
+      onChange={(color) => props.onInkSettingsChange({ color })}
+    />
     <div className={styles.caption}>
       <label htmlFor="pen-stabilization">Стабилизация</label>
       <output htmlFor="pen-stabilization">
@@ -44,19 +80,65 @@ export const PenSettings: React.FC<PenSettingsTypes.Props> = (props) => (
       value={props.stabilization}
       disabled={props.readOnly}
       aria-describedby="stabilization-help"
-      aria-valuetext={`${props.stabilization.toFixed(0)} процентов`}
       onChange={(event) =>
         props.onStabilizationChange(Number(event.target.value))
       }
     />
-    <div className={styles.endpoints} aria-hidden="true">
+    <div className={styles.endpoints}>
       <span>Естественнее</span>
       <span>Плавнее</span>
     </div>
-    <p id="stabilization-help">
-      Сглаживает движения пера.
-      <br />
-      Применяется к следующему штриху.
-    </p>
+    {props.writing.instrument === "pressure" && (
+      <div className={styles.parameter}>
+        <div className={styles.caption}>
+          <label htmlFor="pressure-strength">Сила нажима</label>
+          <output htmlFor="pressure-strength">
+            {props.writing.instruments.pressure.pressureStrength}%
+          </output>
+        </div>
+        <RangeInput
+          id="pressure-strength"
+          min="0"
+          max="100"
+          step="1"
+          value={props.writing.instruments.pressure.pressureStrength}
+          disabled={props.readOnly}
+          onChange={(event) =>
+            props.onInkSettingsChange({
+              pressureStrength: Number(event.target.value),
+            })
+          }
+        />
+        <p>
+          Меняет выраженность толщины от нажима пера. Мышь рисует ровной линией.
+        </p>
+      </div>
+    )}
+    {props.writing.instrument === "highlighter" && (
+      <div className={styles.parameter}>
+        <div className={styles.caption}>
+          <label htmlFor="ink-opacity">Непрозрачность</label>
+          <output htmlFor="ink-opacity">
+            {Math.round(props.writing.instruments.highlighter.opacity * 100)}%
+          </output>
+        </div>
+        <RangeInput
+          id="ink-opacity"
+          min="10"
+          max="70"
+          step="1"
+          value={Math.round(
+            props.writing.instruments.highlighter.opacity * 100,
+          )}
+          disabled={props.readOnly}
+          onChange={(event) =>
+            props.onInkSettingsChange({
+              opacity: Number(event.target.value) / 100,
+            })
+          }
+        />
+      </div>
+    )}
+    <p id="stabilization-help">Настройки применяются к следующему штриху.</p>
   </div>
 );

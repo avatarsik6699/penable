@@ -14,10 +14,10 @@ export class StrokeHitTester {
   constructor(private readonly zoom: number) {}
 
   hits(stroke: Stroke, from: Position, to: Position): boolean {
-    if (stroke.matrix) {
+    if (stroke.matrix || stroke.style?.instrument === "pressure") {
       const sweep = BoardTransforms.mask(
         BoardRegions.capsule(from, to, HitTestConfig.ERASER_RADIUS / this.zoom),
-        BoardTransforms.inverse(stroke.matrix),
+        BoardTransforms.inverse(BoardTransforms.matrix(stroke)),
       );
 
       return BoardRegions.inkIntersectsMask(

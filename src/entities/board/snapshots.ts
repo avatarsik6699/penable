@@ -1,3 +1,4 @@
+import { BoardWriting } from "./writing";
 import { BoardRegions } from "./regions";
 import type { BoardSnapshot, Stroke } from "./board.types";
 
@@ -8,14 +9,14 @@ function empty(): BoardSnapshot {
     background: "blank",
     backgroundSettings: { contrast: 45, spacing: 24 },
     lastWritingView: null,
-    tools: { width: 3, stabilization: 65 },
+    tools: { width: 3, stabilization: 65, writing: BoardWriting.defaults() },
   };
 }
 
 function clone(document: BoardSnapshot): BoardSnapshot {
   return {
     strokes: document.strokes.map((stroke) => {
-      if (stroke.kind === "image")
+      if (stroke.kind === "image" || stroke.kind === "template")
         return {
           ...stroke,
           matrix: [...stroke.matrix],
@@ -25,6 +26,7 @@ function clone(document: BoardSnapshot): BoardSnapshot {
       const result: Stroke = {
         id: stroke.id,
         color: stroke.color,
+        ...(stroke.style ? { style: { ...stroke.style } } : {}),
         width: stroke.width,
         points: stroke.points.map((point) => ({
           x: point.x,
@@ -71,6 +73,20 @@ function clone(document: BoardSnapshot): BoardSnapshot {
     tools: {
       width: document.tools.width,
       stabilization: document.tools.stabilization,
+      ...(document.tools.writing
+        ? {
+            writing: {
+              instrument: document.tools.writing.instrument,
+              instruments: {
+                pen: { ...document.tools.writing.instruments.pen },
+                pressure: { ...document.tools.writing.instruments.pressure },
+                highlighter: {
+                  ...document.tools.writing.instruments.highlighter,
+                },
+              },
+            },
+          }
+        : {}),
     },
   };
 }

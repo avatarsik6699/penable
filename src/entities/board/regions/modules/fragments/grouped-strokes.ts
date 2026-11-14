@@ -1,3 +1,4 @@
+import { BoardCompositing } from "../../../compositing";
 import { type ClipMask, type BoardItem } from "../../../board.types";
 import { union } from "polygon-clipping";
 
@@ -25,7 +26,28 @@ function groupedStrokes(strokes: readonly BoardItem[]): BoardItem[] {
   const result: BoardItem[] = [],
     groups = new Map<string, number>();
 
+  const ordered = BoardCompositing.orderSensitive(strokes);
+
   for (const stroke of strokes) {
+    if (ordered) {
+      const previous = result.at(-1);
+
+      const key = (item: BoardItem) =>
+        `${item.kind ?? "ink"}:${item.source}:${item.matrix?.join(":") ?? `${item.translation?.x ?? 0}:${item.translation?.y ?? 0}`}`;
+
+      if (previous?.source && stroke.source && key(previous) === key(stroke))
+        result[result.length - 1] = {
+          ...previous,
+          clip:
+            !previous.clip || !stroke.clip
+              ? undefined
+              : combinedMask(previous.clip, stroke.clip),
+        };
+      else result.push(stroke);
+
+      continue;
+    }
+
     if (!stroke.source) {
       if (stroke.kind === "image") groups.clear();
 

@@ -98,6 +98,10 @@ export class BoardLibrarySession {
     return this.active?.schema3Record;
   }
 
+  get schema5Record() {
+    return this.active?.schema5Record ?? { exists: false, value: undefined };
+  }
+
   get schema4Record() {
     return this.active?.schema4Record;
   }
@@ -188,7 +192,7 @@ export class BoardLibrarySession {
         if (this.lease.acquired)
           await this.repository.bootstrap(
             this.catalog,
-            { ...document, schemaVersion: 4 },
+            { ...document, schemaVersion: 5 },
             records.main,
           );
       }

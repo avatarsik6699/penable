@@ -2,12 +2,12 @@
   position: absolute;
   z-index: 4;
   top: 16px;
-  left: max(12px, calc((100% - 730px) / 2));
-  width: 730px;
+  left: max(12px, calc((100% - 778px) / 2));
+  width: 778px;
   height: 56px;
   padding: 8px;
   display: grid;
-  grid-template-columns: 128px 283px 190px 89px;
+  grid-template-columns: 128px 331px 190px 89px;
   grid-template-rows: 40px;
   align-items: center;
   gap: 8px;
@@ -85,7 +85,7 @@
     width: calc(100% - 24px);
     max-width: 960px;
     height: 104px;
-    grid-template-columns: minmax(0, 1fr) 283px 89px;
+    grid-template-columns: minmax(0, 1fr) 331px 89px;
     grid-template-rows: 40px 40px;
   }
   .library {

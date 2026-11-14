@@ -6,6 +6,7 @@ type InputOptions = {
   bounds: () => SurfaceBounds;
   viewport: () => Viewport;
   width: () => number;
+  writing?: () => import("../board.types").WritingSettings;
   stabilization?: () => number;
   allocateId?: () => number;
   onActiveChange: () => void;

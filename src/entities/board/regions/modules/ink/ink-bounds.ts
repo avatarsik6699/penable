@@ -3,6 +3,8 @@ import {
   type BoardItem,
   type Position,
 } from "../../../board.types";
+import { BoardTemplates } from "../../../templates";
+import { BoardPressure } from "../../../writing";
 import { BoardTransforms } from "../../../transforms";
 import { type InkBounds, type InkSegment } from "../../regions.types";
 import { InkUtils } from "./ink.utils";
@@ -32,6 +34,9 @@ function sourceBounds(stroke: BoardItem): InkBounds | null {
       right: stroke.asset.width,
       bottom: stroke.asset.height,
     };
+
+  if (stroke.kind === "template")
+    return BoardTemplates.layout(stroke.template).bounds;
 
   if (strokeBoundsCache.has(stroke)) return strokeBoundsCache.get(stroke)!;
 
@@ -234,14 +239,14 @@ function clippedCapsuleBounds(
 }
 
 function localVisibleBounds(stroke: BoardItem): InkBounds | null {
-  if (stroke.kind === "image") {
+  if (stroke.kind === "image" || stroke.kind === "template") {
     const b = sourceBounds(stroke)!;
     const clip = stroke.clip ? RegionMask.maskBounds(stroke.clip) : null;
 
     return clip
       ? {
-          left: Math.max(0, clip.left),
-          top: Math.max(0, clip.top),
+          left: Math.max(b.left, clip.left),
+          top: Math.max(b.top, clip.top),
           right: Math.min(b.right, clip.right),
           bottom: Math.min(b.bottom, clip.bottom),
         }
@@ -271,16 +276,25 @@ function localVisibleBounds(stroke: BoardItem): InkBounds | null {
   const clipBounds = stroke.clip ? RegionMask.maskBounds(stroke.clip) : null;
   let result: InkBounds | null = null;
 
-  for (const segment of InkSegments.sourceSegments(stroke)) {
+  for (const segment of stroke.style?.instrument === "pressure"
+    ? BoardPressure.segments(stroke).map((part) => ({
+        ...part,
+        error: 0,
+        radius: Math.max(part.a.radius, part.b.radius),
+      }))
+    : InkSegments.sourceSegments(stroke)) {
     const bounds =
       stroke.clip && clipBounds
         ? clippedCapsuleBounds(
             segment,
-            stroke.width / 2,
+            "radius" in segment ? (segment.radius as number) : stroke.width / 2,
             stroke.clip,
             clipBounds,
           )
-        : InkUtils.segmentBounds(segment, stroke.width / 2);
+        : InkUtils.segmentBounds(
+            segment,
+            "radius" in segment ? (segment.radius as number) : stroke.width / 2,
+          );
 
     if (bounds) result = InkUtils.mergeBounds(result, bounds);
   }

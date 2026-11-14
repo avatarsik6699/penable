@@ -321,7 +321,7 @@ describe("workspace view metadata", () => {
       expect(h.repository.write).toHaveBeenCalledOnce();
 
       expect(vi.mocked(h.repository.write).mock.calls[0]![0]).toMatchObject({
-        schemaVersion: 4,
+        schemaVersion: 5,
         backgroundSettings: { contrast: 73, spacing: 32 },
         lastWritingView: { center: { x: 500, y: -100 }, zoom: 2 },
       });
@@ -345,5 +345,65 @@ describe("workspace view metadata", () => {
       await h.sessions[0]!.dispose();
       vi.useRealTimers();
     }
+  });
+});
+
+describe("independent instrument preferences", () => {
+  it("restores per-instrument width/color and keeps legacy pen fields valid in durable snapshots", async () => {
+    const h = harness(),
+      stop = h.model.start();
+
+    await microtasks();
+    h.model.controls.current = controls();
+    h.model.changeWidth(4.2);
+    h.model.changeInkSettings({ color: "#175cd3" });
+    h.model.changeInstrument("highlighter");
+    h.model.changeWidth(48);
+    h.model.changeInkSettings({ opacity: 0.6, color: "#d92d20" });
+    expect(h.model.getSnapshot().width).toBe(48);
+
+    const captured = h.model.readBoardSnapshot();
+
+    expect(captured.tools.width).toBe(4.2);
+
+    expect(captured.tools.writing!.instruments.highlighter).toMatchObject({
+      width: 48,
+      color: "#d92d20",
+      opacity: 0.6,
+    });
+
+    h.model.changeInstrument("pen");
+    expect(h.model.getSnapshot().width).toBe(4.2);
+    expect(h.model.getSnapshot().writing.instruments.pen.color).toBe("#175cd3");
+    h.model.changeInstrument("highlighter");
+    expect(h.model.getSnapshot().width).toBe(48);
+    stop();
+    await h.sessions[0]!.dispose();
+  });
+});
+
+describe("instrument interaction cancellation", () => {
+  it("cancels an armed placement and clears selection before activating another writing instrument", async () => {
+    const h = harness(),
+      stop = h.model.start();
+
+    await microtasks();
+
+    let armed = true;
+    const surface = controls();
+
+    surface.cancelInput = vi.fn(() => {
+      armed = false;
+    });
+
+    h.model.controls.current = surface;
+    h.model.changeInstrument("highlighter");
+    expect(surface.cancelInput).toHaveBeenCalledOnce();
+    expect(armed).toBe(false);
+    expect(surface.selection).toHaveBeenCalledWith("clear");
+    expect(h.model.getSnapshot().writing.instrument).toBe("highlighter");
+    expect(h.model.getSnapshot().tool).toBe("pen");
+    stop();
+    await h.sessions[0]!.dispose();
   });
 });

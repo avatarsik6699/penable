@@ -29,6 +29,7 @@ export class DocumentSession {
   private message = "";
   private rawMain: StoredRecord = { exists: false, value: undefined };
   private upgrade: StoredRecord = { exists: false, value: undefined };
+  private schema5: StoredRecord = { exists: false, value: undefined };
   private schema4: StoredRecord = { exists: false, value: undefined };
   private libraryCopy: StoredRecord = { exists: false, value: undefined };
   private schema3: StoredRecord = { exists: false, value: undefined };
@@ -83,6 +84,7 @@ export class DocumentSession {
       hasUpgradeCopy: this.upgrade.exists,
       hasSchema3Copy: this.schema3.exists,
       hasSchema4Copy: this.schema4.exists,
+      hasSchema5Copy: this.schema5.exists,
       hasLibraryCopy: this.libraryCopy.exists,
       hasRawCopy: this.rawMain.exists && !this.loaded && this.phase === "error",
       canReconnect:
@@ -104,6 +106,10 @@ export class DocumentSession {
 
   get rawRecord(): StoredRecord {
     return this.rawMain;
+  }
+
+  get schema5Record(): StoredRecord {
+    return this.schema5;
   }
 
   get schema4Record(): StoredRecord {
@@ -171,6 +177,11 @@ export class DocumentSession {
       };
 
       this.schema3 = records.beforeSchema3 ?? {
+        exists: false,
+        value: undefined,
+      };
+
+      this.schema5 = records.beforeSchema5 ?? {
         exists: false,
         value: undefined,
       };
@@ -262,7 +273,7 @@ export class DocumentSession {
         const snapshot = this.options.persistence
           ? {
               ...live,
-              schemaVersion: 4 as const,
+              schemaVersion: 5 as const,
               strokes: [...live.strokes],
               viewport: { ...live.viewport },
               tools: { ...live.tools },
@@ -271,7 +282,7 @@ export class DocumentSession {
               ...DocumentCodec.decodeDocument(
                 DocumentCodec.encodeDocument(live),
               ),
-              schemaVersion: 4 as const,
+              schemaVersion: 5 as const,
             };
 
         this.writing = true;
@@ -294,6 +305,16 @@ export class DocumentSession {
           SessionUtils.isPre4(this.rawMain.value)
         )
           this.schema4 = this.rawMain;
+
+        if (
+          !this.schema5.exists &&
+          this.rawMain.exists &&
+          this.rawMain.value &&
+          typeof this.rawMain.value === "object" &&
+          "schemaVersion" in this.rawMain.value &&
+          [1, 2, 3, 4].includes(this.rawMain.value.schemaVersion as number)
+        )
+          this.schema5 = this.rawMain;
 
         this.rawMain = { exists: true, value: snapshot };
         this.phase = this.revision === revision ? "saved" : "dirty";
@@ -339,11 +360,11 @@ export class DocumentSession {
     try {
       document = {
         ...DocumentCodec.decodeDocument(
-          candidate.schemaVersion === 4
+          candidate.schemaVersion === 4 || candidate.schemaVersion === 5
             ? DocumentCodec.encodeDocument(candidate)
             : candidate,
         ),
-        schemaVersion: 4,
+        schemaVersion: 5,
       };
     } catch (error) {
       return Promise.reject(error);
@@ -405,6 +426,16 @@ export class DocumentSession {
           SessionUtils.isPre4(this.rawMain.value)
         )
           this.schema4 = this.rawMain;
+
+        if (
+          !this.schema5.exists &&
+          this.rawMain.exists &&
+          this.rawMain.value &&
+          typeof this.rawMain.value === "object" &&
+          "schemaVersion" in this.rawMain.value &&
+          [1, 2, 3, 4].includes(this.rawMain.value.schemaVersion as number)
+        )
+          this.schema5 = this.rawMain;
 
         this.previous = { exists: true, value: previous };
         this.rawMain = { exists: true, value: document };

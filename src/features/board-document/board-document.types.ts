@@ -8,7 +8,7 @@ import type {
 
 export type BoardDocument = {
   format: "penable-board";
-  schemaVersion: 1 | 2 | 3 | 4;
+  schemaVersion: 1 | 2 | 3 | 4 | 5;
   strokes: BoardItem[];
   viewport: Viewport;
   background: BackgroundMode;
@@ -17,6 +17,7 @@ export type BoardDocument = {
   tools: {
     width: number;
     stabilization: number;
+    writing?: import("~/entities/board").WritingSettings;
   };
 };
 
@@ -76,6 +77,7 @@ export type DocumentRepository = {
     beforeSchema2?: StoredRecord;
     beforeSchema3?: StoredRecord;
     beforeSchema4?: StoredRecord;
+    beforeSchema5?: StoredRecord;
     beforeLibrary?: StoredRecord;
   }>;
   write: (document: BoardDocument) => Promise<void>;
@@ -107,6 +109,7 @@ export type StorageState = {
   hasUpgradeCopy?: boolean;
   hasSchema3Copy?: boolean;
   hasSchema4Copy?: boolean;
+  hasSchema5Copy?: boolean;
   hasLibraryCopy?: boolean;
   hasRawCopy?: boolean;
   canReconnect: boolean;

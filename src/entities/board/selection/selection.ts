@@ -1,3 +1,4 @@
+import { BoardCompositing } from "../compositing";
 import { SelectionTransform } from "./modules/transform";
 import { BoardTransforms } from "../transforms";
 import type { AffineMatrix } from "../board.types";
@@ -410,7 +411,7 @@ export class BoardSelection {
           return part ? (part.remainder ? [part.remainder] : []) : [stroke];
         }),
         selected: this.parts.map((part) => part.selected),
-        ...(this.options.scene.strokes.some((item) => item.kind === "image")
+        ...(BoardCompositing.orderSensitive(this.options.scene.strokes)
           ? {
               ordered: this.options.scene.strokes.flatMap((item) => {
                 const part = byOriginal.get(item);

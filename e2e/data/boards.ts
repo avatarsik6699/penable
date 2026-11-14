@@ -79,6 +79,57 @@ export const testBoards = {
     };
   },
 
+  previousV4(): TestBoardTypes.StoredDocument & { legacyNote: string } {
+    const { strokes, ...metadata } = testBoards.previousV3();
+
+    return {
+      ...metadata,
+      schemaVersion: 4,
+      legacyNote: "Preserve exact raw schema4 before migration",
+      items: strokes.map(({ translation, ...stroke }) => ({
+        ...stroke,
+        kind: "ink",
+        matrix: [1, 0, 0, 1, translation?.x ?? 0, translation?.y ?? 0],
+      })),
+      assets: [],
+    };
+  },
+
+  pressureHeavy(): TestBoardTypes.StoredDocument {
+    const { strokes, ...document } = testBoards.heavy();
+
+    const pen = {
+      color: "#182230",
+      width: 3,
+      stabilization: 65,
+      opacity: 1,
+      pressureStrength: 65,
+    };
+
+    return {
+      ...document,
+      schemaVersion: 5,
+      items: strokes.map((stroke) => ({
+        ...stroke,
+        kind: "ink",
+        matrix: [1, 0, 0, 1, 0, 0],
+        style: { instrument: "pressure", opacity: 1, pressureStrength: 65 },
+      })),
+      assets: [],
+      tools: {
+        ...document.tools,
+        writing: {
+          instrument: "pressure",
+          instruments: {
+            pen,
+            pressure: { ...pen },
+            highlighter: { ...pen, width: 20, opacity: 0.3, color: "#f4c430" },
+          },
+        },
+      },
+    };
+  },
+
   corrupt(): unknown {
     return {
       format: "penable-board",

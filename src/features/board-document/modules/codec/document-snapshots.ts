@@ -1,16 +1,20 @@
 import { type BoardDocument } from "../../board-document.types";
-import { BoardSnapshots, type BoardSnapshot } from "~/entities/board";
+import {
+  BoardWriting,
+  BoardSnapshots,
+  type BoardSnapshot,
+} from "~/entities/board";
 
 function emptyDocument(): BoardDocument {
   return {
     format: "penable-board",
-    schemaVersion: 4,
+    schemaVersion: 5,
     strokes: [],
     viewport: { zoom: 1, x: 0, y: 0 },
     background: "blank",
     backgroundSettings: { contrast: 45, spacing: 24 },
     lastWritingView: null,
-    tools: { width: 3, stabilization: 65 },
+    tools: { width: 3, stabilization: 65, writing: BoardWriting.defaults() },
   };
 }
 
@@ -43,7 +47,7 @@ function toSnapshot(document: BoardDocument): BoardSnapshot {
 function fromSnapshot(snapshot: BoardSnapshot): BoardDocument {
   return {
     format: "penable-board",
-    schemaVersion: 4,
+    schemaVersion: 5,
     strokes: snapshot.strokes,
     viewport: snapshot.viewport,
     background: snapshot.background,

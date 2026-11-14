@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { BoardWriting } from "../writing";
 import { PenInput, BoardInput } from "./input";
 import type { PointerInput, Scene, Stroke, Viewport } from "../board.types";
 import { BoardViewport } from "../viewport";
@@ -392,5 +393,83 @@ describe("coalesced samples", () => {
     });
 
     expect(BoardInput.eventSamples(throwing)).toEqual([throwing]);
+  });
+});
+
+describe("captured writing profiles", () => {
+  it("captures color, highlighter width and opacity once without applying later settings to the active stroke", () => {
+    const scene: Scene = { strokes: [], active: null };
+
+    let writing = {
+      ...BoardWriting.defaults(),
+      instrument: "highlighter" as const,
+    };
+
+    const input = new PenInput({
+      scene,
+      bounds: () => ({ left: 0, top: 0 }),
+      viewport: () => ({ x: 0, y: 0, zoom: 1 }),
+      width: () => 3,
+      writing: () => writing,
+
+      onActiveChange: () => {},
+
+      onCommit: (stroke) => scene.strokes.push(stroke),
+    });
+
+    expect(input.down(pointer())).toBe(true);
+
+    writing = {
+      ...writing,
+      instruments: {
+        ...writing.instruments,
+        highlighter: {
+          ...writing.instruments.highlighter,
+          color: "#175cd3",
+          width: 48,
+          opacity: 0.6,
+        },
+      },
+    };
+
+    input.move(pointer({ clientX: 60, timeStamp: 8 }));
+    input.up(pointer({ clientX: 70, timeStamp: 16, buttons: 0 }));
+
+    expect(scene.strokes[0]).toMatchObject({
+      color: "#f4c430",
+      width: 20,
+      style: { instrument: "highlighter", opacity: 0.3 },
+    });
+
+    input.down(pointer({ pointerId: 2 }));
+
+    expect(scene.active).toMatchObject({
+      color: "#175cd3",
+      width: 48,
+      style: { opacity: 0.6 },
+    });
+  });
+
+  it("captures pressure strength zero for mouse and real pressure strength for a pen", () => {
+    const scene: Scene = { strokes: [], active: null },
+      writing = { ...BoardWriting.defaults(), instrument: "pressure" as const };
+
+    const input = new PenInput({
+      scene,
+      bounds: () => ({ left: 0, top: 0 }),
+      viewport: () => ({ x: 0, y: 0, zoom: 1 }),
+      width: () => 3,
+      writing: () => writing,
+
+      onActiveChange: () => {},
+
+      onCommit: () => {},
+    });
+
+    input.down(pointer({ pointerType: "mouse" }));
+    expect(scene.active?.style?.pressureStrength).toBe(0);
+    input.cancel();
+    input.down(pointer());
+    expect(scene.active?.style?.pressureStrength).toBe(65);
   });
 });

@@ -5,6 +5,7 @@ import type {
   Point,
   Stroke,
   ImageItem,
+  TemplateItem,
   ImageAsset,
   RegionInput,
 } from "~/entities/board";
@@ -13,9 +14,10 @@ export type DocumentJobKind =
   "select" | "validate" | "save" | "overview" | "fragment";
 
 export type FragmentMetadata =
-  Omit<Stroke, "points"> | Omit<ImageItem, "asset">;
+  Omit<Stroke, "points"> | Omit<ImageItem, "asset"> | TemplateItem;
 
 export type StrokeMetadata =
+  | TemplateItem
   | (Omit<Stroke, "points"> & { kind: "ink"; geometry: number })
   | (Omit<ImageItem, "asset"> & { asset: Omit<ImageAsset, "base64"> });
 

@@ -28,6 +28,7 @@ function create(options: EditorCommandTypes.ControlsOptions): SurfaceControls {
 
   return {
     insertImage: options.insertImage,
+    insertTemplate: options.insertTemplate,
     dismissInsertion: options.dismissInsertion,
 
     transform: (width, height, angle) => {

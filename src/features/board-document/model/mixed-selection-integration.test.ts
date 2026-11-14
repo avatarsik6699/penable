@@ -254,3 +254,79 @@ it("finishes a canceled asynchronous insertion once without committing its prepa
   expect(h.scene.strokes).toEqual([ink]);
   expect(h.history.canUndo).toBe(false);
 });
+
+describe("opaque colored selection order", () => {
+  it("previews the selected earlier blue stroke below the later red stroke and retains that order on commit", () => {
+    const blue: BoardItem = {
+      id: 1,
+      color: "#175cd3",
+      width: 8,
+      points: [
+        { x: 20, y: 100, pressure: 1, time: 0 },
+        { x: 80, y: 100, pressure: 1, time: 1 },
+      ],
+    };
+
+    const red: BoardItem = {
+      id: 2,
+      color: "#d92d20",
+      width: 8,
+      points: [
+        { x: 100, y: 50, pressure: 1, time: 0 },
+        { x: 100, y: 150, pressure: 1, time: 1 },
+      ],
+    };
+
+    const h = setup([blue, red]);
+
+    h.selection.down(pointer(10, 80));
+    h.selection.up(pointer(90, 120, { buttons: 0 }));
+    expect(h.selection.selected.map((item) => item.id)).toEqual([1]);
+    h.selection.down(pointer(50, 100));
+    h.selection.move(pointer(130, 100));
+    expect(h.scene.strokes).toEqual([blue, red]);
+
+    expect(
+      h
+        .preview()!
+        .ordered?.map(({ item, selected }) => ({ id: item.id, selected })),
+    ).toEqual([
+      { id: 1, selected: true },
+      { id: 2, selected: false },
+    ]);
+
+    h.selection.up(pointer(130, 100, { buttons: 0 }));
+    expect(h.scene.strokes.map((item) => item.id)).toEqual([1, 2]);
+    expect(h.scene.strokes[1]).toBe(red);
+  });
+
+  it("keeps the separate selected-layer fast path for default opaque black-only scenes", () => {
+    const left: BoardItem = {
+      id: 1,
+      color: BoardConstants.INK,
+      width: 8,
+      points: [
+        { x: 20, y: 100, pressure: 1, time: 0 },
+        { x: 80, y: 100, pressure: 1, time: 1 },
+      ],
+    };
+
+    const h = setup([
+      left,
+      {
+        ...left,
+        id: 2,
+        points: [
+          { x: 100, y: 50, pressure: 1, time: 0 },
+          { x: 100, y: 150, pressure: 1, time: 1 },
+        ],
+      },
+    ]);
+
+    h.selection.down(pointer(10, 80));
+    h.selection.up(pointer(90, 120, { buttons: 0 }));
+    h.selection.down(pointer(50, 100));
+    h.selection.move(pointer(130, 100));
+    expect(h.preview()!.ordered).toBeUndefined();
+  });
+});

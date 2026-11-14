@@ -13,6 +13,7 @@ export namespace StoragePanelTypes {
     onPrevious: () => string;
     onSchema3: () => string;
     onSchema4: () => string;
+    onSchema5?: () => string;
     onLibrary: () => string;
     onRaw: () => string;
     onRetry: () => void;

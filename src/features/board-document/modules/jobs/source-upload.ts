@@ -97,6 +97,20 @@ export class SourceUpload {
         continue;
       }
 
+      if (stroke.kind === "template") {
+        metadata.push(stroke);
+        vertices += stroke.clip ? BoardRegions.vertexCount(stroke.clip) : 0;
+
+        if (
+          metadata.length >= DocumentJobConfig.metadataChunk ||
+          vertices >= DocumentJobConfig.vertexChunk
+        )
+          sendMetadata();
+
+        await checkpoint();
+        continue;
+      }
+
       let geometry = this.sourceIDs.get(stroke.points);
 
       if (!geometry) {

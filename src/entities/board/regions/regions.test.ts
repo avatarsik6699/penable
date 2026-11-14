@@ -432,3 +432,55 @@ describe("selection bounds review regressions", () => {
     }
   });
 });
+
+describe("colored fragment compositing order", () => {
+  it("does not merge opaque color siblings across an intervening different-colored stroke", () => {
+    const original: Stroke = { ...stroke(), color: "#175cd3" };
+
+    const [part] = BoardRegions.selectParts(
+      [original],
+      BoardRegions.rectangle({ x: 20, y: -10 }, { x: 40, y: 10 }),
+      () => 3,
+    );
+
+    const barrier: Stroke = { ...stroke(), id: 2, color: "#d92d20" };
+
+    const grouped = BoardRegions.groupedStrokes([
+      part!.selected,
+      barrier,
+      part!.remainder!,
+    ]);
+
+    expect(grouped).toHaveLength(3);
+    expect(grouped[0]).toBe(part!.selected);
+    expect(grouped[1]).toBe(barrier);
+    expect(grouped[2]).toBe(part!.remainder);
+
+    expect(
+      BoardRegions.groupedStrokes([part!.selected, part!.remainder!, barrier]),
+    ).toHaveLength(2);
+  });
+
+  it("retains the accepted grouping fast path for opaque default ink only", () => {
+    const [part] = BoardRegions.selectParts(
+      [stroke()],
+      BoardRegions.rectangle({ x: 20, y: -10 }, { x: 40, y: 10 }),
+      () => 3,
+    );
+
+    const barrier = { ...stroke(), id: 2 };
+
+    const grouped = BoardRegions.groupedStrokes([
+      part!.selected,
+      barrier,
+      part!.remainder!,
+    ]);
+
+    expect(grouped).toHaveLength(2);
+    expect(grouped[1]).toBe(barrier);
+
+    expect(BoardRegions.visibleBounds([grouped[0]!])).toEqual(
+      BoardRegions.visibleBounds([stroke()]),
+    );
+  });
+});

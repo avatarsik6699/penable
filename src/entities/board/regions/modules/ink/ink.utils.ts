@@ -7,7 +7,7 @@ import { type InkBounds, type InkSegment } from "../../regions.types";
 import { RegionMask } from "../mask";
 
 const profileKey = (stroke: Stroke) =>
-  JSON.stringify([stroke.width, stroke.stabilization]);
+  JSON.stringify([stroke.width, stroke.stabilization, stroke.style]);
 
 function overlaps(a: InkBounds, b: InkBounds): boolean {
   return (

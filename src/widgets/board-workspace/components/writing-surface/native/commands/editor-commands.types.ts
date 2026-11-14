@@ -47,6 +47,10 @@ export namespace EditorCommandTypes {
   export type ControlsOptions = Interaction & {
     pendingInput?: () => boolean;
     insertImage: () => void;
+    insertTemplate?: (
+      config: import("~/entities/board").TemplateConfig,
+      explicitSize?: boolean,
+    ) => void;
     dismissInsertion: () => void;
     canvas: HTMLCanvasElement;
     scene: Scene;

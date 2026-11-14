@@ -5,6 +5,7 @@ import {
   type BoardItem,
   type ImageAsset,
 } from "~/entities/board";
+import { TemplateDecoder } from "./template-decoder";
 import { ImageAssets } from "../image-assets";
 import { CodecConfig } from "./document-codec.config";
 import { CodecPrimitives } from "./document-codec.utils";
@@ -15,6 +16,7 @@ function decode(
   root: Record<string, unknown>,
   limits = CodecConfig.DOCUMENT_LIMITS,
   geometryOnly = false,
+  modern = false,
 ): BoardItem[] {
   const rawAssets = CodecPrimitives.own(root, "assets"),
     rawItems = CodecPrimitives.own(root, "items");
@@ -62,7 +64,7 @@ function decode(
     (value) => CodecPrimitives.object(value, "item").kind === "ink",
   );
 
-  const decodedInk = StrokeDecoder.decodeStrokes(ink, 2, limits);
+  const decodedInk = StrokeDecoder.decodeStrokes(ink, 2, limits, modern);
 
   let inkIndex = 0,
     vertices = 0;
@@ -120,6 +122,30 @@ function decode(
 
         result.source = raw.source;
       }
+    } else if (modern && raw.kind === "template") {
+      if (raw.generatorVersion !== 1)
+        CodecPrimitives.invalid("item.generatorVersion");
+
+      result = {
+        kind: "template",
+        id,
+        generatorVersion: 1,
+        template: TemplateDecoder.decode(raw.template),
+        matrix,
+      };
+
+      if (Object.hasOwn(raw, "clip"))
+        result.clip = MaskDecoder.decodeMask(raw.clip);
+
+      if (Object.hasOwn(raw, "source")) {
+        if (
+          typeof raw.source !== "string" ||
+          !/^[a-zA-Z0-9_-]{1,160}$/.test(raw.source)
+        )
+          CodecPrimitives.invalid("item.source");
+
+        result.source = raw.source as string;
+      }
     } else return CodecPrimitives.invalid("item.kind");
 
     vertices += result.clip ? BoardRegions.vertexCount(result.clip) : 0;
@@ -129,7 +155,11 @@ function decode(
 
     if (result.source) {
       const signature =
-        result.kind === "image" ? `image:${result.asset.id}` : "ink";
+        result.kind === "image"
+          ? `image:${result.asset.id}`
+          : result.kind === "template"
+            ? `template:${JSON.stringify(result.template)}`
+            : "ink";
 
       if (
         sourceKinds.has(result.source) &&
@@ -196,6 +226,17 @@ function encode(items: readonly BoardItem[], geometryOnly = false) {
           assetId: geometryOnly
             ? item.asset.id
             : canonical.get(item.asset.base64)!.id,
+          matrix,
+          ...(item.source ? { source: item.source } : {}),
+          ...(item.clip ? { clip: item.clip } : {}),
+        };
+
+      if (item.kind === "template")
+        return {
+          kind: "template",
+          id: item.id,
+          generatorVersion: 1,
+          template: item.template,
           matrix,
           ...(item.source ? { source: item.source } : {}),
           ...(item.clip ? { clip: item.clip } : {}),

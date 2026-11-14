@@ -1,3 +1,5 @@
+import { TemplatePaint } from "./template-paint";
+import { PressurePaint } from "./pressure-paint";
 import type { RenderingContext } from "./rendering-context.types";
 import { BoardPaths } from "./path-cache";
 import type { StrokeGeometry } from "~/entities/board";
@@ -16,6 +18,7 @@ export type StrokePaintState = {
   color?: Stroke["color"];
   width?: number;
   configured?: boolean;
+  opacity?: number;
 };
 
 function style(
@@ -34,6 +37,14 @@ function style(
     ctx.lineWidth = stroke.width;
 
     if (state) state.width = stroke.width;
+  }
+
+  const opacity = stroke.style?.opacity ?? 1;
+
+  if (!state || state.opacity !== opacity) {
+    ctx.globalAlpha = opacity;
+
+    if (state) state.opacity = opacity;
   }
 
   if (!state?.configured) {
@@ -60,6 +71,8 @@ function paintStroke(
     ctx.save();
 
     try {
+      ctx.globalAlpha = 1;
+
       if (!translationHandled) ctx.transform(...stroke.matrix);
 
       if (stroke.clip) {
@@ -68,6 +81,25 @@ function paintStroke(
       }
 
       ctx.drawImage(image, 0, 0, stroke.asset.width, stroke.asset.height);
+    } finally {
+      ctx.restore();
+    }
+
+    return;
+  }
+
+  if (stroke.kind === "template") {
+    ctx.save();
+
+    try {
+      if (!translationHandled) ctx.transform(...stroke.matrix);
+
+      if (stroke.clip) {
+        BoardPaths.traceMask(ctx, stroke.clip);
+        ctx.clip("nonzero");
+      }
+
+      TemplatePaint.paint(ctx, stroke);
     } finally {
       ctx.restore();
     }
@@ -98,6 +130,12 @@ function paintStroke(
     }
 
     if (!state) style(ctx, stroke);
+
+    if (stroke.style?.instrument === "pressure") {
+      PressurePaint.paint(ctx, stroke, active);
+
+      return;
+    }
 
     const geometry = BoardSourceGeometry.sourceGeometry(stroke, active);
 

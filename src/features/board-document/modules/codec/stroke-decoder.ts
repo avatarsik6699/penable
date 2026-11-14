@@ -6,6 +6,8 @@ import {
   type StabilizationProfile,
   BoardRegions,
 } from "~/entities/board";
+import { BoardWriting } from "~/entities/board";
+import { WritingDecoder } from "./writing-decoder";
 import { CodecConfig } from "./document-codec.config";
 import { CodecPrimitives } from "./document-codec.utils";
 import { MaskDecoder } from "./mask-decoder";
@@ -14,6 +16,7 @@ function decodeStrokes(
   strokes: unknown,
   schemaVersion: 1 | 2,
   limits: typeof CodecConfig.DOCUMENT_LIMITS,
+  modern = false,
 ): Stroke[] {
   if (!Array.isArray(strokes) || strokes.length > limits.strokes)
     CodecPrimitives.invalid("strokes: превышен предел");
@@ -42,7 +45,11 @@ function decodeStrokes(
 
     ids.add(id);
 
-    if (CodecPrimitives.own(stroke, "color") !== BoardConstants.INK)
+    if (
+      modern
+        ? !BoardWriting.isColor(stroke.color)
+        : CodecPrimitives.own(stroke, "color") !== BoardConstants.INK
+    )
       CodecPrimitives.invalid("stroke.color");
 
     const rawPoints = CodecPrimitives.own(stroke, "points");
@@ -92,15 +99,27 @@ function decodeStrokes(
 
     const result: Stroke = {
       id,
-      color: BoardConstants.INK,
+      color: modern
+        ? (stroke.color as import("~/entities/board").InkColor)
+        : BoardConstants.INK,
+      ...(modern && Object.hasOwn(stroke, "style")
+        ? { style: WritingDecoder.style(stroke.style) }
+        : {}),
       width: CodecPrimitives.number(
         CodecPrimitives.own(stroke, "width"),
         0.5,
-        12,
+        modern &&
+          (stroke.style as Record<string, unknown> | undefined)?.instrument ===
+            "highlighter"
+          ? 64
+          : 12,
         "stroke.width",
       ),
       points,
     };
+
+    if (result.style?.instrument === "highlighter" && result.width < 4)
+      CodecPrimitives.invalid("stroke.width");
 
     if (Object.hasOwn(stroke, "stabilization")) {
       const profile = CodecPrimitives.object(
@@ -188,6 +207,7 @@ function decodeStrokes(
           width: result.width,
           points: result.points,
           stabilization: result.stabilization,
+          style: result.style,
         });
 
         const previous = sources.get(result.source);

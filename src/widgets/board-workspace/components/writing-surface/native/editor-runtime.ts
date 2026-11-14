@@ -1,3 +1,4 @@
+import { TemplatePlacement } from "./templates";
 import { BoardClipboard } from "./clipboard";
 import { BitmapCache, ImageInput } from "./images";
 import { NativeMinimap } from "./minimap";
@@ -137,6 +138,7 @@ function create(
       bounds: () => canvas.getBoundingClientRect(),
       viewport: () => state.viewport,
       width: () => readSettings().width,
+      writing: () => readSettings().writing!,
       stabilization: () => readSettings().stabilization,
       allocateId: () => BoardIds.allocateStrokeId(scene.strokes),
       onActiveChange: () => renderer.activeChanged(),
@@ -224,6 +226,7 @@ function create(
         paintSelection();
         diagnostics.update({ zoom: viewport.zoom });
         minimap?.viewportChanged();
+        templatePlacement.refresh();
 
         if (canWrite() && !selection.busy) onDocumentChange(false);
       },
@@ -247,7 +250,12 @@ function create(
       paintSelection();
 
       const state = {
-        insertion: imageInput.status,
+        insertion: templatePlacement.active
+          ? {
+              phase: "placing" as const,
+              message: "Нажмите на доску для вставки · Esc — отмена",
+            }
+          : imageInput.status,
         selected: selection.hasSelection,
         images: selection.selected.some((item) => item.kind === "image"),
         clipboard: true,
@@ -325,6 +333,33 @@ function create(
       changed: () => publishSelection(),
     });
 
+    const templatePlacement = new TemplatePlacement({
+      allowed: () =>
+        !disposed &&
+        canWrite() &&
+        !interactionsBlocked() &&
+        drawingPointerId() === null &&
+        !selection.busy &&
+        !imageInput.busy,
+      viewport: () => state.viewport,
+      bounds: () => canvas.getBoundingClientRect(),
+      allocate: () => BoardIds.allocateStrokeId(scene.strokes),
+      draw: (item) => renderer.setTemplatePreview(item),
+
+      notice: (message) => {
+        if (message !== "Нажмите на доску для вставки · Esc — отмена")
+          readSettings().onNavigationNotice(message);
+
+        publishSelection();
+      },
+
+      insert: (item) => {
+        onActivateSelection();
+
+        return selection.insertItems([item]);
+      },
+    });
+
     const nativeClipboard = new BoardClipboard({
       canvas,
       selection,
@@ -382,7 +417,11 @@ function create(
     const applyHistory = historyCommands.apply;
 
     const surface = SurfaceBindings.bind({
+      templatePlacement,
+
       cancelPendingInput: () => {
+        if (templatePlacement.cancel()) return true;
+
         if (
           interactionsBlocked() ||
           (!imageInput.busy && !nativeClipboard.busy)
@@ -416,6 +455,7 @@ function create(
     });
 
     api.cancel = () => {
+      templatePlacement.cancel();
       imageInput.cancel();
       nativeClipboard.cancel();
       surface.cancel();
@@ -449,6 +489,8 @@ function create(
       if (interactionsBlocked()) nativeClipboard.cancel();
       else nativeClipboard.permissionChanged();
 
+      if (!canWrite() || interactionsBlocked()) templatePlacement.cancel();
+
       surface.refresh();
       minimap?.setOpen(readSettings().minimapOpen);
     };
@@ -468,8 +510,22 @@ function create(
       publishSelection,
       applyHistory,
       surface,
-      insertImage: imageInput.open,
-      dismissInsertion: imageInput.dismiss,
+
+      insertImage: () => {
+        templatePlacement.cancel();
+        imageInput.open();
+      },
+
+      insertTemplate: (config, explicitSize) => {
+        selection.clear();
+        templatePlacement.arm(config, explicitSize);
+      },
+
+      dismissInsertion: () => {
+        templatePlacement.cancel();
+        imageInput.dismiss();
+      },
+
       lastWritingView: () => lastWritingView,
       notice: (message) => readSettings().onNavigationNotice(message),
     });
@@ -487,6 +543,7 @@ function create(
 
     return () => {
       disposed = true;
+      templatePlacement.cancel();
       selectionCommands.dispose();
       api.cancel = () => {};
       api.refresh = () => {};
