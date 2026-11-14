@@ -33,6 +33,10 @@ export class MathTemplatesPage {
 
     await this.panel().getByRole("button", { name, exact: true }).click();
 
+    await expect(
+      this.panel().getByRole("button", { name: "Целиком", exact: true }),
+    ).toHaveAttribute("aria-pressed", "true");
+
     return this.panel();
   }
 
@@ -113,16 +117,22 @@ export class MathTemplatesPage {
     await this.range(-100, 100);
 
     const preview = this.preview();
-    const closeup = await preview.getAttribute("viewBox");
+    const whole = await preview.getAttribute("viewBox");
     const before = (await this.board.storage.records()).main!;
+
+    await this.panel()
+      .getByRole("button", { name: "Крупно", exact: true })
+      .click();
+
+    await expect(preview).not.toHaveAttribute("viewBox", whole!);
+
+    const closeup = await preview.getAttribute("viewBox");
 
     await this.panel()
       .getByRole("button", { name: "Целиком", exact: true })
       .click();
 
-    await expect(preview).not.toHaveAttribute("viewBox", closeup!);
-
-    const whole = await preview.getAttribute("viewBox");
+    await expect(preview).toHaveAttribute("viewBox", whole!);
 
     await this.panel()
       .getByRole("button", { name: "Крупно", exact: true })

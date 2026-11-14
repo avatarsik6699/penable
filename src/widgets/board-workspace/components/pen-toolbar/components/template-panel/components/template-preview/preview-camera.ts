@@ -6,7 +6,7 @@ export class PreviewCamera {
   private x: number;
   private y: number;
   private scale = 1;
-  private mode: "close" | "whole" | "custom" = "close";
+  private mode: "close" | "whole" | "custom" = "whole";
 
   constructor(private readonly config: TemplateConfig) {
     const origin = BoardTemplates.origin(
@@ -16,8 +16,6 @@ export class PreviewCamera {
 
     this.x = origin.x;
     this.y = origin.y;
-
-    if (BoardTemplates.version(config) === 1) this.mode = "whole";
   }
 
   get snapshot() {

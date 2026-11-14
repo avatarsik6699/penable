@@ -203,7 +203,7 @@ The math panel uses up to640px/two columns from760px viewport width; narrower sc
 column. Its palette uses five columns at the existing30px fine/44px coarse targets.
 
 Preview has explicit Крупно/Целиком modes and an independent pointer/touch/keyboard camera.
-Number lines use120px preview height; XY/circles240px wide and180px narrow. Closeup prioritizes
+Number lines use120px preview height; XY/circles240px wide and180px narrow. Whole is the default. Closeup prioritizes
 readable lettering nearzero; Whole is an overview and may reduce labels on large ranges.
 Circle angles sit outside and coordinates±1inside, with separate controls. Axis origin labels
 clear the axes and neighbors. Prior generator1 items retain their earlier appearance.

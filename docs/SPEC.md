@@ -1138,8 +1138,8 @@ coordinatezero. Independent Angles/Coordinates toggles defaulton, backedby label
 version2 only. Labels avoid axes/circle/otherlabels even with rays. Preserve version1 behavior.
 
 Math panel >=760px uses up to640px two-column preview/settings, phone onecolumn. Preview heights:
-numberline120px; XY/circle240px wide/180px narrow. Uniform aspect ratio. Default readable Closeup
-aroundzero with pointer/touch panning; Whole mode fits complete figure. Preview camera is local,
+numberline120px; XY/circle240px wide/180px narrow. Uniform aspect ratio. Default Whole mode fits the complete figure; Closeup aroundzero is
+explicitly selected when needed. Both modes support pointer/touch panning. Preview camera is local,
 never changes board camera/history/document. Accessible buttons Крупно/Целиком and keyboard
 pan; touch44px controls, safeareas/keyboard viewport fitting remain. Bounded internal scrolling
 on short/narrow screens, desktop1280×720 primary controls reachable without long vertical lists.

@@ -240,7 +240,8 @@
       "palette": "5columns,30pxfine/44pxcoarse targets",
       "preview": "Крупно/Целиком; independent local pan; numberline120px,XY/circle240pxwide/180pxnarrow",
       "notation": "Circle angles outside,±1coordinates inside; independent toggles",
-      "compatibility": "Existing generator1 items unchanged"
+      "compatibility": "Existing generator1 items unchanged",
+      "defaultPreview": "Целиком; Крупно remains an explicit option"
     }
   },
   "components": [

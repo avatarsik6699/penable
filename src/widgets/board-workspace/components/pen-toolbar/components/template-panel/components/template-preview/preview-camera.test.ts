@@ -3,7 +3,7 @@ import { BoardTemplates } from "~/entities/board";
 import { PreviewCamera } from "./preview-camera";
 
 describe("local mathematical preview camera", () => {
-  it("starts around zero with readable uniform units, fits the full figure on demand, and pans without scale jumps", () => {
+  it("starts with the complete figure, supports readable closeup, and pans without scale jumps", () => {
     const config = {
       ...BoardTemplates.defaults("axes"),
       min: -100,
@@ -16,6 +16,12 @@ describe("local mathematical preview camera", () => {
 
     camera.resize(280, 240);
 
+    const initial = camera.snapshot;
+
+    expect(initial.mode).toBe("whole");
+    expect(Number(initial.viewBox.split(" ")[2])).toBeGreaterThan(8000);
+    camera.choose("close");
+
     const close = camera.snapshot;
 
     expect(close.mode).toBe("close");
@@ -24,6 +30,7 @@ describe("local mathematical preview camera", () => {
 
     const whole = camera.snapshot.viewBox.split(" ").map(Number);
 
+    expect(camera.snapshot).toEqual(initial);
     expect(whole[2]).toBeGreaterThan(8000);
     camera.pan(20, 10);
 
