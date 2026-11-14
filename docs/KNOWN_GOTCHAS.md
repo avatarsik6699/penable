@@ -72,3 +72,12 @@ old code might still resume. Never close/reset user-owned pages or clear browser
 Timed-out runs are not acceptance evidence. A replacement owned tab is a recovery exception to the
 one-created-tab convention; avoid simultaneous task tabs.1px screencast cadence stabilization, if
 used, must be disclosed and stopped after measurement (see STACK performance notes).
+
+## Heavy E2E polling must project inside the browser
+
+The durable selection translation assertion originally fetched all board/recovery records before
+extracting two coordinates in Node. On the100k-point fixture, one observation transferred15MB and
+took6.5–6.7s against a10s assertion deadline, so an old saved scene could consume nearly the whole
+budget. Read the active catalog/board only and project clipped translations inside page.evaluate;
+the same predicate then transferred31bytes in about70ms. Keep exact coordinate, worker-path and
+undo/redo/reload assertions; do not solve observation overhead with retries or larger timeouts.

@@ -81,6 +81,49 @@ export class StoragePage {
     await this.expectSaved();
   }
 
+  async clippedTranslations(): Promise<TestBoardTypes.Position[]> {
+    return this.page.evaluate(
+      () =>
+        new Promise((resolve, reject) => {
+          const request = indexedDB.open("penable");
+
+          request.onerror = () => reject(request.error);
+
+          request.onsuccess = () => {
+            const db = request.result;
+            const transaction = db.transaction("documents", "readonly");
+            const store = transaction.objectStore("documents");
+            const catalog = store.get("library");
+            let result: TestBoardTypes.Position[] = [];
+
+            catalog.onsuccess = () => {
+              const id = catalog.result?.activeId ?? "main";
+              const read = store.get(id === "main" ? "main" : `board:${id}`);
+
+              read.onsuccess = () => {
+                const document: TestBoardTypes.StoredDocument | undefined =
+                  read.result;
+
+                result = (document?.items ?? [])
+                  .filter((item) => item.clip)
+                  .map((item) => ({ x: item.matrix[4], y: item.matrix[5] }));
+              };
+            };
+
+            transaction.oncomplete = () => {
+              db.close();
+              resolve(result);
+            };
+
+            transaction.onabort = () => {
+              db.close();
+              reject(transaction.error);
+            };
+          };
+        }),
+    );
+  }
+
   async sceneFingerprint(): Promise<string> {
     return this.page.evaluate(async () => {
       const strokes = await new Promise<unknown>((resolve, reject) => {

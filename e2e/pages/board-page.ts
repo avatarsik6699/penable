@@ -207,13 +207,7 @@ export class BoardPage {
 
   async expectPartialMove(x: number, y: number) {
     await expect
-      .poll(async () => {
-        const strokes = (await this.storage.records()).main?.items ?? [];
-
-        return strokes
-          .filter((stroke) => stroke.clip)
-          .map((stroke) => ({ x: stroke.matrix[4], y: stroke.matrix[5] }));
-      })
+      .poll(() => this.storage.clippedTranslations())
       .toContainEqual({ x, y });
 
     await this.storage.expectSaved();
