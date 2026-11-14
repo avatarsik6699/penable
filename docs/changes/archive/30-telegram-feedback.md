@@ -6,7 +6,7 @@
 |-------|-------|
 | Change | `30` |
 | Slug | `telegram-feedback` |
-| Status | `verified` |
+| Status | `shipped locally` |
 | Branch | `feature/30-telegram-feedback` |
 
 ## Goal
