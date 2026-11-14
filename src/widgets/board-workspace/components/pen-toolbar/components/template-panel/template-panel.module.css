@@ -43,6 +43,7 @@
 }
 .preview {
   position: relative;
+  width: 100%;
   min-width: 0;
   align-self: start;
   padding: 0;

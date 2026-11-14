@@ -207,3 +207,6 @@ Number lines use120px preview height; XY/circles240px wide and180px narrow. Whol
 readable lettering nearzero; Whole is an overview and may reduce labels on large ranges.
 Circle angles sit outside and coordinates±1inside, with separate controls. Axis origin labels
 clear the axes and neighbors. Prior generator1 items retain their earlier appearance.
+
+Ordinary shape previews fill the available panel content width, retain their96px height and
+uniform figure proportions. Mathematical previews continue to fill their assigned grid column.
