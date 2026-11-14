@@ -233,6 +233,14 @@
       "palette": "two rows of44px targets",
       "overlays": "viewport-bounded phone sheets, contextual tablet panels, safe-area and visualViewport keyboard fitting",
       "policy": "stylus writes, fingers navigate by default; explicit transient finger editing"
+    },
+    "mathematicalTemplates": {
+      "lettering": "Prepared KleeOneRegular vector glyph subset; application chrome unchanged; no runtime fontload",
+      "panel": "640px maximum two-column at>=760px; one-column narrow",
+      "palette": "5columns,30pxfine/44pxcoarse targets",
+      "preview": "Крупно/Целиком; independent local pan; numberline120px,XY/circle240pxwide/180pxnarrow",
+      "notation": "Circle angles outside,±1coordinates inside; independent toggles",
+      "compatibility": "Existing generator1 items unchanged"
     }
   },
   "components": [

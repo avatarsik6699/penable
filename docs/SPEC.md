@@ -12,7 +12,7 @@
 
 | Поле | Значение |
 |------|----------|
-| Версия | 1.4 — touch navigation and responsive tablet experience |
+| Версия | 1.5 — readable versioned mathematical templates |
 | Дата | 2026-11-14 |
 | Архитектор / владелец | Пользователь |
 | Предметная область | Личные рукописные конспекты в браузере |
@@ -1107,3 +1107,44 @@ pressure/cancel, pan/zoom/noaccidentalink, selectedtool editing/resize, safearea
 geometry and reload. Synthetic events/emulation/WebKitLinux are not real iPad hardware proof.
 Preserve desktopregressions, paired native engine CPU/raster budgets and bounded gesture input.
 Independent review and Full Gate precede automatic localship; publication remains separate.
+
+## 5.22 — Readable mathematical templates (Change27)
+
+Approved2026-11-14. New number lines, XY axes and trigonometric circles use generator2;
+existing generator1 items retain exact appearance/geometry, including clipped fragments.
+Schema5/catalog2/IDB1 remain unchanged; support generator1|2 and reject unknown versions.
+Every layout/bounds/selection/render/export/codec/cache/source-compatibility path dispatches
+by actual generatorVersion. No automatic old-item conversion or data mutation.
+
+Numeric templates compute dimensions from actual label metrics and tick count; every chosen
+step/tick label is retained, no thinning or silently changing a manualstep. Required step1
+examples0…15,0…100,−100…100. Equal XY unit scale. Limit201ticks/axis and32768local units/side;
+keep finite±10000 range includingzero and step>=.000001. Count/size validated before enumeration.
+Invalid drafts retain lastvalid preview and actionable error. No numeric size controls.
+New math placement uses readable current-view lettering, without320px viewport-fit reduction;
+large figures may extend beyondviewport. Numericv2 placement anchors zero/origin at the clicked
+point (circlecenter forcircles), keeping positive-range axes visible; normal/v1 placement remains unchanged.
+
+Handwriting uses compact prepared KleeOneRegular vector glyph outlines/metrics for required
+numeric/x/y/pi/minus/separator characters, with upstream source provenance and OFLlicense.
+No full font, network font loading or newruntime dependency. Same glyphs and metrics feedSVG,
+Canvas andPNG; no textLength glyphstretch or fillText widthcompression for generator2.
+Pure generator owns glyph metrics, bounded layout, label bounds and caching; native painting
+stayswidget/PNGworker-owned. New label primitive retains semantic text and bounds for selection.
+
+XY has one origin0 lowerleft of axisintersection; all labels clear axes/ticks and neighbors.
+Circle angles remain radians outside, ±1 coordinates inside, axis names preserved; no extra
+coordinatezero. Independent Angles/Coordinates toggles defaulton, backedby labels/numbers in
+version2 only. Labels avoid axes/circle/otherlabels even with rays. Preserve version1 behavior.
+
+Math panel >=760px uses up to640px two-column preview/settings, phone onecolumn. Preview heights:
+numberline120px; XY/circle240px wide/180px narrow. Uniform aspect ratio. Default readable Closeup
+aroundzero with pointer/touch panning; Whole mode fits complete figure. Preview camera is local,
+never changes board camera/history/document. Accessible buttons Крупно/Целиком and keyboard
+pan; touch44px controls, safeareas/keyboard viewport fitting remain. Bounded internal scrolling
+on short/narrow screens, desktop1280×720 primary controls reachable without long vertical lists.
+
+Acceptance includes pure limits/tickcount/nonoverlap/glyphmetrics/legacy invariance, Chromium+
+WebKit responsive preview/input, nativevisual desktop/phone/tablet, versionedcodec/JSON/clipboard/
+PNG/history/reload/exactselection tests, worstcase math CPU/raster and unchangedink budgets.
+Independent review and Fast/Full gates precede automatic localship. Publication separate.

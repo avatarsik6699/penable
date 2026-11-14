@@ -10,6 +10,8 @@ import {
   paintStroke,
 } from "@engine";
 
+import { mathBench } from "./math-templates.js";
+
 let scheduling = "raf";
 
 const nextFrame = () =>
@@ -674,5 +676,7 @@ const api = {
     return { comparisons: 2 * 7 * 4 * 12, diffs };
   },
 };
+
+api.math = mathBench;
 
 window.penBench = api;

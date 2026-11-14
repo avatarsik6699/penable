@@ -5,6 +5,10 @@
   gap: 2px;
   margin: 8px 0;
 }
+.palette:where([data-compact]) {
+  grid-template-columns: repeat(5, 30px);
+}
+
 .swatch {
   position: relative;
   width: 30px;

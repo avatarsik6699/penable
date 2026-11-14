@@ -65,7 +65,7 @@ export namespace TestBoardTypes {
   export type TemplateItem = {
     kind: "template";
     id: number;
-    generatorVersion: 1;
+    generatorVersion: 1 | 2;
     template: {
       kind:
         | "line"

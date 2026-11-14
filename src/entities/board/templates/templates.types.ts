@@ -1,6 +1,17 @@
+import type { GlyphRun } from "./modules/glyphs";
 import type { Position, InkColor } from "../board.types";
 
+export type TemplateLabel = GlyphRun & {
+  kind: "label";
+  text: string;
+  x: number;
+  y: number;
+  size: number;
+  color: InkColor;
+};
+
 export type TemplatePrimitive =
+  | TemplateLabel
   | {
       kind: "ellipse";
       cx: number;

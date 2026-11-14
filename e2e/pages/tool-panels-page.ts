@@ -150,6 +150,15 @@ export class ToolPanelsPage {
     expect(original.template.max).toBe(10000);
     expect(original.template.step).toBeGreaterThan(1);
 
+    // Readable math templates can extend beyond the initial view; bring handles into view.
+    await this.page
+      .getByRole("button", { name: "Уменьшить масштаб доски", exact: true })
+      .click();
+
+    await this.page
+      .getByRole("button", { name: "Уменьшить масштаб доски", exact: true })
+      .click();
+
     const path = (await this.page
       .getByTestId("selection-handles")
       .getAttribute("d"))!;

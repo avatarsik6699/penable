@@ -1,66 +1,55 @@
 import type React from "react";
 import { BoardTemplates } from "~/entities/board";
+import { Button } from "~/shared/ui/button";
+import { PreviewScene } from "./components/preview-scene";
+import { usePreviewCamera } from "./hooks/use-preview-camera";
 import type { TemplatePreviewTypes } from "./template-preview.types";
+import styles from "./template-preview.module.css";
 
 export const TemplatePreview: React.FC<TemplatePreviewTypes.Props> = (
   props,
-) => (
-  <svg
-    viewBox={`-8 -8 ${props.config.width + 16} ${props.config.height + 16}`}
-    aria-label="Предварительный вид заготовки"
-    role="img"
-  >
-    {BoardTemplates.layout(props.config).primitives.map((primitive, index) =>
-      primitive.kind === "text" ? (
-        <text
-          key={index}
-          x={primitive.x}
-          y={primitive.y}
-          fontSize={primitive.size}
-          fill={primitive.color}
-          fontFamily="Arial, sans-serif"
-          dominantBaseline="text-before-edge"
-          textLength={primitive.width}
-          lengthAdjust="spacingAndGlyphs"
+) => {
+  const camera = usePreviewCamera(props.config);
+  const version = BoardTemplates.version(props.config);
+
+  return (
+    <div className={styles.preview} data-kind={props.config.kind}>
+      {version === 2 && (
+        <div
+          className={styles.modes}
+          role="group"
+          aria-label="Масштаб предпросмотра"
         >
-          {primitive.text}
-        </text>
-      ) : primitive.kind === "ellipse" ? (
-        <ellipse
-          key={index}
-          cx={primitive.cx}
-          cy={primitive.cy}
-          rx={primitive.rx}
-          ry={primitive.ry}
-          fill={primitive.fill ?? "none"}
-          stroke={primitive.color}
-          strokeWidth={primitive.width}
-          strokeDasharray={
-            primitive.dashed
-              ? `${primitive.width * 3} ${primitive.width * 2}`
-              : undefined
-          }
-        />
-      ) : (
-        <path
-          key={index}
-          d={
-            primitive.points
-              .map((p, i) => `${i ? "L" : "M"}${p.x} ${p.y}`)
-              .join(" ") + (primitive.closed ? " Z" : "")
-          }
-          fill={primitive.fill ?? "none"}
-          stroke={primitive.color}
-          strokeWidth={primitive.width}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeDasharray={
-            primitive.dashed
-              ? `${primitive.width * 3} ${primitive.width * 2}`
-              : undefined
-          }
-        />
-      ),
-    )}
-  </svg>
-);
+          <Button
+            aria-pressed={camera.snapshot.mode === "close"}
+            onClick={() => camera.choose("close")}
+          >
+            Крупно
+          </Button>
+          <Button
+            aria-pressed={camera.snapshot.mode === "whole"}
+            onClick={() => camera.choose("whole")}
+          >
+            Целиком
+          </Button>
+        </div>
+      )}
+      <div
+        className={styles.viewport}
+        role="region"
+        aria-label="Предпросмотр математической фигуры"
+        tabIndex={0}
+        ref={(node) => camera.bindRegion(node)}
+      >
+        <svg
+          ref={(node) => camera.bindSvg(node)}
+          viewBox={camera.snapshot.viewBox}
+          aria-label="Предварительный вид заготовки"
+          role="img"
+        >
+          <PreviewScene layout={BoardTemplates.layout(props.config, version)} />
+        </svg>
+      </div>
+    </div>
+  );
+};

@@ -495,3 +495,20 @@ with existing `npm run test:e2e:install -- webkit` and launchverified before con
 Current Safari/iPadOS support is tested withLinuxWebKit plus emulation, not physical Pencil
 proof. Preserve format5 and existing renderer/raster/selection contracts; newnative capability
 owners require exact policy coverage. Physical iPad/Pencil model is unknown, user thinksPencil2.
+
+
+## Change27 — Mathematical template acceptance
+
+Generator2 uses a compact prepared KleeOne glyph atlas, no runtime font/library. Schema5 reads
+generator1|2; IDB1/catalog2 unchanged. Legacy geometry is retained by explicit dispatch.
+The mathematical E2E cases extend existing Chromium coverage; touch-math.spec also runs in the
+bounded WebKit project. Fixtures own documents/options, Page Objects own actions/assertions.
+Native owners add only exact preview-input.ts DOM+frames and template-paint.ts Canvas access.
+
+Acceptance uses owned Pages4207, performance4180 and isolated E2E4185; ownerlocalhost storage is
+not testdata. Benchmark-only penBench.math captures legacy native raster hashes and bounded
+newmath layout/paint CPU; existing ink fixtures retain paired baseline budgets. Profile dense
+201tickXY+grid preview camera including DOMcommit/frame time, not just Canvas rendering.
+Preserve exact v1/native ink raster; SVG/PNG newglyph outlines/metrics must agree. Font atlas
+provenance/license lives in the owning template glyph module; no font preparation is required
+by npmci/build. Actual iPad/Pencil acceptance remains separate; localship does not publishPages.

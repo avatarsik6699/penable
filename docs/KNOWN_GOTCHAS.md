@@ -105,3 +105,20 @@ use --control-selected-bg, --control-selected-text, --control-selected-border an
 An undeclared --accent background silently becomes transparent and can make white button text
 invisible; a browser click test alone will still pass. Check computed contrast/focus and inspect
 the rendered primary action, including its hover state.
+
+
+## WebKit ResizeObserver feedback from overlay fitting
+
+Symptom: math panel switches pass visible assertions but emit “ResizeObserver loop completed
+with undelivered notifications.” Updating only the preview observer does not fix it.
+
+Root cause: shared Overlay.bindViewport observed panel/ancestors and wrote the CSS variables
+that constrain their height inside the notification. Bottom-anchored math sheets additionally
+used a height cap derived from their own top, creating staged growth across frames.
+
+Keep initial fitting synchronous, coalesce later observer/window/visualViewport updates through
+one owned RAF, dedupe writes and cancel before restoring inline properties on cleanup. A bottom
+math sheet uses the explicit visualViewport/safe-area cap instead of self-derived available
+height. Tag observer callbacks/targets/CSS writes to identify the owner; never filter the error.
+Regression evidence: Change27 WebKit touch math, overlay/preview lifecycle tests and owned
+observer trace. Preserve ancestor observation and keyboard fitting when changing this adapter.

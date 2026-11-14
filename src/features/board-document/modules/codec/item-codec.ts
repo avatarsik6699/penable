@@ -123,14 +123,14 @@ function decode(
         result.source = raw.source;
       }
     } else if (modern && raw.kind === "template") {
-      if (raw.generatorVersion !== 1)
+      if (raw.generatorVersion !== 1 && raw.generatorVersion !== 2)
         CodecPrimitives.invalid("item.generatorVersion");
 
       result = {
         kind: "template",
         id,
-        generatorVersion: 1,
-        template: TemplateDecoder.decode(raw.template),
+        generatorVersion: raw.generatorVersion,
+        template: TemplateDecoder.decode(raw.template, raw.generatorVersion),
         matrix,
       };
 
@@ -158,7 +158,7 @@ function decode(
         result.kind === "image"
           ? `image:${result.asset.id}`
           : result.kind === "template"
-            ? `template:${JSON.stringify(result.template)}`
+            ? `template:${result.generatorVersion}:${JSON.stringify(result.template)}`
             : "ink";
 
       if (
@@ -235,7 +235,7 @@ function encode(items: readonly BoardItem[], geometryOnly = false) {
         return {
           kind: "template",
           id: item.id,
-          generatorVersion: 1,
+          generatorVersion: item.generatorVersion,
           template: item.template,
           matrix,
           ...(item.source ? { source: item.source } : {}),

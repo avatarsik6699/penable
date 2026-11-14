@@ -1,6 +1,8 @@
 import { BoardTemplates, type TemplateItem } from "~/entities/board";
 import type { RenderingContext } from "./rendering-context.types";
 
+const glyphPaths = new Map<string, Path2D>();
+
 function paint(ctx: RenderingContext, item: TemplateItem) {
   ctx.save();
 
@@ -9,8 +11,36 @@ function paint(ctx: RenderingContext, item: TemplateItem) {
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
-    for (const primitive of BoardTemplates.layout(item.template).primitives) {
-      if (primitive.kind === "text") {
+    for (const primitive of BoardTemplates.layout(
+      item.template,
+      item.generatorVersion,
+    ).primitives) {
+      if (primitive.kind === "label") {
+        ctx.fillStyle = primitive.color;
+
+        for (const glyph of primitive.glyphs) {
+          let path = glyphPaths.get(glyph.path);
+
+          if (!path) {
+            path = new Path2D(glyph.path);
+            glyphPaths.set(glyph.path, path);
+          }
+
+          ctx.save();
+
+          ctx.transform(
+            glyph.scale,
+            0,
+            0,
+            glyph.scale,
+            primitive.x + glyph.x,
+            primitive.y + glyph.y,
+          );
+
+          ctx.fill(path);
+          ctx.restore();
+        }
+      } else if (primitive.kind === "text") {
         ctx.fillStyle = primitive.color;
         ctx.font = `${primitive.size}px Arial, sans-serif`;
         ctx.textAlign = "left";

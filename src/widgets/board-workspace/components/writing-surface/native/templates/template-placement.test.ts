@@ -63,7 +63,8 @@ describe("template placement ownership", () => {
     h.placement.refresh();
 
     expect(h.draw.mock.lastCall![0]).toMatchObject({
-      matrix: [0.5, 0, 0, 0.5, 35, 7.5],
+      generatorVersion: 2,
+      matrix: [0.5, 0, 0, 0.5, -5, -32.5],
     });
 
     h.disable();
@@ -91,4 +92,48 @@ describe("template placement ownership", () => {
     big.placement.place(510, 420);
     expect(big.insert.mock.calls[0]![0].matrix[0]).toBeCloseTo(952 / 1200);
   });
+});
+
+it("places large mathematical lettering at nominal screen size around its actual origin without fitting it to 320px", () => {
+  const h = harness();
+
+  h.placement.arm({
+    ...BoardTemplates.defaults("axes"),
+    min: -100,
+    max: 100,
+    step: 1,
+  });
+
+  h.placement.place(510, 420);
+
+  const item = h.insert.mock.calls[0]![0];
+
+  expect(item.generatorVersion).toBe(2);
+  expect(item.matrix[0]).toBe(0.5);
+  expect(item.template.width).toBeGreaterThan(8000);
+
+  const origin = BoardTemplates.origin(item.template, 2);
+
+  expect(item.matrix[4] + origin.x * item.matrix[0]).toBe(240);
+  expect(item.matrix[5] + origin.y * item.matrix[3]).toBe(185);
+});
+
+it("anchors the visible zero of a positive large range at the chosen point", () => {
+  const h = harness();
+
+  h.placement.arm({
+    ...BoardTemplates.defaults("axes"),
+    min: 0,
+    max: 100,
+    step: 1,
+  });
+
+  h.placement.place(510, 420);
+
+  const item = h.insert.mock.calls[0]![0],
+    origin = BoardTemplates.origin(item.template, 2);
+
+  expect(item.matrix[4] + origin.x * item.matrix[0]).toBe(240);
+  expect(item.matrix[5] + origin.y * item.matrix[3]).toBe(185);
+  expect(item.matrix[0]).toBe(0.5);
 });

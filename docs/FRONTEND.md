@@ -180,3 +180,20 @@ remount the drawing surface. Persisted camera updates retain read-only authority
 The bounded WebKit touch project shares domain specs/Page Objects with Chromium. Fixtures own
 mobile/coarse options, keyboard viewport simulation, isolated storage and native CDP lifetime.
 Synthetic pen events and Linux WebKit are regression evidence, not physical Pencil acceptance.
+
+
+## Versioned mathematical geometry
+
+TemplateItem.generatorVersion1|2 is authoritative across codec/geometry-only jobs, layout,
+bounds/intersections, renderer/PNG, fragment lineage and caching. LegacyTemplates preserves
+version1 geometry exactly; no load-time conversion. Schema5 remains the containing format.
+The pure template module owns bounded numeric sizing, extracted handwritten glyph metrics and
+semantic label bounds. The prepared KleeOne atlas and its license/provenance are static local
+assets, not a browser font. Native TemplatePaint owns bounded Path2D glyph caches; SVG scene
+replays the same outlines. Generated workload estimates participate in worker routing.
+
+TemplatePreview composes a memoized immutable PreviewScene and a local PreviewCamera. Camera
+changes never rebuild scene geometry or write board state. Its exact native PreviewInput
+adapter owns capture/keyboard/blur and deduped RAF-deferred ResizeObserver updates; disposal
+releases contact, observer and pending frame. React hooks own only subscription/lifecycle and
+coarse presentation. Existing layers and exact PNG worker capability boundaries remain.

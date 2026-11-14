@@ -36,7 +36,8 @@ function sourceBounds(stroke: BoardItem): InkBounds | null {
     };
 
   if (stroke.kind === "template")
-    return BoardTemplates.layout(stroke.template).bounds;
+    return BoardTemplates.layout(stroke.template, stroke.generatorVersion)
+      .bounds;
 
   if (strokeBoundsCache.has(stroke)) return strokeBoundsCache.get(stroke)!;
 

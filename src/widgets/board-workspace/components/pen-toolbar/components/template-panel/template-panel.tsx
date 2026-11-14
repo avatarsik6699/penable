@@ -24,6 +24,7 @@ export const TemplatePanel: React.FC<TemplatePanelTypes.Props> = (props) => {
   return (
     <div
       className={styles.panel}
+      data-math={mathematical || config.kind === "circle" || undefined}
       role="dialog"
       aria-label="Фигуры и заготовки"
       ref={(node) => props.bindRoot(node)}
@@ -45,111 +46,128 @@ export const TemplatePanel: React.FC<TemplatePanelTypes.Props> = (props) => {
         disabled={props.disabled}
         onChange={draft.choose}
       />
-      <div
-        className={styles.preview}
-        data-stale={Boolean(draft.state.error) || undefined}
-      >
-        <TemplatePreview config={draft.state.preview} />
-        {draft.state.error && (
-          <span className={styles.stale}>Последний корректный вид</span>
-        )}
-      </div>
-      <div className={styles.outline}>
-        <div className={styles.caption}>
-          <label htmlFor="template-line-width">Толщина контура</label>
-          <output htmlFor="template-line-width">
-            {config.lineWidth.toFixed(1)}
-            <span>px</span>
-          </output>
-        </div>
-        <RangeInput
-          id="template-line-width"
-          min="0.5"
-          max="12"
-          step="0.5"
-          value={config.lineWidth}
-          disabled={props.disabled}
-          onChange={(event) =>
-            draft.change({ lineWidth: Number(event.target.value) })
-          }
-        />
-      </div>
-      <InkPalette
-        color={config.color}
-        disabled={props.disabled}
-        onChange={(color) => draft.change({ color })}
-      />
-      {!mathematical && config.kind !== "circle" && (
-        <fieldset disabled={props.disabled} className={styles.options}>
-          <legend>Оформление фигуры</legend>
-          <label>
-            <input
-              type="checkbox"
-              checked={config.dashed}
-              onChange={(event) =>
-                draft.change({ dashed: event.target.checked })
-              }
-            />
-            Пунктир
-          </label>
-          {closed && (
-            <label>
-              <input
-                type="checkbox"
-                checked={config.fill !== null}
-                onChange={(event) =>
-                  draft.change({
-                    fill: event.target.checked ? config.color : null,
-                  })
-                }
-              />
-              Заливка
-            </label>
+      <div className={styles.body}>
+        <div
+          className={styles.preview}
+          data-stale={Boolean(draft.state.error) || undefined}
+        >
+          <TemplatePreview config={draft.state.preview} />
+          {draft.state.error && (
+            <span className={styles.stale}>Последний корректный вид</span>
           )}
-        </fieldset>
-      )}
-      {config.fill && (
-        <InkPalette
-          color={config.fill}
-          label="Цвет заливки"
-          disabled={props.disabled}
-          onChange={(fill) => draft.change({ fill })}
-        />
-      )}
-      {mathematical && (
-        <MathSettings
-          state={draft.state}
-          disabled={props.disabled}
-          onField={draft.field}
-          onAutomatic={draft.automatic}
-          onRecommendation={draft.applyRecommendation}
-          onNumbers={(numbers) => draft.change({ numbers })}
-          onGrid={(grid) => draft.change({ grid })}
-        />
-      )}
-      {config.kind === "circle" && (
-        <fieldset disabled={props.disabled} className={styles.options}>
-          <legend>Оформление окружности</legend>
-          <label>
-            <input
-              type="checkbox"
-              checked={config.labels}
+        </div>
+        <div className={styles.settings}>
+          <div className={styles.outline}>
+            <div className={styles.caption}>
+              <label htmlFor="template-line-width">Толщина контура</label>
+              <output htmlFor="template-line-width">
+                {config.lineWidth.toFixed(1)}
+                <span>px</span>
+              </output>
+            </div>
+            <RangeInput
+              id="template-line-width"
+              min="0.5"
+              max="12"
+              step="0.5"
+              value={config.lineWidth}
+              disabled={props.disabled}
               onChange={(event) =>
-                draft.change({ labels: event.target.checked })
+                draft.change({ lineWidth: Number(event.target.value) })
               }
             />
-            Подписи углов в радианах
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={config.rays}
-              onChange={(event) => draft.change({ rays: event.target.checked })}
+          </div>
+          <InkPalette
+            compact={mathematical || config.kind === "circle"}
+            color={config.color}
+            disabled={props.disabled}
+            onChange={(color) => draft.change({ color })}
+          />
+          {!mathematical && config.kind !== "circle" && (
+            <fieldset disabled={props.disabled} className={styles.options}>
+              <legend>Оформление фигуры</legend>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={config.dashed}
+                  onChange={(event) =>
+                    draft.change({ dashed: event.target.checked })
+                  }
+                />
+                Пунктир
+              </label>
+              {closed && (
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={config.fill !== null}
+                    onChange={(event) =>
+                      draft.change({
+                        fill: event.target.checked ? config.color : null,
+                      })
+                    }
+                  />
+                  Заливка
+                </label>
+              )}
+            </fieldset>
+          )}
+          {config.fill && (
+            <InkPalette
+              color={config.fill}
+              label="Цвет заливки"
+              disabled={props.disabled}
+              onChange={(fill) => draft.change({ fill })}
             />
-            Вспомогательные лучи
-          </label>
-        </fieldset>
-      )}
+          )}
+          {mathematical && (
+            <MathSettings
+              state={draft.state}
+              disabled={props.disabled}
+              onField={draft.field}
+              onAutomatic={draft.automatic}
+              onRecommendation={draft.applyRecommendation}
+              onNumbers={(numbers) => draft.change({ numbers })}
+              onGrid={(grid) => draft.change({ grid })}
+            />
+          )}
+          {config.kind === "circle" && (
+            <fieldset disabled={props.disabled} className={styles.options}>
+              <legend>Оформление окружности</legend>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={config.labels}
+                  onChange={(event) =>
+                    draft.change({ labels: event.target.checked })
+                  }
+                />
+                Углы
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={config.numbers}
+                  onChange={(event) =>
+                    draft.change({ numbers: event.target.checked })
+                  }
+                />
+                Координаты
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={config.rays}
+                  onChange={(event) =>
+                    draft.change({ rays: event.target.checked })
+                  }
+                />
+                Вспомогательные лучи
+              </label>
+            </fieldset>
+          )}
+        </div>
+      </div>
       <Button
         className={styles.place}
         disabled={props.disabled || !draft.state.resolved}

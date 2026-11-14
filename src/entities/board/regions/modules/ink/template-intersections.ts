@@ -6,7 +6,7 @@ import { InkUtils } from "./ink.utils";
 const verticesCache = new WeakMap<TemplatePrimitive, readonly Position[]>();
 
 function vertices(
-  primitive: Exclude<TemplatePrimitive, { kind: "text" }>,
+  primitive: Exclude<TemplatePrimitive, { kind: "text" | "label" }>,
 ): readonly Position[] {
   if (primitive.kind !== "ellipse") return primitive.points;
 
@@ -69,8 +69,11 @@ function intersects(item: TemplateItem, mask: ClipMask): boolean {
 
   if (!bounds) return false;
 
-  for (const primitive of BoardTemplates.layout(item.template).primitives) {
-    if (primitive.kind === "text") {
+  for (const primitive of BoardTemplates.layout(
+    item.template,
+    item.generatorVersion,
+  ).primitives) {
+    if (primitive.kind === "text" || primitive.kind === "label") {
       if (
         !InkUtils.overlaps(bounds, {
           left: primitive.x,

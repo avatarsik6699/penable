@@ -54,6 +54,10 @@ export const platformOwners = {
     ["canvas"],
   "src/widgets/board-workspace/components/writing-surface/native/rendering/paint.ts":
     ["canvas"],
+  "src/widgets/board-workspace/components/writing-surface/native/rendering/template-paint.ts":
+    ["canvas"],
+  "src/widgets/board-workspace/components/pen-toolbar/components/template-panel/components/template-preview/native/preview-input.ts":
+    ["dom", "frames"],
   "src/widgets/board-workspace/components/writing-surface/native/rendering/pressure-paint.ts":
     ["canvas"],
   "src/widgets/board-workspace/components/writing-surface/native/rendering/path-cache.ts":
@@ -115,7 +119,7 @@ export const platformOwners = {
   "src/widgets/board-workspace/components/writing-surface/native/minimap/minimap.types.ts":
     ["dom"],
   "src/shared/lib/task-clock/task-clock.ts": ["timers"],
-  "src/shared/lib/overlay/overlay.ts": ["dom"],
+  "src/shared/lib/overlay/overlay.ts": ["dom", "frames"],
 };
 
 // These are explicit secondary public APIs, never blanket access to private files.

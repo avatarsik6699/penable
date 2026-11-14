@@ -11,7 +11,7 @@ describe("template panel drafts", () => {
 
     expect(state.error).toBeNull();
     expect(state.resolved?.step).toBeGreaterThan(1);
-    expect(BoardTemplates.validate(state.resolved!)).toBe("");
+    expect(BoardTemplates.validate(state.resolved!, 2)).toBe("");
     expect(state.resolved).not.toHaveProperty("automatic");
   });
 
@@ -98,4 +98,21 @@ describe("template panel drafts", () => {
     expect(next.resolved).not.toBeNull();
     expect(next.config.width).toBe(next.config.height);
   });
+});
+
+it("accepts required manual step1 ranges without silently increasing the step", () => {
+  for (const [min, max] of [
+    [0, 15],
+    [0, 100],
+    [-100, 100],
+  ]) {
+    let state = TemplateDraft.automatic(TemplateDraft.create("axes"), false);
+
+    state = TemplateDraft.field(state, "min", String(min));
+    state = TemplateDraft.field(state, "max", String(max));
+    state = TemplateDraft.field(state, "step", "1");
+    expect(state.error).toBeNull();
+    expect(state.resolved?.step).toBe(1);
+    expect(state.resolved?.width).toBeGreaterThan(320);
+  }
 });

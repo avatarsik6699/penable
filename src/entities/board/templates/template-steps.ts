@@ -1,7 +1,10 @@
 import type { TemplateConfig } from "../board.types";
 import { BoardTemplates } from "./templates";
 
-function recommend(config: TemplateConfig): number | null {
+function recommend(
+  config: TemplateConfig,
+  generatorVersion: 1 | 2 = 1,
+): number | null {
   const span = config.max - config.min;
 
   if (!Number.isFinite(span) || span <= 0) return null;
@@ -18,7 +21,8 @@ function recommend(config: TemplateConfig): number | null {
 
       if (last <= first) continue;
 
-      if (!BoardTemplates.validate({ ...config, step })) return step;
+      if (!BoardTemplates.validate({ ...config, step }, generatorVersion))
+        return step;
     }
   }
 

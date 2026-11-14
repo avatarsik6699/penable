@@ -1,0 +1,57 @@
+.preview {
+  width: 100%;
+  min-width: 0;
+}
+.modes {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.modes button {
+  min-height: 32px;
+  font-size: 12px;
+  padding: 4px 12px;
+}
+.modes button[aria-pressed="true"] {
+  color: var(--control-selected-text);
+  background: var(--control-selected-bg);
+}
+.viewport {
+  height: 96px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f7f9fc;
+  cursor: grab;
+}
+.viewport:active {
+  cursor: grabbing;
+}
+.viewport:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.viewport svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  user-select: none;
+}
+.preview[data-kind="axes"] .viewport,
+.preview[data-kind="circle"] .viewport {
+  height: 180px;
+}
+.preview[data-kind="number-line"] .viewport {
+  height: 120px;
+}
+@media (min-width: 760px) {
+  .preview[data-kind="axes"] .viewport,
+  .preview[data-kind="circle"] .viewport {
+    height: 240px;
+  }
+}
+@media (any-pointer: coarse) {
+  .modes button {
+    min-height: 44px;
+  }
+}

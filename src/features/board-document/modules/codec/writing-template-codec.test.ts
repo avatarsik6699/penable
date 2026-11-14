@@ -69,7 +69,7 @@ describe("schema5 instruments and templates", () => {
 
     const encoded = DocumentCodec.encodeDocument(fixture());
 
-    Object.assign(encoded.items[1]!, { generatorVersion: 2 });
+    Object.assign(encoded.items[1]!, { generatorVersion: 3 });
     expect(() => DocumentCodec.decodeDocument(encoded)).toThrow();
   });
 
@@ -96,4 +96,55 @@ describe("schema5 instruments and templates", () => {
 
     expect((decoded.strokes[0] as Stroke).style).toBeUndefined();
   });
+});
+
+it("preserves actual versions in mixed geometry, portable documents and editable fragments", () => {
+  const old = fixture();
+
+  const modern: TemplateItem = {
+    kind: "template",
+    id: 3,
+    generatorVersion: 2,
+    template: BoardTemplates.prepare({
+      ...BoardTemplates.defaults("axes"),
+      min: -100,
+      max: 100,
+      step: 1,
+    }),
+    matrix: [1, 0, 0, 1, 0, 0],
+  };
+
+  const document = { ...old, strokes: [...old.strokes, modern] };
+  const encoded = DocumentCodec.encodeDocument(document);
+
+  expect(DocumentCodec.decodeDocument(encoded)).toEqual(document);
+
+  const fragment = {
+    strokes: document.strokes,
+    region: BoardRegions.rectangle({ x: 0, y: 0 }, { x: 500, y: 500 }),
+  };
+
+  expect(FragmentCodec.parse(FragmentCodec.serialize(fragment))).toEqual(
+    fragment,
+  );
+
+  const conflict = DocumentCodec.encodeDocument({
+    ...old,
+    strokes: [
+      {
+        ...modern,
+        source: "shared",
+        template: BoardTemplates.defaults("axes"),
+      },
+      {
+        ...modern,
+        id: 4,
+        generatorVersion: 1 as const,
+        source: "shared",
+        template: BoardTemplates.defaults("axes"),
+      },
+    ],
+  });
+
+  expect(() => DocumentCodec.decodeDocument(conflict)).toThrow("source");
 });

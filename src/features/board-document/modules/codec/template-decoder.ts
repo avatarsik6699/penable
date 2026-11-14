@@ -1,7 +1,7 @@
 import { BoardTemplates, type TemplateConfig } from "~/entities/board";
 import { CodecPrimitives } from "./document-codec.utils";
 
-function decode(value: unknown): TemplateConfig {
+function decode(value: unknown, generatorVersion: 1 | 2 = 1): TemplateConfig {
   const raw = CodecPrimitives.object(value, "item.template");
 
   const result = {
@@ -21,7 +21,7 @@ function decode(value: unknown): TemplateConfig {
     rays: raw.rays,
   } as TemplateConfig;
 
-  const error = BoardTemplates.validate(result);
+  const error = BoardTemplates.validate(result, generatorVersion);
 
   if (error) CodecPrimitives.invalid(`item.template: ${error}`);
 

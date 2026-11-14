@@ -1,6 +1,6 @@
 import { DocumentJobConfig } from "./document-jobs.config";
 import type { BoardItem, RegionInput } from "~/entities/board";
-import { BoardRegions } from "~/entities/board";
+import { BoardRegions, BoardTemplates } from "~/entities/board";
 
 function heavyDocument(
   strokes: readonly BoardItem[],
@@ -28,9 +28,11 @@ function heavyDocument(
     }
 
     points +=
-      stroke.kind === "image" || stroke.kind === "template"
-        ? 0
-        : stroke.points.length;
+      stroke.kind === "template"
+        ? BoardTemplates.workload(stroke.template, stroke.generatorVersion)
+        : stroke.kind === "image"
+          ? 0
+          : stroke.points.length;
 
     vertices += stroke.clip ? BoardRegions.vertexCount(stroke.clip) : 0;
 

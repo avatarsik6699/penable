@@ -192,3 +192,18 @@ selection handles accept a22CSSpx radius without changing visible or stored geom
 pickers wrap, tooltips remain available by explicit help controls, and the selected template
 name stays visible. Text fields use at least16px on coarse pointers to avoid focus zoom.
 Phone/tablet changes preserve the desktop visual language and the existing two ink canvases.
+
+
+## Mathematical template refinement
+
+New math templates use compact KleeOne handwritten vector lettering, with common exact glyph
+metrics across preview/editor/PNG. Application chrome retains system UI typography; no webfont
+is loaded. Every numeric tick is retained and source geometry grows to fit its labels.
+The math panel uses up to640px/two columns from760px viewport width; narrower screens keep one
+column. Its palette uses five columns at the existing30px fine/44px coarse targets.
+
+Preview has explicit Крупно/Целиком modes and an independent pointer/touch/keyboard camera.
+Number lines use120px preview height; XY/circles240px wide and180px narrow. Closeup prioritizes
+readable lettering nearzero; Whole is an overview and may reduce labels on large ranges.
+Circle angles sit outside and coordinates±1inside, with separate controls. Axis origin labels
+clear the axes and neighbors. Prior generator1 items retain their earlier appearance.

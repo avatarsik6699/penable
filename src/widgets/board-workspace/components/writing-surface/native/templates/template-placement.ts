@@ -19,7 +19,8 @@ export class TemplatePlacement {
   arm(config: TemplateConfig, explicitSize = false) {
     if (!this.options.allowed()) return;
 
-    const error = BoardTemplates.validate(config);
+    const generatorVersion = BoardTemplates.version(config);
+    const error = BoardTemplates.validate(config, generatorVersion);
 
     if (error) {
       this.options.notice(error);
@@ -33,24 +34,27 @@ export class TemplatePlacement {
     const availableWidth = Math.max(40, bounds.width - 48),
       availableHeight = Math.max(40, bounds.height - 48);
 
-    const scale = explicitSize
-      ? Math.min(
-          1,
-          availableWidth / (config.width * viewport.zoom),
-          availableHeight / (config.height * viewport.zoom),
-        )
-      : Math.min(
-          1,
-          320 / Math.max(config.width, config.height),
-          availableWidth / config.width,
-          availableHeight / config.height,
-        ) / viewport.zoom;
+    const scale =
+      generatorVersion === 2
+        ? 1 / viewport.zoom
+        : explicitSize
+          ? Math.min(
+              1,
+              availableWidth / (config.width * viewport.zoom),
+              availableHeight / (config.height * viewport.zoom),
+            )
+          : Math.min(
+              1,
+              320 / Math.max(config.width, config.height),
+              availableWidth / config.width,
+              availableHeight / config.height,
+            ) / viewport.zoom;
 
     this.item = {
       kind: "template",
       id: 1,
-      generatorVersion: 1,
-      template: Object.freeze({ ...config }),
+      generatorVersion,
+      template: Object.freeze({ ...BoardTemplates.prepare(config) }),
       matrix: [scale, 0, 0, scale, 0, 0],
     };
 
@@ -88,6 +92,11 @@ export class TemplatePlacement {
 
     const matrix = this.item.matrix;
 
+    const anchor =
+      this.item.generatorVersion === 2
+        ? BoardTemplates.origin(this.item.template, 2)
+        : { x: this.item.template.width / 2, y: this.item.template.height / 2 };
+
     this.item = {
       ...this.item,
       matrix: [
@@ -95,8 +104,8 @@ export class TemplatePlacement {
         0,
         0,
         matrix[3],
-        world.x - (this.item.template.width * matrix[0]) / 2,
-        world.y - (this.item.template.height * matrix[3]) / 2,
+        world.x - anchor.x * matrix[0],
+        world.y - anchor.y * matrix[3],
       ],
     };
 

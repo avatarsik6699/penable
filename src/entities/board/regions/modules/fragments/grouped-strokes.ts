@@ -33,7 +33,7 @@ function groupedStrokes(strokes: readonly BoardItem[]): BoardItem[] {
       const previous = result.at(-1);
 
       const key = (item: BoardItem) =>
-        `${item.kind ?? "ink"}:${item.source}:${item.matrix?.join(":") ?? `${item.translation?.x ?? 0}:${item.translation?.y ?? 0}`}`;
+        `${item.kind ?? "ink"}:${item.kind === "template" ? item.generatorVersion : ""}:${item.source}:${item.matrix?.join(":") ?? `${item.translation?.x ?? 0}:${item.translation?.y ?? 0}`}`;
 
       if (previous?.source && stroke.source && key(previous) === key(stroke))
         result[result.length - 1] = {
@@ -56,7 +56,7 @@ function groupedStrokes(strokes: readonly BoardItem[]): BoardItem[] {
     }
 
     const offset = stroke.translation ?? { x: 0, y: 0 };
-    const key = `${stroke.kind ?? "ink"}:${stroke.source}:${stroke.matrix?.join(":") ?? `${offset.x}:${offset.y}`}`;
+    const key = `${stroke.kind ?? "ink"}:${stroke.kind === "template" ? stroke.generatorVersion : ""}:${stroke.source}:${stroke.matrix?.join(":") ?? `${offset.x}:${offset.y}`}`;
 
     if (stroke.kind === "image") {
       groups.clear();
@@ -65,7 +65,7 @@ function groupedStrokes(strokes: readonly BoardItem[]): BoardItem[] {
       const previousOffset = previous?.translation ?? { x: 0, y: 0 };
 
       const previousKey = previous
-        ? `${previous.kind ?? "ink"}:${previous.source}:${previous.matrix?.join(":") ?? `${previousOffset.x}:${previousOffset.y}`}`
+        ? `${previous.kind ?? "ink"}:${previous.kind === "template" ? previous.generatorVersion : ""}:${previous.source}:${previous.matrix?.join(":") ?? `${previousOffset.x}:${previousOffset.y}`}`
         : "";
 
       if (

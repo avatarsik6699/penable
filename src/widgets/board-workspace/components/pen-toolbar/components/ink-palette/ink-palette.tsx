@@ -7,6 +7,7 @@ import styles from "./ink-palette.module.css";
 export const InkPalette: React.FC<InkPaletteTypes.Props> = (props) => (
   <div
     className={styles.palette}
+    data-compact={props.compact || undefined}
     role="group"
     aria-label={props.label ?? "Цвет линии"}
   >

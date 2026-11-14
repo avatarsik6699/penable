@@ -199,7 +199,7 @@ export type TemplateConfig = Readonly<{
 export type TemplateItem = {
   readonly kind: "template";
   id: number;
-  readonly generatorVersion: 1;
+  readonly generatorVersion: 1 | 2;
   readonly template: TemplateConfig;
   matrix: AffineMatrix;
   source?: string;

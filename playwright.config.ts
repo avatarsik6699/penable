@@ -31,7 +31,7 @@ export default defineConfig({
     },
     {
       name: "webkit-touch",
-      testMatch: "**/touch-devices.spec.ts",
+      testMatch: ["**/touch-devices.spec.ts", "**/touch-math.spec.ts"],
       use: {
         browserName: "webkit",
         viewport: { width: 834, height: 1112 },

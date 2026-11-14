@@ -78,6 +78,7 @@ function bindViewport(panel: HTMLElement | null) {
   const viewport = window.visualViewport;
 
   let active = true;
+  let frame: number | null = null;
 
   const fit = () => {
     if (!active) return;
@@ -101,8 +102,17 @@ function bindViewport(panel: HTMLElement | null) {
     }
   };
 
+  const schedule = () => {
+    if (!active || frame !== null) return;
+
+    frame = requestAnimationFrame(() => {
+      frame = null;
+      fit();
+    });
+  };
+
   const observer =
-    typeof ResizeObserver === "undefined" ? null : new ResizeObserver(fit);
+    typeof ResizeObserver === "undefined" ? null : new ResizeObserver(schedule);
 
   for (
     let element: HTMLElement | null = panel;
@@ -111,19 +121,23 @@ function bindViewport(panel: HTMLElement | null) {
   )
     observer?.observe(element);
 
-  window.addEventListener("resize", fit);
-  window.addEventListener("scroll", fit, true);
-  viewport?.addEventListener("resize", fit);
-  viewport?.addEventListener("scroll", fit);
+  window.addEventListener("resize", schedule);
+  window.addEventListener("scroll", schedule, true);
+  viewport?.addEventListener("resize", schedule);
+  viewport?.addEventListener("scroll", schedule);
   fit();
 
   return () => {
     active = false;
     observer?.disconnect();
-    window.removeEventListener("resize", fit);
-    window.removeEventListener("scroll", fit, true);
-    viewport?.removeEventListener("resize", fit);
-    viewport?.removeEventListener("scroll", fit);
+
+    if (frame !== null) cancelAnimationFrame(frame);
+
+    frame = null;
+    window.removeEventListener("resize", schedule);
+    window.removeEventListener("scroll", schedule, true);
+    viewport?.removeEventListener("resize", schedule);
+    viewport?.removeEventListener("scroll", schedule);
 
     for (const [index, property] of properties.entries()) {
       const value = previous[index];

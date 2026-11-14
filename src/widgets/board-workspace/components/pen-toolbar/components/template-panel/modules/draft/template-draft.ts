@@ -16,8 +16,8 @@ function resolve(state: TemplateDraftTypes.State): TemplateDraftTypes.State {
   if (state.config.kind !== "axes" && state.config.kind !== "number-line") {
     return {
       ...state,
-      preview: state.config,
-      resolved: state.config,
+      preview: BoardTemplates.prepare(state.config),
+      resolved: BoardTemplates.prepare(state.config),
       error: null,
       recommendation: null,
     };
@@ -55,7 +55,7 @@ function resolve(state: TemplateDraftTypes.State): TemplateDraftTypes.State {
   if (max < 0) return fail("max", "Диапазон должен включать ноль.");
 
   const config = { ...state.config, min, max };
-  const recommendation = BoardTemplateSteps.recommend(config);
+  const recommendation = BoardTemplateSteps.recommend(config, 2);
   const step = state.automatic ? recommendation : parse(state.fields.step);
 
   if (step === null)
@@ -65,16 +65,19 @@ function resolve(state: TemplateDraftTypes.State): TemplateDraftTypes.State {
     return fail("step", "Введите шаг не меньше 0,000001.", recommendation);
 
   const resolved = { ...config, step };
-  const error = BoardTemplates.validate(resolved);
+  const error = BoardTemplates.validate(resolved, 2);
 
-  if (error)
-    return fail(
-      "step",
-      "Деления не помещаются или их слишком мало.",
-      recommendation,
-    );
+  if (error) return fail("step", error, recommendation);
 
-  return { ...state, preview: resolved, resolved, recommendation, error: null };
+  const prepared = BoardTemplates.prepare(resolved);
+
+  return {
+    ...state,
+    preview: prepared,
+    resolved: prepared,
+    recommendation,
+    error: null,
+  };
 }
 
 function create(
