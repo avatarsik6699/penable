@@ -7,7 +7,7 @@
 | Change | `25` |
 | Slug | `tool-visual-consistency` |
 | Title | Tool selection and mathematical icon consistency |
-| Status | `active` |
+| Status | `shipped locally` |
 | Branch | `feature/25-tool-visual-consistency` |
 
 ## Goal
@@ -59,7 +59,17 @@ unchanged, so retain existing raster/performance evidence. No new mirror-style u
 
 ## Implementation Notes
 
-None
+- Native screenshots used isolated ChromeDevTools after Playwriter capturetimeout; taskpage/
+  session were closed. Owner notes/profile untouched. New behavioral unit tests are inapplicable
+  to this narrow visual change; existing palette/template browser scenarios cover behavior.
+
+## Delivery Evidence
+
+Full Gate PASS2026-11-14: bootstrap, bothbuilds, types,646unit/76E2E tests, lint,
+formatting, secrets and dependency audit. Fouraffected browsercases and4fileLSPdiagnostics
+passed; native desktop/narrow screenshots and keyboardfocus inspected. Independent bounded
+review PASS. Artifacts: .artifacts/change-25/acceptance.md and full-gate.json.
+Localship only; no push/Pages deployment.
 
 ## Commit Message
 
