@@ -7,7 +7,7 @@
 | Change | `26` |
 | Slug | `touch-tablet-experience` |
 | Title | Touch, phone and tablet experience |
-| Status | `ready for local ship` |
+| Status | `shipped locally` |
 | Branch | `feature/26-touch-tablet-experience` |
 
 ## Goal
@@ -80,6 +80,8 @@ feat(change-26): support touch navigation and responsive tablets
 
 
 ## Full Gate — PASS
+
+Shipped locally2026-11-14: feature/26-touch-tablet-experience → main (fast-forward), implementationbfce29d.
 
 | Check | Result |
 |-------|--------|

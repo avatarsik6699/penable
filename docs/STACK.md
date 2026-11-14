@@ -1,7 +1,7 @@
 # Stack Guide
 
 > Source of truth for technologies, commands and required tools.
-> Status: CONFIGURED; changes01–25 shipped locally; Pages publication follows the origin/main workflow for the current release.
+> Status: CONFIGURED; changes01–26 shipped locally; Pages publication follows the origin/main workflow for the current release.
 > SPEC approved 2026-11-12. Desktop acceptance: Wacom One, Windows 11. Touch target: current phone/tablet browsers and iPad/Pencil; physical acceptance remains separate.
 
 ## Stack
