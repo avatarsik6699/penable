@@ -7,7 +7,7 @@
 | Change | `28` |
 | Slug | `whole-template-preview` |
 | Title | Whole-figure preview by default |
-| Status | `ready for local ship` |
+| Status | `shipped locally` |
 | Branch | `feature/28-whole-template-preview` |
 
 ## Goal
