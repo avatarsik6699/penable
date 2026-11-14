@@ -1022,7 +1022,7 @@ two ink layers, native input ownership, instrument geometry and document5/genera
 Writing uses one horizontal icon radio group, a compact live sample, a tightly packed fixed
 palette and only the current instrument's sliders. Figures use a compact icon chooser grouped
 into geometry and mathematics. Icons have accessible names and hover/focus hints; help also
-opens by clicking. Palette circles have subtle highlight/shadow and a separate selection ring.
+opens by clicking. Palette circles have subtle highlight/shadow and a separate selection marker.
 No custom colors/dependencies. Remove permanent instructional paragraphs from the panels.
 
 Remove numeric width/height controls. Preserve click placement and default viewport-fit size;
@@ -1048,3 +1048,9 @@ drafts and preview retention, manual suggestion, automatic fractional/asymmetric
 placement/resize/undo/redo/reload, existing document compatibility, responsive panels and fixed
 dock geometry. Run native visual/console inspection, bounded UI performance checks, independent
 review and Full Gate before automatic local ship. Release/Pages publishing is separate.
+
+
+Change25 visual refinement: selected swatches use a soft blue tile and a small white check in
+a blue badge instead of the dark outer ring. Keyboard focus remains a distinct blue outline.
+Mathematical picker icons use installed Lucide MoveHorizontal/Move/Radius through EditorIcon
+with the same22px size/2px stroke as neighboring tools; no bespoke tick-heavy SVGs.

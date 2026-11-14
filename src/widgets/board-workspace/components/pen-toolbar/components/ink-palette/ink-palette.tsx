@@ -1,5 +1,6 @@
 import type React from "react";
 import { BoardWriting } from "~/entities/board";
+import { EditorIcon } from "~/shared/ui/editor-icon";
 import type { InkPaletteTypes } from "./ink-palette.types";
 import styles from "./ink-palette.module.css";
 
@@ -22,7 +23,9 @@ export const InkPalette: React.FC<InkPaletteTypes.Props> = (props) => (
       >
         <span style={{ background: entry.color }} />
         {props.color === entry.color && (
-          <span className={styles.selected} aria-hidden="true" />
+          <span className={styles.selected} aria-hidden="true">
+            <EditorIcon name="check" />
+          </span>
         )}
       </button>
     ))}
