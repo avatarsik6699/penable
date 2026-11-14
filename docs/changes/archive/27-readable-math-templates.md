@@ -7,7 +7,7 @@
 | Change | `27` |
 | Slug | `readable-math-templates` |
 | Title | Readable mathematical templates |
-| Status | `ready for local ship` |
+| Status | `shipped locally` |
 | Branch | `feature/27-readable-math-templates` |
 
 ## Goal
@@ -79,6 +79,8 @@ feat(change-27): improve mathematical templates and previews
 
 
 ## Full Gate — PASS
+
+Shipped locally2026-11-14: feature/27-readable-math-templates → main (fast-forward), implementation11694ff.
 
 | Check | Result |
 |-------|--------|
