@@ -6,7 +6,7 @@
 |-------|-------|
 | Change | `29` |
 | Slug | `full-width-shape-preview` |
-| Status | `ready for local ship` |
+| Status | `shipped locally` |
 | Branch | `feature/29-full-width-shape-preview` |
 
 ## Goal
