@@ -159,3 +159,24 @@ Document schema5, strict style/template validation, old-fragment compatibility a
 before-schema5 recovery belong to board-document. Existing bounded Worker transport/session
 ownership remain authoritative. Raster-worker exceptions name only the exact pressure/template
 painters; document workers cannot import native painting, DOM, UI or React.
+
+
+## Touch and adaptive viewport ownership
+
+Pure entities/board/touch owns contact state, midpoint-anchored pan/pinch, rebase and quarantine.
+Native touch-binding owns DOM pointer capture/coordinates and composes pen/eraser/selection
+through narrow ports. PointerBinding remains the single owner of listeners; touch adds only
+an exact DOM capability owner, no shared global listeners. Immediate touch ownership guards
+wheel, keyboard/history, selection commands and minimap before React updates. Pen preempts
+finger interactions; held contacts stay quarantined until lifted.
+
+Workspace owns transient fingerInput, retained across board sessions and reset on reload.
+Only coarse settings UI exposes it; gestures and samples never enter React snapshots.
+Overlay platform fitting owns visualViewport listeners and CSS usable-height/keyboard-inset
+properties, including cleanup. Views consume those properties and safe-area env() insets;
+coarse behavior uses media queries, never UA sniffing. Responsive panels cannot resize or
+remount the drawing surface. Persisted camera updates retain read-only authority guards.
+
+The bounded WebKit touch project shares domain specs/Page Objects with Chromium. Fixtures own
+mobile/coarse options, keyboard viewport simulation, isolated storage and native CDP lifetime.
+Synthetic pen events and Linux WebKit are regression evidence, not physical Pencil acceptance.

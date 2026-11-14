@@ -31,7 +31,7 @@ export function usePanelDismiss(props: PanelDismissTypes.Options) {
     function panelViewportFx() {
       if (!props.open) return;
 
-      return Overlay.bindViewport(panelRef.current);
+      return Overlay.bindViewport(panelRef.current ?? rootRef.current);
     },
     [props.open],
   );

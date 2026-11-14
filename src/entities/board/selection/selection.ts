@@ -46,6 +46,7 @@ export class BoardSelection {
     writable: () => this.options.writable(),
     hit: (point) => this.hit(point),
     shape: () => this.shape,
+    allowTouch: () => this.options.allowTouch?.() ?? false,
   });
   private rollbackViewport: Viewport | null = null;
   private region: ClipMask = [];
@@ -145,6 +146,7 @@ export class BoardSelection {
   down(event: PointerInput): boolean {
     if (
       !this.busy &&
+      (event.pointerType !== "touch" || this.options.allowTouch?.()) &&
       this.hasSelection &&
       this.options.writable() &&
       event.isPrimary &&
@@ -155,6 +157,7 @@ export class BoardSelection {
         this.world(event),
         this.region,
         this.options.viewport().zoom,
+        event.pointerType === "touch" ? 22 : 9,
       )
     ) {
       this.message = "";

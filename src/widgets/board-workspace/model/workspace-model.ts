@@ -59,6 +59,7 @@ export class WorkspaceModel {
         png: false,
       }),
       tool: "pen",
+      fingerInput: false,
       writing: BoardWriting.defaults(),
       width: 3,
       stabilization: 65,
@@ -103,6 +104,14 @@ export class WorkspaceModel {
   };
 
   readonly getSnapshot = (): WorkspaceState => this.state;
+
+  readonly getFingerInput = () => this.state.fingerInput;
+
+  readonly changeFingerInput = (value: boolean) => {
+    if (!this.canWrite() || this.controls.current?.isBusy()) return;
+
+    this.patch({ fingerInput: value });
+  };
 
   private patch(patch: Partial<WorkspaceState>) {
     if (

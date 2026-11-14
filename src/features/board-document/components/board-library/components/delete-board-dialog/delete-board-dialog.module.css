@@ -30,3 +30,21 @@
 .error {
   color: var(--error);
 }
+
+.dialog {
+  max-height: calc(var(--panel-viewport-height, 100dvh) - 32px);
+  overflow: auto;
+}
+
+@media (any-pointer: coarse) {
+  .dialog {
+    position: fixed;
+    top: auto;
+    bottom: calc(
+      var(--panel-keyboard-inset, 0px) +
+        max(12px, env(safe-area-inset-bottom, 0px))
+    );
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+}

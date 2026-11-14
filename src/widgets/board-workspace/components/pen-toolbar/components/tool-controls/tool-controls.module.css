@@ -26,3 +26,17 @@
     gap: 0;
   }
 }
+
+@media (any-pointer: coarse) {
+  .tools button {
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
+}
+
+@media (any-pointer: coarse) and (max-width: 650px) {
+  .tools {
+    gap: 1px;
+  }
+}

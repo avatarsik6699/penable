@@ -38,3 +38,9 @@
   left: auto;
   transform: none;
 }
+
+@media (any-pointer: coarse) and (hover: none) {
+  .hint {
+    display: none;
+  }
+}

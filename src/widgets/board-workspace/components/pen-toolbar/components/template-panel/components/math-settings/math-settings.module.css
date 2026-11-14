@@ -134,3 +134,15 @@
   background: var(--control-selected-bg);
   font: inherit;
 }
+
+@media (any-pointer: coarse) {
+  .fields input {
+    min-height: 44px;
+    font-size: 16px;
+  }
+  .toggles label,
+  .mode label {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}

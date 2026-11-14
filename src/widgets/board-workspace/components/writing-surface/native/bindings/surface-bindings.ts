@@ -6,6 +6,7 @@ import { CursorBinding } from "./cursor-binding";
 import { PointerBinding } from "./pointer-binding";
 import { KeyboardBinding } from "./keyboard-binding";
 import { EdgePan } from "./edge-pan";
+import { TouchBinding } from "./touch-binding";
 
 function bind(options: BindingOptions) {
   const { canvas } = options;
@@ -18,7 +19,15 @@ function bind(options: BindingOptions) {
 
   const cursor = CursorBinding.create(options, interaction);
   const edge = EdgePan.create(options, cursor);
-  const pointer = PointerBinding.create(options, interaction, cursor, edge);
+  const touch = TouchBinding.create(options);
+
+  const pointer = PointerBinding.create(
+    options,
+    interaction,
+    cursor,
+    edge,
+    touch,
+  );
 
   const keyboard = KeyboardBinding.create(
     options,
@@ -49,6 +58,7 @@ function bind(options: BindingOptions) {
 
   return {
     cancel: pointer.cancel,
+    isTouchActive: () => touch.busy,
     refresh: cursor.refresh,
 
     dispose() {

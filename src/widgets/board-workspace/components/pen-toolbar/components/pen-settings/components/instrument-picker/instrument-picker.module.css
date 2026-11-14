@@ -46,3 +46,10 @@
 .option input:disabled + .icon {
   opacity: 0.45;
 }
+
+@media (any-pointer: coarse) {
+  .icon {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}

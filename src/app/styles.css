@@ -114,3 +114,20 @@ input[type="range"]:disabled {
       color 100ms ease;
   }
 }
+
+@media (any-pointer: coarse) {
+  button,
+  summary,
+  input[type="range"] {
+    min-height: 44px;
+  }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+  input[type="checkbox"],
+  input[type="radio"] {
+    flex-shrink: 0;
+  }
+}

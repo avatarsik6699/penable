@@ -128,3 +128,58 @@
     min-height: 110px;
   }
 }
+
+.panel {
+  left: max(16px, env(safe-area-inset-left, 0px));
+  width: min(
+    360px,
+    calc(
+      100vw - max(16px, env(safe-area-inset-left, 0px)) -
+        max(16px, env(safe-area-inset-right, 0px))
+    )
+  );
+  top: max(
+    88px,
+    calc(var(--panel-viewport-top, 0px) + env(safe-area-inset-top, 0px))
+  );
+  max-height: var(--panel-available-height, calc(100dvh - 32px));
+  bottom: calc(
+    var(--panel-keyboard-inset, 0px) +
+      max(12px, env(safe-area-inset-bottom, 0px))
+  );
+}
+@media (max-width: 1199px) {
+  .panel {
+    top: calc(
+      var(--panel-viewport-top, 0px) + max(12px, env(safe-area-inset-top, 0px))
+    );
+  }
+}
+@media (max-width: 650px) {
+  .panel {
+    left: max(12px, env(safe-area-inset-left, 0px));
+    right: max(12px, env(safe-area-inset-right, 0px));
+    width: auto;
+    max-height: calc(var(--panel-viewport-height, 100dvh) - 24px);
+  }
+}
+@media (any-pointer: coarse) {
+  .heading button {
+    width: 44px;
+    height: 44px;
+  }
+  .search,
+  .create input {
+    min-height: 44px;
+    font-size: 16px;
+  }
+}
+
+@media (min-width: 1200px) and (pointer: fine) {
+  .panel {
+    bottom: calc(
+      var(--panel-keyboard-inset, 0px) +
+        max(88px, env(safe-area-inset-bottom, 0px))
+    );
+  }
+}

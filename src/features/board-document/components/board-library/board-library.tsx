@@ -37,6 +37,7 @@ export const BoardLibrary: React.FC<BoardLibraryTypes.Props> = (props) => {
       {props.open && (
         <LibraryPanel
           {...props}
+          bindPanel={panel.bindPanel}
           closeAndFocus={panel.closeAndFocus}
           focusTrigger={panel.focusTrigger}
         />

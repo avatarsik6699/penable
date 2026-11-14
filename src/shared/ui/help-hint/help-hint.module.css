@@ -38,3 +38,11 @@
 .anchor[data-open] .hint {
   visibility: visible;
 }
+
+@media (any-pointer: coarse) {
+  .trigger {
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
+}

@@ -47,7 +47,8 @@ export class SelectionGesture {
       !event.isPrimary ||
       event.button !== 0 ||
       event.buttons !== 1 ||
-      !["pen", "mouse"].includes(event.pointerType) ||
+      (!["pen", "mouse"].includes(event.pointerType) &&
+        !(event.pointerType === "touch" && this.options.allowTouch?.())) ||
       !Number.isFinite(event.clientX) ||
       !Number.isFinite(event.clientY)
     )

@@ -70,3 +70,5 @@ export type {
 } from "./board.types";
 
 export type { RibbonSection, PressureRibbonGeometry } from "./writing";
+
+export { BoardTouchGestures } from "./touch";

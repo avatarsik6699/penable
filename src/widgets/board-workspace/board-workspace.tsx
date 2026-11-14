@@ -54,6 +54,8 @@ export const BoardWorkspace: React.FC<BoardWorkspaceTypes.Props> = () => {
           workspace.changePanel(null);
           workspace.model.controls.current?.insertImage?.();
         }}
+        fingerInput={workspace.ui.fingerInput}
+        onFingerInputChange={workspace.model.changeFingerInput}
         writing={workspace.ui.writing}
         onInstrumentChange={workspace.model.changeInstrument}
         onInkSettingsChange={workspace.model.changeInkSettings}
@@ -191,7 +193,7 @@ export const BoardWorkspace: React.FC<BoardWorkspaceTypes.Props> = () => {
             <h2>Не удалось открыть лист</h2>
             <p>
               {workspace.ui.unavailable} Откройте страницу в актуальной версии
-              Chrome или Edge.
+              Safari, Chrome или Edge.
             </p>
           </div>
         ) : (
@@ -203,6 +205,7 @@ export const BoardWorkspace: React.FC<BoardWorkspaceTypes.Props> = () => {
             onActivateSelection={workspace.model.activateSelection}
             tool={workspace.ui.tool}
             getTool={workspace.model.getTool}
+            getFingerInput={workspace.model.getFingerInput}
             width={workspace.ui.width}
             writing={workspace.ui.writing}
             stabilization={workspace.ui.stabilization}

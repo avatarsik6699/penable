@@ -3,6 +3,7 @@ import type { SelectionCommand } from "../../../../model/workspace-model.types";
 
 type ExtraProps = {
   busy: boolean;
+  onClose: () => void;
   command: (value: SelectionCommand) => void;
   bindPanel: (
     node: import("~/shared/lib/overlay").OverlayElements.Container | null,

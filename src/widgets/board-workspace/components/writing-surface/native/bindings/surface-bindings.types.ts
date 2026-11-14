@@ -19,6 +19,7 @@ export type BindingOptions = {
   eraser: EraserInput;
   selection: BoardSelection;
   getTool: () => DrawingTool;
+  getFingerInput?: () => boolean;
   canWrite: () => boolean;
   interactionsBlocked: () => boolean;
   templatePlacement?: import("../templates").TemplatePlacement;

@@ -8,6 +8,7 @@ import type {
 } from "../../../board.types";
 
 export type GestureOptions = {
+  allowTouch?: () => boolean;
   world: (event: Pick<PointerInput, "clientX" | "clientY">) => Position;
   viewport: () => Viewport;
   writable: () => boolean;

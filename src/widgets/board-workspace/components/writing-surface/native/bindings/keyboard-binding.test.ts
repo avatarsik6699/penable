@@ -45,3 +45,49 @@ describe("pending image Escape ownership", () => {
     },
   );
 });
+
+describe("touch navigation keyboard ownership", () => {
+  it("consumes selection arrows during touch navigation without mutating selection history", () => {
+    class NativeElement {
+      closest = () => null;
+    }
+
+    vi.stubGlobal("HTMLElement", NativeElement);
+
+    const canvas = new NativeElement(),
+      nudge = vi.fn(),
+      preventDefault = vi.fn();
+
+    let touching = true;
+
+    const keyboard = KeyboardBinding.create(
+      {
+        canvas,
+        navigation: { pointerId: null },
+        selection: { hasSelection: true, nudge },
+        getTool: () => "selection",
+        interactionsBlocked: () => false,
+        drawingPointerId: () => null,
+      } as unknown as Parameters<typeof KeyboardBinding.create>[0],
+      { spaceDown: false, focused: true, keyboardEntry: false },
+      {} as Parameters<typeof KeyboardBinding.create>[2],
+      { touchActive: () => touching } as Parameters<
+        typeof KeyboardBinding.create
+      >[3],
+    );
+
+    const event = {
+      code: "ArrowRight",
+      target: canvas,
+      defaultPrevented: false,
+      preventDefault,
+    } as unknown as KeyboardEvent;
+
+    keyboard.keyDown(event);
+    expect(preventDefault).toHaveBeenCalledTimes(1);
+    expect(nudge).not.toHaveBeenCalled();
+    touching = false;
+    keyboard.keyDown(event);
+    expect(nudge).toHaveBeenCalledWith(1, 0);
+  });
+});

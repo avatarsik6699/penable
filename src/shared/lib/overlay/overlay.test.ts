@@ -137,3 +137,21 @@ describe("panel available viewport geometry", () => {
     );
   });
 });
+
+it("publishes keyboard-safe viewport bounds and restores every inline property on cleanup", () => {
+  const h = setup(100);
+
+  h.values.set("--panel-keyboard-inset", "7px");
+
+  const unbind = Overlay.bindViewport(h.panel);
+
+  h.viewport.height = 400;
+  h.viewport.offsetTop = 50;
+  h.viewport.dispatchEvent(new Event("resize"));
+  expect(h.values.get("--panel-viewport-height")).toBe("400px");
+  expect(h.values.get("--panel-keyboard-inset")).toBe("395px");
+  expect(h.values.get("--panel-viewport-top")).toBe("50px");
+  unbind();
+  expect(h.values.get("--panel-keyboard-inset")).toBe("7px");
+  expect(h.values.has("--panel-viewport-height")).toBe(false);
+});

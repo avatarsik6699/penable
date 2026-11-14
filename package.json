@@ -28,7 +28,7 @@
     "format:check": "npm run lint:spacing && prettier src scripts e2e vite.config.ts playwright.config.ts prettier.config.mjs package.json tsconfig.json .oxlintrc.json --check && prettier docs/design/editor-v1 --check",
     "test:e2e": "npm run build:pages && npm run test:e2e:run",
     "test:e2e:run": "playwright test",
-    "test:e2e:install": "playwright install chromium",
+    "test:e2e:install": "playwright install chromium webkit",
     "format:source": "prettier src --write && node scripts/formatting/spacing.mjs --write src && prettier src --write",
     "format:tooling": "prettier scripts e2e vite.config.ts playwright.config.ts prettier.config.mjs package.json tsconfig.json .oxlintrc.json --write && node scripts/formatting/spacing.mjs --write scripts e2e vite.config.ts playwright.config.ts prettier.config.mjs && prettier scripts e2e vite.config.ts playwright.config.ts prettier.config.mjs package.json tsconfig.json .oxlintrc.json --write",
     "format:architecture": "prettier scripts/architecture --write && node scripts/formatting/spacing.mjs --write scripts/architecture && prettier scripts/architecture --write",

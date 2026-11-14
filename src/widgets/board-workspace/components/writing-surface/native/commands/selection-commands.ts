@@ -15,6 +15,7 @@ function create(options: EditorCommandTypes.SelectionOptions) {
   const command = (command: SelectionCommand) => {
     if (
       interactionsBlocked() ||
+      options.touchBusy?.() ||
       input.pointerId !== null ||
       eraser.pointerId !== null ||
       navigation.pointerId !== null

@@ -17,7 +17,10 @@ function hasFocus(element: HTMLElement | null): boolean {
 function modal(dialog: HTMLDialogElement | null) {
   dialog?.showModal();
 
+  const unbind = bindViewport(dialog);
+
   return () => {
+    unbind();
     dialog?.close();
   };
 }
@@ -61,9 +64,18 @@ function bindDismiss(options: {
 function bindViewport(panel: HTMLElement | null) {
   if (!panel) return () => {};
 
-  const property = "--panel-available-height",
-    previous = panel.style.getPropertyValue(property),
-    viewport = window.visualViewport;
+  const properties = [
+    "--panel-available-height",
+    "--panel-viewport-height",
+    "--panel-keyboard-inset",
+    "--panel-viewport-top",
+  ];
+
+  const previous = properties.map((property) =>
+    panel.style.getPropertyValue(property),
+  );
+
+  const viewport = window.visualViewport;
 
   let active = true;
 
@@ -74,10 +86,19 @@ function bindViewport(panel: HTMLElement | null) {
       ? viewport.offsetTop + viewport.height
       : window.innerHeight;
 
-    const height = `${Math.max(0, Math.floor(bottom - panel.getBoundingClientRect().top - 12))}px`;
+    const values = [
+      Math.max(0, Math.floor(bottom - panel.getBoundingClientRect().top - 12)),
+      Math.max(0, viewport?.height ?? window.innerHeight),
+      Math.max(0, window.innerHeight - bottom),
+      Math.max(0, viewport?.offsetTop ?? 0),
+    ];
 
-    if (panel.style.getPropertyValue(property) !== height)
-      panel.style.setProperty(property, height);
+    for (const [index, property] of properties.entries()) {
+      const value = `${values[index]}px`;
+
+      if (panel.style.getPropertyValue(property) !== value)
+        panel.style.setProperty(property, value);
+    }
   };
 
   const observer =
@@ -104,8 +125,12 @@ function bindViewport(panel: HTMLElement | null) {
     viewport?.removeEventListener("resize", fit);
     viewport?.removeEventListener("scroll", fit);
 
-    if (previous) panel.style.setProperty(property, previous);
-    else panel.style.removeProperty(property);
+    for (const [index, property] of properties.entries()) {
+      const value = previous[index];
+
+      if (value) panel.style.setProperty(property, value);
+      else panel.style.removeProperty(property);
+    }
   };
 }
 

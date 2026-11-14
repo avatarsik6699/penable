@@ -67,3 +67,11 @@ button.preview {
   padding: 0;
   flex-shrink: 0;
 }
+
+@media (any-pointer: coarse) {
+  button.preview {
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
+}

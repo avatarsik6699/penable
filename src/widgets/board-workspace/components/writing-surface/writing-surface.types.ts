@@ -21,6 +21,7 @@ export namespace WritingSurfaceTypes {
     onActivateSelection: () => void;
     onSelectionState: (state: SelectionState) => void;
     getTool: () => DrawingTool;
+    getFingerInput?: () => boolean;
     width: number;
     writing?: import("~/entities/board").WritingSettings;
     stabilization: number;

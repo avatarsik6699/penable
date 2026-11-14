@@ -29,6 +29,17 @@ export default defineConfig({
         viewport: { width: 1280, height: 900 },
       },
     },
+    {
+      name: "webkit-touch",
+      testMatch: "**/touch-devices.spec.ts",
+      use: {
+        browserName: "webkit",
+        viewport: { width: 834, height: 1112 },
+        hasTouch: true,
+        isMobile: true,
+        deviceScaleFactor: 2,
+      },
+    },
   ],
   webServer: {
     command: `npm run preview:pages -- --outDir ${output} --port 4185 --strictPort`,

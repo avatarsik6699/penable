@@ -25,3 +25,11 @@
     justify-content: center;
   }
 }
+
+@media (any-pointer: coarse) {
+  .controls button {
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
+}

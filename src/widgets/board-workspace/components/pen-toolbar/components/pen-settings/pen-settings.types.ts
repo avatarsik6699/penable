@@ -3,6 +3,8 @@ import type { OverlayElements } from "~/shared/lib/overlay";
 export namespace PenSettingsTypes {
   export type Props = {
     width: number;
+    fingerInput: boolean;
+    onFingerInputChange: (value: boolean) => void;
     writing: import("~/entities/board").WritingSettings;
     onInstrumentChange: (
       instrument: import("~/entities/board").InkInstrument,

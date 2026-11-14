@@ -126,6 +126,8 @@ export const PenToolbar: React.FC<PenToolbarTypes.Props> = (props) => {
       )}
       {props.penOpen && (
         <PenSettings
+          fingerInput={props.fingerInput}
+          onFingerInputChange={props.onFingerInputChange}
           width={props.width}
           writing={props.writing}
           onInstrumentChange={props.onInstrumentChange}

@@ -22,7 +22,9 @@ export class EraserInput {
       !event.isPrimary ||
       event.button !== 0 ||
       event.buttons !== 1 ||
-      (event.pointerType !== "pen" && event.pointerType !== "mouse")
+      (event.pointerType !== "pen" &&
+        event.pointerType !== "mouse" &&
+        !(event.pointerType === "touch" && this.options.allowTouch?.()))
     )
       return false;
 

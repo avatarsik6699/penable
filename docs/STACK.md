@@ -2,7 +2,7 @@
 
 > Source of truth for technologies, commands and required tools.
 > Status: CONFIGURED; changes01–25 shipped locally; Pages publication follows the origin/main workflow for the current release.
-> SPEC approved 2026-11-12. Target device: Wacom One, Windows 11.
+> SPEC approved 2026-11-12. Desktop acceptance: Wacom One, Windows 11. Touch target: current phone/tablet browsers and iPad/Pencil; physical acceptance remains separate.
 
 ## Stack
 
@@ -17,7 +17,7 @@
 | Storage | Native IndexedDB, versioned one-board document; exclusive origin Web Lock; JSON backup |
 | Package manager | npm, package-lock.json |
 | Lint / format | Oxlint, TypeScript AST architecture policies/self-tests; Prettier3.9.6 / EditorConfig |
-| Browser regression | Playwright1.62.1 Chromium, domain fixtures + Page Objects, isolated contexts |
+| Browser regression | Playwright1.62.1 Chromium + bounded mobile WebKit, domain fixtures + Page Objects, isolated contexts |
 | Unit tests | Vitest, node environment; src/**/*.test.ts |
 | Infra | Loopback Vite in WSL, ordinary Windows Chrome; public HTTPS static hosting |
 | CI / hosting | GitHub Actions; avatarsik6699/penable; https://avatarsik6699.github.io/penable/ |
@@ -67,7 +67,7 @@ A focused build is appropriate when establishing/changing build configuration.
 | Pages build | npm run build:pages | Separate production build with /penable/ asset base; final dist is Pages artifact |
 | Frontend unit tests | npm run test:unit | Includes input ownership/cancellation and coordinate transforms |
 | E2E lint / determinism | npm run lint; npm run format:check | AST policies cover spec/fixture/Page Object ownership; spacing and self-tests included |
-| E2E suite | npm run test:e2e:run | After build:pages; owns strict4185 preview and isolated Chromium contexts; run test:e2e:install once |
+| E2E suite | npm run test:e2e:run | After build:pages; owns strict4185 preview and isolated Chromium contexts; run test:e2e:install once (Chromium + WebKit) |
 | Smoke | npm run dev; npm run preview:pages | Playwriter: active change scenarios; change07 verifies production /penable/ assets/input/storage at port4173; hardware acceptance is separate |
 | SAST | npm run lint | Correctness-focused static analysis; not a dedicated security audit |
 | Secrets scan | npm run scan:secrets | Gitleaks default rules; excludes only generated deps/build, Git internals and local artifacts; scans untracked files too |
@@ -484,3 +484,14 @@ preview4204 is task-owned; automated E2E owns4185. Check desktop1280×720/1440×
 scroll, narrow390×844 and short viewport with reachable controls, manual draft/error retention,
 help hover/focus/click and repeated math edits with PerformanceObserver. Full Gate and independent
 review precede automatic local ship. Release remains separate.
+
+
+## Change26 — Touch and tablet adaptation
+
+SPEC5.21 authorizes native touch gestures, transient fingerediting mode and adaptive chrome.
+Sourcewriter owns src only; parent owns rootindex.html, E2E/config/CI/policies/docs/gates/Git.
+Native4206, E2E4185 and paired performance4180 use owned origins only. WebKit26.5 was installed
+with existing `npm run test:e2e:install -- webkit` and launchverified before configuration.
+Current Safari/iPadOS support is tested withLinuxWebKit plus emulation, not physical Pencil
+proof. Preserve format5 and existing renderer/raster/selection contracts; newnative capability
+owners require exact policy coverage. Physical iPad/Pencil model is unknown, user thinksPencil2.

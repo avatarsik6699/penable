@@ -15,6 +15,9 @@ import type { TestBoardTypes } from "./data/board.types";
 import { WritingToolsPage } from "./pages/writing-tools-page";
 import { TemplatesPage } from "./pages/templates-page";
 import { ToolPanelsPage } from "./pages/tool-panels-page";
+import { TouchInputPage } from "./pages/touch-input-page";
+import { TouchLayoutPage } from "./pages/touch-layout-page";
+import { NativeTouchPage } from "./pages/native-touch-page";
 
 function monitor(
   page: Page,
@@ -174,6 +177,11 @@ type Fixtures = {
   writing: WritingToolsPage;
   templates: TemplatesPage;
   toolPanels: ToolPanelsPage;
+  touch: TouchInputPage;
+  nativeTouch: NativeTouchPage;
+  readOnlyTouch: TouchInputPage;
+  touchLayout: TouchLayoutPage;
+  keyboardTouchLayout: TouchLayoutPage;
   clipboardAccess: void;
   clipboard: BoardClipboardPage;
   clipboardFailure: BoardClipboardPage;
@@ -220,6 +228,77 @@ export const test = base.extend<Fixtures>({
     await use(new WritingToolsPage(page, board));
   },
 
+  nativeTouch: async ({ page, context, board }, use) => {
+    const session = await context.newCDPSession(page);
+
+    try {
+      await use(new NativeTouchPage(page, board, session));
+    } finally {
+      await session.detach();
+    }
+  },
+
+  touch: async ({ page, board }, use) => {
+    await use(new TouchInputPage(page, board));
+  },
+
+  readOnlyTouch: async ({ secondBoard }, use) => {
+    await use(new TouchInputPage(secondBoard.surface.page(), secondBoard));
+  },
+
+  touchLayout: async ({ page, board }, use) => {
+    await use(new TouchLayoutPage(page, board));
+  },
+
+  keyboardTouchLayout: async ({ page }, use) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+
+    await page.addInitScript(() => {
+      const viewport = new EventTarget();
+      let height = innerHeight;
+
+      Object.assign(viewport, {
+        width: innerWidth,
+        scale: 1,
+        offsetTop: 0,
+        offsetLeft: 0,
+      });
+
+      Object.defineProperty(viewport, "height", { get: () => height });
+
+      Object.defineProperty(window, "visualViewport", {
+        configurable: true,
+        value: viewport,
+      });
+
+      Object.defineProperty(window, "__keyboardViewport26", {
+        value: (next: number | null) => {
+          height = next ?? innerHeight;
+          viewport.dispatchEvent(new Event("resize"));
+        },
+      });
+    });
+
+    const verify = monitor(page);
+    const board = new BoardPage(page, new StoragePage(page));
+
+    const keyboard = (height: number | null) =>
+      page.evaluate((next) => {
+        (
+          window as unknown as {
+            __keyboardViewport26: (value: number | null) => void;
+          }
+        ).__keyboardViewport26(next);
+      }, height);
+
+    try {
+      await board.open();
+      await use(new TouchLayoutPage(page, board, keyboard));
+    } finally {
+      verify();
+    }
+  },
+
   toolPanels: async ({ page, board }, use) => {
     await use(new ToolPanelsPage(page, board));
   },
@@ -229,10 +308,11 @@ export const test = base.extend<Fixtures>({
   },
 
   clipboardAccess: [
-    async ({ context }, use) => {
-      await context.grantPermissions(["clipboard-read", "clipboard-write"], {
-        origin: "http://127.0.0.1:4185",
-      });
+    async ({ context, browserName }, use) => {
+      if (browserName === "chromium")
+        await context.grantPermissions(["clipboard-read", "clipboard-write"], {
+          origin: "http://127.0.0.1:4185",
+        });
 
       await use();
     },

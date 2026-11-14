@@ -473,3 +473,26 @@ describe("captured writing profiles", () => {
     expect(scene.active?.style?.pressureStrength).toBe(65);
   });
 });
+
+it("requires explicit touch opt-in and keeps finger pressure response constant", () => {
+  const scene: Scene = { strokes: [], active: null };
+  const writing = BoardWriting.defaults();
+
+  const input = new PenInput({
+    scene,
+    allowTouch: () => true,
+    bounds: () => ({ left: 0, top: 0 }),
+    viewport: BoardViewport.initialViewport,
+    width: () => 3,
+    writing: () => ({ ...writing, instrument: "pressure" }),
+    onActiveChange: vi.fn(),
+    onCommit: vi.fn(),
+  });
+
+  expect(input.down(pointer({ pointerType: "touch", pressure: 0.9 }))).toBe(
+    true,
+  );
+
+  expect(scene.active?.style?.pressureStrength).toBe(0);
+  expect(scene.active?.points[0]?.pressure).toBe(0.9);
+});

@@ -48,6 +48,7 @@ function create(options: EditorCommandTypes.HistoryOptions) {
     if (
       !canWrite() ||
       interactionsBlocked() ||
+      options.touchBusy?.() ||
       drawingPointerId() !== null ||
       navigation.pointerId !== null ||
       selection.busy

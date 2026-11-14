@@ -69,6 +69,7 @@ export class SelectionTransform {
     point: Position,
     region: ClipMask,
     zoom: number,
+    radius = 9,
   ): boolean {
     const handle = this.handles(region, zoom).sort(
       (a, b) =>
@@ -81,7 +82,7 @@ export class SelectionTransform {
     if (
       !handle ||
       !bounds ||
-      Math.hypot(handle.x - point.x, handle.y - point.y) > 9 / zoom
+      Math.hypot(handle.x - point.x, handle.y - point.y) > radius / zoom
     )
       return false;
 

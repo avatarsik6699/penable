@@ -407,3 +407,24 @@ describe("instrument interaction cancellation", () => {
     await h.sessions[0]!.dispose();
   });
 });
+
+it("keeps finger editing an explicit transient tab preference and guards busy or readonly changes", async () => {
+  const h = harness();
+
+  expect(h.model.getFingerInput()).toBe(false);
+  h.model.changeFingerInput(true);
+  expect(h.model.getFingerInput()).toBe(false);
+
+  const stop = h.model.start();
+
+  await microtasks();
+  h.model.controls.current = controls();
+  h.model.changeFingerInput(true);
+  expect(h.model.getFingerInput()).toBe(true);
+  expect(h.model.readBoardSnapshot()).not.toHaveProperty("fingerInput");
+  h.model.controls.current.isBusy = () => true;
+  h.model.changeFingerInput(false);
+  expect(h.model.getFingerInput()).toBe(true);
+  stop();
+  await h.sessions[0]!.dispose();
+});

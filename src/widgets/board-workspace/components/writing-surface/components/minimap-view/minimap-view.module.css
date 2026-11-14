@@ -97,3 +97,18 @@
     max-height: calc(100dvh - 240px);
   }
 }
+
+.panel {
+  right: max(12px, env(safe-area-inset-right, 0px));
+  bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  max-height: min(
+    var(--panel-available-height, 100dvh),
+    calc(var(--panel-viewport-height, 100dvh) - 100px)
+  );
+}
+@media (any-pointer: coarse) {
+  .heading button {
+    width: 44px;
+    height: 44px;
+  }
+}

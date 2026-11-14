@@ -2,6 +2,7 @@ import { type Scene, type Viewport, type Stroke } from "../board.types";
 import { type SurfaceBounds } from "../viewport";
 
 type InputOptions = {
+  allowTouch?: () => boolean;
   scene: Scene;
   bounds: () => SurfaceBounds;
   viewport: () => Viewport;

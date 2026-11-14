@@ -10,6 +10,8 @@ export namespace PenToolbarTypes {
     tool: DrawingTool;
     onToolChange: (tool: DrawingTool) => void;
     width: number;
+    fingerInput: boolean;
+    onFingerInputChange: (value: boolean) => void;
     writing: import("~/entities/board").WritingSettings;
     onInstrumentChange: (
       instrument: import("~/entities/board").InkInstrument,

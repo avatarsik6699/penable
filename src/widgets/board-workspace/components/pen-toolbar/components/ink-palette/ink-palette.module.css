@@ -79,3 +79,23 @@
   outline: 2px solid var(--focus);
   outline-offset: 1px;
 }
+
+@media (any-pointer: coarse) {
+  .palette {
+    grid-template-columns: repeat(5, 44px);
+    gap: 2px;
+  }
+  .swatch {
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
+  .swatch > span:first-child {
+    width: 26px;
+    height: 26px;
+  }
+  .selected {
+    right: 4px;
+    bottom: 4px;
+  }
+}

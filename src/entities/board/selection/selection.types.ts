@@ -22,6 +22,7 @@ type SelectionClipboard = {
 };
 
 type SelectionOptions = {
+  allowTouch?: () => boolean;
   scene: Scene;
   clipboard?: SelectionClipboard;
   viewport: () => Viewport;

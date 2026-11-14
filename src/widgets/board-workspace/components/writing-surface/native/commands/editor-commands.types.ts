@@ -21,6 +21,7 @@ export namespace EditorCommandTypes {
     navigation: BoardNavigation;
     drawingPointerId: () => number | null;
     interactionsBlocked: () => boolean;
+    touchBusy?: () => boolean;
   };
 
   export type SelectionOptions = Omit<Interaction, "drawingPointerId"> & {

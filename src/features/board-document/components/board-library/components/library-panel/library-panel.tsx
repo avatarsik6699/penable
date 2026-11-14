@@ -69,6 +69,7 @@ export const LibraryPanel: React.FC<LibraryPanelTypes.Props> = (props) => {
     <>
       <div
         className={styles.panel}
+        ref={(node) => props.bindPanel(node)}
         id="board-library"
         role="complementary"
         aria-label="Мои доски"

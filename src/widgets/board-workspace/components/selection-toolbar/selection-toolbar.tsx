@@ -58,6 +58,7 @@ export const SelectionToolbar: React.FC<SelectionToolbarTypes.Props> = (
       {props.open && (
         <SelectionActions
           bindPanel={toolbar.bindPanel}
+          onClose={toolbar.closeAndFocus}
           onTransform={props.onTransform}
           state={props.state}
           readOnly={props.readOnly}

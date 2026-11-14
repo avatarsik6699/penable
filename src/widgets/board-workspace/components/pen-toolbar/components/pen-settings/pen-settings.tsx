@@ -34,6 +34,21 @@ export const PenSettings: React.FC<PenSettingsTypes.Props> = (props) => (
       disabled={props.readOnly}
       onChange={props.onInstrumentChange}
     />
+    <div className={styles.touchSettings}>
+      <label className={styles.fingerInput}>
+        <input
+          type="checkbox"
+          checked={props.fingerInput}
+          disabled={props.readOnly}
+          onChange={(event) => props.onFingerInputChange(event.target.checked)}
+        />
+        <span>Рисовать пальцем</span>
+      </label>
+      <HelpHint
+        label="О вводе пальцем"
+        text="По умолчанию один палец перемещает доску, два — перемещают и меняют масштаб. Включите, чтобы пальцем использовать выбранную ручку, ластик или выделение. Во время письма пером касания пальцами игнорируются."
+      />
+    </div>
     <div className={styles.sample}>
       <StrokeSample writing={props.writing} />
     </div>

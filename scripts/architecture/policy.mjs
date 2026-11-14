@@ -74,6 +74,8 @@ export const platformOwners = {
     ["dom", "frames"],
   "src/widgets/board-workspace/components/writing-surface/native/bindings/pointer-binding.ts":
     ["dom"],
+  "src/widgets/board-workspace/components/writing-surface/native/bindings/touch-binding.ts":
+    ["dom"],
   "src/widgets/board-workspace/components/writing-surface/native/bindings/keyboard-binding.ts":
     ["dom"],
   "src/widgets/board-workspace/components/writing-surface/native/bindings/edge-pan.ts":

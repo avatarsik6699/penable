@@ -19,7 +19,16 @@ export const SelectionActions: React.FC<SelectionActionsTypes.Props> = (
       role="dialog"
       aria-label="Действия с выделением"
     >
-      <div className={styles.heading}>Выделенная область</div>
+      <div className={styles.heading}>
+        <span>Выделенная область</span>
+        <Button
+          className={styles.close}
+          aria-label="Закрыть действия с выделением"
+          onClick={props.onClose}
+        >
+          <EditorIcon name="close" />
+        </Button>
+      </div>
       <div
         className={styles.actions}
         role="group"

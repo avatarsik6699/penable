@@ -15,3 +15,17 @@
     gap: 0;
   }
 }
+
+@media (any-pointer: coarse) {
+  .history button {
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
+}
+
+@media (any-pointer: coarse) and (max-width: 650px) {
+  .history {
+    gap: 1px;
+  }
+}

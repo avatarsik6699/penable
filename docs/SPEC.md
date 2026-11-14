@@ -12,7 +12,7 @@
 
 | Поле | Значение |
 |------|----------|
-| Версия | 1.3 — compact tools and readable mathematical templates |
+| Версия | 1.4 — touch navigation and responsive tablet experience |
 | Дата | 2026-11-14 |
 | Архитектор / владелец | Пользователь |
 | Предметная область | Личные рукописные конспекты в браузере |
@@ -1054,3 +1054,56 @@ Change25 visual refinement: selected swatches use a soft blue tile and a small w
 a blue badge instead of the dark outer ring. Keyboard focus remains a distinct blue outline.
 Mathematical picker icons use installed Lucide MoveHorizontal/Move/Radius through EditorIcon
 with the same22px size/2px stroke as neighboring tools; no bespoke tick-heavy SVGs.
+
+
+## 5.21 — Touch, phone and tablet experience (Change26)
+
+Owner-authorized2026-11-14; selected policy: fingers navigate bydefault, explicit finger-input
+mode enables the selected editing tool. Target current Safari/iPadOS/iOS and Android Chrome,
+including iPad+ApplePencil, tabletportrait/landscape and split-sized windows. Preserve the
+current light visual language, toolbar invariance across tools, native ink geometry, document5/
+generator1/catalog2/IDB1 and two-layer budget. No nativeapp/PWA/offline or Pencil proprietary
+doubletap/squeeze API inthischange. Physical Pencil/palm/latency acceptance stays separate.
+
+**Input.** Native PointerEvents own touch contacts outsideReact. One finger pans without ink,
+two fingers translate+zoom around their midpoint, zoom25–800%. Rebase cleanly on1↔2 contacts;
+thirdcontact cancels/quarantines the currentgesture until contacts lift. Only contacts begun
+oncanvas belong to board; UI scrolling/sliders/text stay native. Finger-input mode is explicit,
+transient workspace state (defaultoff, retained acrossboard switches, resets onreload). It
+allows selected pen/eraser/selection tool with onefinger; touchink has constant pressure
+response. Secondcontact cancels uncommitted finger edit before beginning navigation. Template
+placement remains an explicit tap even in default navigation mode. Finger dragging transforms
+uses a larger touch hit radius without changing saved geometry.
+
+Pen haspriority: while stylus/other edit owns input, touches cannot change camera/ink; penbegin
+cancels an active finger gesture/edit and quarantines already-down touches until lifted. A
+secondtouch never cancels an active pen stroke. No claimofhardware palm recognition basedon
+contactsize/deviceguessing. Preserve rawpressure/coalesced fallback and Wacom/mouse behavior.
+Captureloss, pointercancel, blur, orientation/realresize, UIblocking, boardreplacement and
+disposal cancel everygesture safely. Touch navigation is allowed readonly; edits are not.
+Suspend/quarantine overlapping wheel streams and guard commands while gestureowns input.
+
+**Responsive chrome.** Desktopfine ≥1200 keeps778×56 dock. Small/medium layouts no longer
+reserve80px for a separatebrand row: hide decorativebrand and move dock near safe top edge.
+Touch surfaces use44px primary targets and rangeheight, and >=16px textinputs to avoid Safari
+autofocus zoom. Tabletlandscape uses a compact singlerow when itfits, portrait uses tworows;
+phone retains a stable compact dock withalltools reachable. At320px only, an explicitly
+scrollable primarystrip may overflowinternally; the page never scrollshorizontally. Keep
+context/status/settings/navigation functions and accessible names, with no UA/device sniffing.
+
+Coarse palettes use44px targets in twodense rows, tool/template pickers wrapwithout clipping,
+and close/help/check labels are touchable. Phone settings/actions/library panels become
+viewport-bounded sheets/drawers withtheir own scrolling and explicit close; tablet panels
+remain contextual when spaceallows. Respect notch/homeindicator using viewport-fit=cover
+and safe-area envinsets. Update overlay usableheight/bottom inset from visualViewport so
+softkeyboard never hides focusedfields or finalactions; include cleanup. Orientation changes
+preserve completed notes/camera and cancel only transientinput. Avoid canvas resizing merely
+because a panel opens. Browser pagezoom remains available outside canvas; ownpinch zooms board.
+
+**Acceptance.** Pure/native tests cover1/2touch anchor/rebase/clamps, cancellation/ownership,
+penpriority/quarantine, touchmode and editingpermissions. Domainbrowser cases run inChromium
+and PlaywrightWebKit for phones/tablets, rotation, realtap, synthetic multi-pointer streams,
+pressure/cancel, pan/zoom/noaccidentalink, selectedtool editing/resize, safearea/keyboard
+geometry and reload. Synthetic events/emulation/WebKitLinux are not real iPad hardware proof.
+Preserve desktopregressions, paired native engine CPU/raster budgets and bounded gesture input.
+Independent review and Full Gate precede automatic localship; publication remains separate.

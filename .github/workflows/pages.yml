@@ -42,8 +42,8 @@ jobs:
         run: npm run audit:deps
       - name: Build for Pages
         run: npm run build:pages
-      - name: Install test browser
-        run: npx playwright install --with-deps chromium
+      - name: Install test browsers
+        run: npx playwright install --with-deps chromium webkit
       - name: Browser regressions on Pages artifact
         run: npm run test:e2e:run
       - name: Upload Pages artifact

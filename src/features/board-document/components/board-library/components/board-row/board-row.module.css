@@ -89,3 +89,17 @@
   color: var(--error);
   font-size: 12px;
 }
+
+@media (any-pointer: coarse) {
+  .actions > button {
+    width: 44px;
+    height: 44px;
+  }
+  .menu button,
+  .rename input {
+    min-height: 44px;
+  }
+  .rename input {
+    font-size: 16px;
+  }
+}

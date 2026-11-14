@@ -41,5 +41,8 @@ export const TemplatePicker: React.FC<TemplatePickerTypes.Props> = (props) => (
         </ControlHint>
       ))}
     </div>
+    <span className={styles.current} aria-live="polite">
+      {BoardTemplates.names[props.value]}
+    </span>
   </div>
 );

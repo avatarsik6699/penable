@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-14T09:46:53.911734+00:00",
+  "generatedAt": "2026-11-14T16:24:50.987804+00:00",
   "title": "Design System: penable",
   "extensions": {
     "colorMeta": {
@@ -210,17 +210,30 @@
     "breakpoints": [
       {
         "name": "dock-desktop",
-        "value": ">=1200px; fixed 778×56px; board 128px/context 190px; top 16px"
+        "value": ">=1200px fine:778×56px, top16px"
       },
       {
         "name": "dock-two-row",
-        "value": "651–1199px; 2 rows, 104px high; top 80px; width min(960px, viewport−24px)"
+        "value": "651–1199px fine:104px; <=899px coarse:112px; safe top>=12px"
       },
       {
         "name": "dock-three-row",
-        "value": "<=650px; 3 rows, 152px high; top 80px; width viewport−24px"
+        "value": "<=650px fine:152px/coarse:164px; safe top>=12px; viewport safe width"
+      },
+      {
+        "name": "dock-touch-wide",
+        "value": ">=900px coarse:814×60px;44px targets; safe top>=12px"
       }
-    ]
+    ],
+    "touch": {
+      "primaryTarget": "44px",
+      "rangeHeight": "44px",
+      "textInput": "16px",
+      "selectionHitRadius": "22 CSS px",
+      "palette": "two rows of44px targets",
+      "overlays": "viewport-bounded phone sheets, contextual tablet panels, safe-area and visualViewport keyboard fitting",
+      "policy": "stylus writes, fingers navigate by default; explicit transient finger editing"
+    }
   },
   "components": [
     {
@@ -256,7 +269,7 @@
     {
       "name": "Floating Tool Dock",
       "kind": "nav",
-      "description": "Signature solid white floating toolbar: fixed 778×56px with 128px board and 190px context slots at widths >=1200px; two rows at 651–1199px (104px high, top 80px); three rows at <=650px (152px high, top 80px). The current-board chooser leads the dock with an 11px muted library label above a 14px semibold board name inside its 40px control; tools stay grouped. Image insertion feedback is visible out of flow; its notice has 10px corners.",
+      "description": "Fixed desktop778×56px dock. Coarse devices:814×60px at>=900px,112px high below900px,164px high below651px. Fine smaller layouts104px/152px. Hide brand below1200px; safe top>=12px and safe side insets. Tool changes never alter dock rectangle.",
       "html": "<div class=\"ds-dock\" role=\"group\" aria-label=\"Инструменты доски\"><button class=\"ds-dock-tool\" type=\"button\" aria-label=\"Перо\" aria-pressed=\"true\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m14 4 6 6-9 9-7 1 1-7Z M11 7l6 6 M4 20l4-4\"/></svg></button><span class=\"ds-dock-divider\" aria-hidden=\"true\"></span><span class=\"ds-dock-readout\">3.0 <small>px</small></span></div>",
       "css": ".ds-dock{font-family:\"Segoe UI\",system-ui,sans-serif;display:inline-flex;align-items:center;gap:8px;height:56px;padding:8px;border-radius:12px;background:var(--paper,#fff);color:var(--ink,#182230);box-shadow:var(--chrome-shadow,0 3px 14px rgb(24 34 48 / 8%),0 1px 3px rgb(24 34 48 / 5%));}.ds-dock-tool{width:40px;height:40px;padding:0;border:0;border-radius:8px;display:grid;place-items:center;background:var(--control-selected-bg,#eaf1ff);color:var(--focus,#175cd3);cursor:pointer;}.ds-dock-tool svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}.ds-dock-tool:hover{background:var(--control-hover,#f1f4f8);}.ds-dock-tool:focus-visible{outline:2px solid var(--focus,#175cd3);outline-offset:3px;}.ds-dock-divider{width:1px;height:22px;margin:0 3px;background:var(--divider,#e0e5ec);}.ds-dock-readout{font-size:13px;font-variant-numeric:tabular-nums;}.ds-dock-readout small{font-size:11px;color:var(--text-muted,#526176);}",
       "refersTo": "floating-dock"
@@ -271,14 +284,14 @@
     {
       "name": "Context Panel",
       "kind": "card",
-      "description": "Solid white, softly elevated container for disclosed settings and selection actions. The board library is a separate left sidebar up to 360px wide with 16px corners, name search, scrollable rows with 44px color/icon covers and 10px corners, per-row appearance/rename/delete actions, and a creation form below the list. The protected delete dialog uses an 18px heading. Writing/template panels use horizontal icon selectors, a compact preview, slider widths and contextual hover/focus/click help. Palette swatches use30×32px compact targets, dimensional shading and a blue tile/check selection without a dark ring. Mathematical icon choices share standard22px/2px Lucide icons. Mathematical axes show automatic/manual steps with a retained last-valid preview on invalid input.",
+      "description": "Solid white, softly elevated container for disclosed settings and selection actions. The board library is a separate left sidebar up to 360px wide with 16px corners, name search, scrollable rows with 44px color/icon covers and 10px corners, per-row appearance/rename/delete actions, and a creation form below the list. The protected delete dialog uses an 18px heading. Writing/template panels use horizontal icon selectors, a compact preview, slider widths and contextual hover/focus/click help. Palette swatches use30×32px compact targets, dimensional shading and a blue tile/check selection without a dark ring. Mathematical icon choices share standard22px/2px Lucide icons. Mathematical axes show automatic/manual steps with a retained last-valid preview on invalid input. Coarse controls and swatches use44px targets; text fields16px. Phone panels become bounded scrolling sheets; library becomes a drawer. Respect safe-area/visualViewport keyboard bounds.",
       "html": "<section class=\"ds-panel\"><h2>Перо</h2><p>Сглаживает движения пера.<br>Применяется к следующему штриху.</p></section>",
       "css": ".ds-panel{font-family:\"Segoe UI\",system-ui,sans-serif;width:284px;padding:16px;border-radius:14px;color:var(--ink,#182230);background:var(--paper,#fff);box-shadow:var(--popover-shadow,0 6px 24px rgb(24 34 48 / 12%),0 1px 4px rgb(24 34 48 / 5%));}.ds-panel h2{margin:0 0 14px;font-size:14px;font-weight:600;}.ds-panel p{margin:0;color:var(--text-muted,#526176);font-size:12px;line-height:1.6;}"
     }
   ],
   "narrative": {
     "northStar": "The Writing-First Notebook",
-    "overview": "The owner-approved light writing editor uses a stable dock for the current-board chooser, tools, history, status and settings, with static branding, lower navigation and help. The dock is fixed at 778×56px with 128px board and 190px context slots from 1200px upward, two rows and 104px high at 651–1199px, and three rows and 152px high at 650px and below. A left board-library sidebar provides name search, scrollable color/icon cover rows with per-row actions, and a creation form. Lucide icons share one weight; backgrounds and last-writing navigation are configurable and predictable. Writing and template settings use compact icon selectors, dense dimensional swatches with a blue tile/check selection, contextual help and automatic axis steps with resilient manual drafts; primary desktop flows fit1280×720 without scrolling.",
+    "overview": "Light writing editor with stable floating dock, lower navigation and contextual panels. Fine desktop778×56px; adaptive two/three-row layouts at the safe top edge. Coarse devices use44px controls, two-row palettes,16px fields and phone sheets. Stylus writes; fingers pan/pinch by default with explicit finger editing. Existing system typography, Lucide icons, ink geometry and document contracts are preserved.",
     "keyCharacteristics": [
       "Light writing field with a compact floating horizontal tool dock.",
       "Inline width, contextual stabilization and restrained peripheral controls.",
@@ -295,7 +308,7 @@
     "dos": [
       "Do keep the writing field dominant and preserve the out-of-flow layout.",
       "Do keep frequent controls visible and disclose secondary settings/actions contextually.",
-      "Do retain visible focus, accessible names, 40px primary targets, compact palette targets and readable numeric readouts.",
+      "Do retain visible focus, accessible names, 40px fine/44px coarse primary targets, appropriate palette targets and readable numeric readouts.",
       "Do preserve the pinned diagnostics exception so pressure can be observed while writing."
     ],
     "donts": [

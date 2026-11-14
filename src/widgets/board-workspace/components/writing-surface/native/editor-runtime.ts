@@ -133,7 +133,12 @@ function create(
         readSettings().backgroundSettings,
       );
 
+    let touchActive = () => false;
+
+    const allowTouch = () => readSettings().getFingerInput?.() ?? false;
+
     const input = new PenInput({
+      allowTouch,
       scene,
       bounds: () => canvas.getBoundingClientRect(),
       viewport: () => state.viewport,
@@ -169,6 +174,7 @@ function create(
     });
 
     const eraser = new EraserInput({
+      allowTouch,
       scene,
       bounds: () => canvas.getBoundingClientRect(),
       viewport: () => state.viewport,
@@ -216,7 +222,8 @@ function create(
     const navigation = new BoardNavigation({
       clock: () => performance.now(),
       viewport: state.viewport,
-      isDrawing: () => drawingPointerId() !== null || selection.busy,
+      isDrawing: () =>
+        drawingPointerId() !== null || selection.busy || touchActive(),
 
       onChange: (viewport) => {
         state.viewport = viewport;
@@ -277,6 +284,7 @@ function create(
     const selectionJobs = new SelectionDocuments();
 
     const selection = new BoardSelection({
+      allowTouch,
       scene,
       clipboard,
       viewport: () => state.viewport,
@@ -317,6 +325,7 @@ function create(
         !interactionsBlocked() &&
         drawingPointerId() === null &&
         navigation.pointerId === null &&
+        !touchActive() &&
         !selection.busy,
 
       insert: (items) => {
@@ -369,6 +378,7 @@ function create(
         !interactionsBlocked() &&
         drawingPointerId() === null &&
         navigation.pointerId === null &&
+        !touchActive() &&
         !selection.busy,
       writable: canWrite,
       insertImage: (blob) => imageInput.insertFile(blob),
@@ -379,6 +389,7 @@ function create(
     const selectionCommands = SelectionCommands.create({
       clipboard: nativeClipboard,
       pendingInput: () => imageInput.busy || nativeClipboard.busy,
+      touchBusy: () => touchActive(),
 
       images,
       selection,
@@ -394,7 +405,9 @@ function create(
     const selectionCommand = selectionCommands.command;
 
     const historyCommands = HistoryCommands.create({
-      additionalBusy: () => imageInput.busy || nativeClipboard.busy,
+      additionalBusy: () =>
+        imageInput.busy || nativeClipboard.busy || touchActive(),
+      touchBusy: () => touchActive(),
       history,
       drawingPointerId,
       navigation,
@@ -442,6 +455,7 @@ function create(
       eraser,
       selection,
       getTool,
+      getFingerInput: allowTouch,
       canWrite,
       interactionsBlocked: () =>
         interactionsBlocked() || imageInput.busy || nativeClipboard.busy,
@@ -453,6 +467,8 @@ function create(
       applyHistory,
       paintSelection,
     });
+
+    touchActive = surface.isTouchActive;
 
     api.cancel = () => {
       templatePlacement.cancel();
@@ -470,6 +486,7 @@ function create(
         interactionsBlocked() ||
         drawingPointerId() !== null ||
         navigation.pointerId !== null ||
+        touchActive() ||
         selection.busy,
 
       navigate: (viewport) => {
@@ -510,6 +527,7 @@ function create(
       publishSelection,
       applyHistory,
       surface,
+      touchBusy: () => touchActive(),
 
       insertImage: () => {
         templatePlacement.cancel();

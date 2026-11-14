@@ -40,3 +40,30 @@
     display: none;
   }
 }
+
+@media (any-pointer: coarse) {
+  .picker {
+    flex-wrap: wrap;
+    gap: 4px 12px;
+  }
+  .group button {
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
+  .divider {
+    display: none;
+  }
+}
+
+.current {
+  display: none;
+}
+@media (any-pointer: coarse) {
+  .current {
+    display: block;
+    width: 100%;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+}

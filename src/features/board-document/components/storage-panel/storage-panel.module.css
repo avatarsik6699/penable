@@ -95,3 +95,12 @@
     box-shadow: var(--popover-shadow);
   }
 }
+
+@media (any-pointer: coarse) {
+  .gear,
+  .statusButton {
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
+}

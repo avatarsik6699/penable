@@ -90,7 +90,9 @@ function create(
 
         if (
           command === "clear" &&
-          (drawingPointerId() !== null || navigation.pointerId !== null)
+          (drawingPointerId() !== null ||
+            navigation.pointerId !== null ||
+            pointer.touchActive())
         )
           pointer.cancel();
         else selectionCommand(command);
@@ -109,7 +111,8 @@ function create(
       if (nudge && getTool() === "selection" && selection.hasSelection) {
         event.preventDefault();
 
-        if (!nudge.blocked) selection.nudge(nudge.x, nudge.y);
+        if (!nudge.blocked && !pointer.touchActive())
+          selection.nudge(nudge.x, nudge.y);
 
         return;
       }

@@ -1,7 +1,7 @@
 .app {
   position: relative;
   height: 100dvh;
-  min-height: 360px;
+  min-height: 0;
   isolation: isolate;
   overflow: hidden;
   background: var(--paper);
@@ -68,5 +68,11 @@
   .brand {
     left: 20px;
     font-size: 17px;
+  }
+}
+
+@media (max-width: 1199px) {
+  .brand {
+    display: none;
   }
 }

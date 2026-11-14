@@ -142,3 +142,54 @@
     max-height: calc(100dvh - 260px);
   }
 }
+
+.panel {
+  max-height: min(var(--panel-available-height, 100dvh), calc(100dvh - 32px));
+}
+@media (any-pointer: coarse) {
+  .heading {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--paper);
+  }
+  .heading button {
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
+}
+@media (max-width: 650px) {
+  .panel {
+    position: fixed;
+    top: auto;
+    left: max(12px, env(safe-area-inset-left, 0px));
+    right: max(12px, env(safe-area-inset-right, 0px));
+    bottom: calc(
+      var(--panel-keyboard-inset, 0px) + 76px + env(safe-area-inset-bottom, 0px)
+    );
+    width: auto;
+    max-width: none;
+    max-height: min(
+      var(--panel-available-height, 100dvh),
+      calc(
+        var(--panel-viewport-height, 100dvh) - 96px -
+          env(safe-area-inset-bottom, 0px)
+      )
+    );
+  }
+}
+
+@media (any-pointer: coarse) {
+  .actions > button {
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
+  .options label {
+    min-height: 44px;
+  }
+  .place {
+    min-height: 44px;
+  }
+}

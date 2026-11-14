@@ -87,6 +87,7 @@ export type WorkspaceState = Readonly<{
   selectionShape: SelectionShape;
   selection: Readonly<SelectionState>;
   tool: DrawingTool;
+  fingerInput: boolean;
   width: number;
   stabilization: number;
   writing: import("~/entities/board").WritingSettings;

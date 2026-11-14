@@ -127,16 +127,22 @@ Desktop layouts at 1440×900 and 1280×720 place one dock top-center, static bra
 zoom/return/minimap bottom-right and Help bottom-left. Tools, history, contextual controls and
 save status/settings share that dock; no separate top-right status pill remains.
 At widths of 1200px and above, the dock is fixed at 778×56px with 128px board and 190px context slots and centered 16px from the top.
-From 651px through 1199px, it is up to960px wide, sits80px from the top, and uses two rows
-within a 104px dock. At 650px and below, it uses three rows in a 152px dock, with 40px controls
-and viewport width minus 24px. The current-board chooser leads the dock; the current board name
+From 651px through 1199px, fine-pointer layouts use two rows within a 104px dock. At 650px
+and below, they use three rows in a 152px dock. Below1200px the decorative brand is hidden and
+the dock sits at the safe top edge with at least12px clearance. Coarse-pointer layouts use
+44px controls: an814×60px single row at900px and above, two rows/112px below900px, and three
+rows/164px at650px and below. Phone width respects both safe edges; the primary tool strip
+scrolls internally if needed at320px. The dock rectangle stays fixed across tools in each layout. The current-board chooser leads the dock; the current board name
 truncates only when space requires it. Context and status/settings stay in their reserved areas.
 
 Panels constrain width to the viewport and scroll internally with contained overscroll, using the
 space available below the dock so a tall selection menu remains reachable on short screens. The
 board library is a left sidebar up to 360px wide, with a heading and close control, name search,
 scrollable cover/name rows with per-row actions, and a creation form below the list. At narrow
-widths it uses the available width beneath the dock. No separate mobile drawing behavior is introduced.
+widths it becomes a viewport-bounded drawer. Phone tool/settings panels are scrollable sheets;
+tablet panels remain contextual. Safe-area insets and visualViewport keyboard bounds keep
+fields and final actions reachable. Touch defaults to finger navigation and stylus writing,
+with an explicit «Рисовать пальцем» checkbox in writing settings.
 
 ## Elevation & Depth
 
@@ -147,7 +153,7 @@ Exact shadow and motion values are recorded in the sidecar and originate in `src
 ## Shapes
 
 Controls have softly rounded corners, floating chrome is rounder, and contextual panels use the largest radius in the frontmatter.
-Main dock icon targets are40px. Compact template choices are36px wide; panel help/close targets are28px. Icons use static named lucide-react imports: 24-unit viewBox, round joins/caps, 2px stroke and22px normal size. Smaller status/recovery marks inherit their local size. Icons are decorative within named controls.
+Main dock icon targets are40px on fine-pointer desktop and44px on coarse-pointer devices. Compact template choices are36px wide; panel help/close targets are28px. Icons use static named lucide-react imports: 24-unit viewBox, round joins/caps, 2px stroke and22px normal size. Smaller status/recovery marks inherit their local size. Icons are decorative within named controls.
 Selection keeps the actual drawn region and its whitespace, using the established blue outline.
 Its resize handles sit on the selection boundary, with a separate rotation handle above it; these
 handles expose direct manipulation rather than decoration.
@@ -157,7 +163,7 @@ handles expose direct manipulation rather than decoration.
 Color names in this document describe the palette, not CSS custom-property names. Production controls use `--focus`, `--control-selected-bg`, `--control-selected-text`, `--control-selected-border` and `--control-hover` from `src/app/styles.css`; do not invent `--accent` or `--selected` aliases.
 
 **Tool dock.** Pen, whole-stroke eraser, selection and history share one group. Width stays inline for Pen; clicking the selected Pen again opens the writing instrument, palette and stabilization settings. Selected state uses both shape/background and blue color.
-**Writing controls.** Constant pen, pressure pen and highlighter share the existing writing slot and a compact horizontal icon radio group. Ten fixed swatches form a dense row where space permits, wrap on narrow screens, have subtle dimensional highlights/shadows and a blue selection tile/check badge and a distinct keyboard focus outline. Compact palette targets are 30×32px; primary dock controls remain40px. Pressure and opacity controls appear only for the relevant instrument; a compact actual-geometry sample previews settings. Descriptive help opens on hover, keyboard focus or click rather than occupying permanent panel space.
+**Writing controls.** Constant pen, pressure pen and highlighter share the existing writing slot and a compact horizontal icon radio group. Ten fixed swatches form a dense row where space permits, wrap on narrow screens, have subtle dimensional highlights/shadows and a blue selection tile/check badge and a distinct keyboard focus outline. Compact fine-pointer palette targets are30×32px; coarse palettes use44px targets in two rows. Primary controls use40px/44px respectively. Pressure and opacity controls appear only for the relevant instrument; a compact actual-geometry sample previews settings. Descriptive help opens on hover, keyboard focus or click rather than occupying permanent panel space.
 **Vector templates.** A dedicated Lucide shapes control opens a compact icon chooser grouping geometry and mathematics, an approximately100px preview and applicable pre-insertion parameters. Figure names are exposed by hover/focus hints and accessible icon labels; selection uses the existing blue treatment. Mathematical choices use Lucide MoveHorizontal, Move and Radius through the same22px/2px EditorIcon as geometry. Outline width uses a slider; numeric width/height are absent. Default click placement fits about320CSSpx and selects the vector object with resize handles. The primary placement button stays blue with white text on hover. Automatic axis spacing displays its effective step and supports manual entry. Invalid drafts retain the explicitly marked last-valid preview and a concrete repair action. Desktop primary panel flows fit1280×720 without scrolling; short screens scroll safely.
 **Board library.** The current-board chooser stacks an 11px muted «Доски» label above the 14px semibold current-board name inside its 40px button. Long names truncate within the reserved slot; the full name remains in the button tooltip. The chooser sits at the leading edge of the dock and opens a left sidebar up to 360px wide, with 16px corners. It has a heading and close control, name search, independently scrolling rows with 44×44 color/icon covers and 10px corners, per-row appearance/rename/delete actions, and a creation form below the list. The active row uses the existing selected treatment. Deletion uses a protected confirmation dialog that names the board and warns that local copies will be removed. The dialog has 14px corners and its heading is 18px, a deliberate dialog-specific hierarchy role alongside the 14px contextual-panel title.
 **Board appearance.** Eight tonal color pairs and sixteen 22px Lucide symbols identify boards independently of their content. Cover/icon contrast is 5.30–6.52; the active row keeps its separate selected treatment. «Оформление» replaces the sidebar list with a draft editor: sample, four-column color/icon radio grids and save/cancel actions. Selected radios have a dark outline plus Lucide check badge; keyboard focus has a distinct outer outline. Options have 48px hit areas; the panel scrolls on short screens. The editor uses a 16px bold heading, 13px field labels and the existing system type. Saving commits before returning focus to the row action; cancellation preserves the stored cover.
@@ -165,7 +171,7 @@ Color names in this document describe the palette, not CSS custom-property names
 **Pinned diagnostics.** Help can open diagnostics as a separate pinned region. Writing leaves it visible; opening another main panel replaces it. Explicit close or Escape returns focus to Help; Actions and diagnostics retain their required Escape input-cancellation behavior.
 **Document controls.** Brand is static. Settings gear in the dock opens one panel: View contains background mode, contrast and spacing; Files and copies contains unique import/export/recovery/retry controls. The adjacent status dot opens Files. Green means saved, amber pending, gray loading/read-only, red error; hover and accessible descriptions name every status, and errors also retain visible text. Import remains a true modal dialog with protected focus.
 **Selection actions.** Rectangle/lasso remain inline; actions disclose a vertical icon-and-label list with shortcut hints. Resize and rotation handles act directly on the selection. The Transform section also exposes numeric width and height percentages plus an angle in degrees, followed by an apply action. The image-insert control is 40×40px and accepts PNG and JPEG; its insertion notice has 10px corners. Ordinary Copy/Paste negotiate editable board content and images, with PNG download for a selected region. There are no separate image-copy or image-paste commands. Choosing, processing, success, and error feedback remains visible without changing canvas dimensions.
-**Navigation and fields.** Bottom-right zoom/return/minimap uses stable tabular readouts. Percentage resets zoom around the current center; return restores the last completed pen working view. The collapsible minimap stays visible while writing, uses occupancy plus viewport outline, and holds the secondary fit-all action. Background contrast/spacing share immediate world-anchored settings for dots/grid. Ranges have a 40px interaction height, a thin neutral track and accent thumb. Keyboard focus is an accent outline with a 3px offset.
+**Navigation and fields.** Bottom-right zoom/return/minimap uses stable tabular readouts. Percentage resets zoom around the current center; return restores the last completed pen working view. The collapsible minimap stays visible while writing, uses occupancy plus viewport outline, and holds the secondary fit-all action. Background contrast/spacing share immediate world-anchored settings for dots/grid. Ranges have a 40px interaction height (44px for coarse pointers), a thin neutral track and accent thumb. Keyboard focus is an accent outline with a 3px offset.
 **Motion.** Button color/background changes use 100ms ease only when reduced motion is not requested; the writing surface has no decorative entrance animation.
 
 ## Do's and Don'ts
@@ -177,3 +183,12 @@ Color names in this document describe the palette, not CSS custom-property names
 - Don't import the mock's synthetic note or Caveat font into the production editor.
 - Don't cancel pending selection work merely because a nonmodal panel opens or closes.
 - Don't change ink geometry, document data or canvas backing dimensions as a visual styling shortcut.
+
+
+## Touch adaptation
+
+Finger navigation and Pencil input share one native ownership policy, outside React. Touch
+selection handles accept a22CSSpx radius without changing visible or stored geometry. Coarse
+pickers wrap, tooltips remain available by explicit help controls, and the selected template
+name stays visible. Text fields use at least16px on coarse pointers to avoid focus zoom.
+Phone/tablet changes preserve the desktop visual language and the existing two ink canvases.

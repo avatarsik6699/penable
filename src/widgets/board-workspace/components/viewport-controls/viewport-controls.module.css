@@ -62,3 +62,17 @@
   font-size: 12px;
   line-height: 1.6;
 }
+
+.navigation {
+  right: max(12px, env(safe-area-inset-right, 0px));
+  bottom: max(12px, env(safe-area-inset-bottom, 0px));
+}
+@media (any-pointer: coarse) {
+  .navigation {
+    height: 52px;
+  }
+  .navigation button {
+    min-width: 44px;
+    height: 44px;
+  }
+}

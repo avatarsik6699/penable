@@ -6,7 +6,7 @@ function create(options: EditorCommandTypes.ControlsOptions): SurfaceControls {
   const {
     canvas,
     navigation,
-    interactionsBlocked,
+    interactionsBlocked: externallyBlocked,
     selection,
     drawingPointerId,
     scene,
@@ -16,6 +16,9 @@ function create(options: EditorCommandTypes.ControlsOptions): SurfaceControls {
     publishSelection,
     applyHistory,
   } = options;
+
+  const interactionsBlocked = () =>
+    externallyBlocked() || Boolean(options.touchBusy?.());
 
   const center = () => {
     const bounds = canvas.getBoundingClientRect();
@@ -27,8 +30,15 @@ function create(options: EditorCommandTypes.ControlsOptions): SurfaceControls {
   };
 
   return {
-    insertImage: options.insertImage,
-    insertTemplate: options.insertTemplate,
+    insertImage: () => {
+      if (!interactionsBlocked()) options.insertImage();
+    },
+
+    insertTemplate: (config, explicitSize) => {
+      if (!interactionsBlocked())
+        options.insertTemplate?.(config, explicitSize);
+    },
+
     dismissInsertion: options.dismissInsertion,
 
     transform: (width, height, angle) => {
@@ -146,7 +156,8 @@ function create(options: EditorCommandTypes.ControlsOptions): SurfaceControls {
       drawingPointerId() !== null ||
       navigation.pointerId !== null ||
       selection.busy ||
-      Boolean(options.pendingInput?.()),
+      Boolean(options.pendingInput?.()) ||
+      Boolean(options.touchBusy?.()),
     cancelInput: api.cancel,
   };
 }

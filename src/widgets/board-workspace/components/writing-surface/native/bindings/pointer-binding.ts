@@ -4,6 +4,7 @@ import type {
 } from "./surface-bindings.types";
 import type { CursorBinding } from "./cursor-binding";
 import type { EdgePan } from "./edge-pan";
+import type { TouchBinding } from "./touch-binding";
 
 function create(
   options: Pick<
@@ -25,6 +26,7 @@ function create(
   interaction: InteractionState,
   cursor: ReturnType<typeof CursorBinding.create>,
   edge: ReturnType<typeof EdgePan.create>,
+  touch: ReturnType<typeof TouchBinding.create>,
 ) {
   const {
     canvas,
@@ -53,6 +55,7 @@ function create(
   };
 
   const cancel = () => {
+    touch.cancel();
     options.templatePlacement?.cancel();
 
     const pointerId = drawingPointerId() ?? navigation.pointerId;
@@ -70,6 +73,23 @@ function create(
 
   const down = (event: PointerEvent) => {
     if (interactionsBlocked()) return;
+
+    if (event.pointerType === "touch") {
+      touch.down(event);
+      cursor.model.cancel();
+      cursor.update();
+
+      return;
+    }
+
+    if (
+      event.pointerType === "pen" &&
+      event.isPrimary &&
+      event.button === 0 &&
+      event.buttons === 1
+    )
+      touch.preempt();
+    else if (touch.busy) return;
 
     interaction.keyboardEntry = false;
     cursor.blurCanvas();
@@ -122,6 +142,12 @@ function create(
   };
 
   const move = (event: PointerEvent) => {
+    if (event.pointerType === "touch") {
+      touch.move(event);
+
+      return;
+    }
+
     cursor.sample(event);
 
     if (event.target === canvas && options.templatePlacement?.active)
@@ -173,6 +199,12 @@ function create(
   };
 
   const up = (event: PointerEvent) => {
+    if (event.pointerType === "touch") {
+      touch.up(event);
+
+      return;
+    }
+
     cursor.sample(event);
     cursor.model.end(event.pointerId);
 
@@ -213,6 +245,12 @@ function create(
   };
 
   const pointerCancel = (event: PointerEvent) => {
+    if (touch.has(event.pointerId)) {
+      touch.cancel(event.pointerId);
+
+      return;
+    }
+
     if (
       event.pointerId !== drawingPointerId() &&
       event.pointerId !== navigation.pointerId
@@ -224,6 +262,12 @@ function create(
   };
 
   const lostCapture = (event: PointerEvent) => {
+    if (touch.has(event.pointerId)) {
+      touch.cancel(event.pointerId);
+
+      return;
+    }
+
     const panEnded = navigation.endPan(event.pointerId);
     const inkEnded = input.cancel(event.pointerId);
     const eraseEnded = eraser.cancel(event.pointerId);
@@ -246,7 +290,7 @@ function create(
 
     event.preventDefault();
 
-    if (interactionsBlocked()) return;
+    if (interactionsBlocked() || touch.busy) return;
 
     const bounds = canvas.getBoundingClientRect();
 
@@ -264,6 +308,7 @@ function create(
 
   return {
     cancel,
+    touchActive: () => touch.busy,
     down,
     move,
     up,
