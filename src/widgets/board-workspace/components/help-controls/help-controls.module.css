@@ -84,6 +84,30 @@
   line-height: 1.6;
   color: var(--text-muted);
 }
+
+.feedbackLink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 44px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: var(--control-selected-text);
+  font-size: 12px;
+  line-height: 1.5;
+  text-decoration: none;
+}
+
+.feedbackLink:hover {
+  background: var(--control-hover);
+}
+
+.feedbackLink svg {
+  flex-shrink: 0;
+}
+
 @media (max-width: 700px) {
   .chrome {
     left: 12px;

@@ -92,6 +92,16 @@ export const HelpControls: React.FC<HelpControlsTypes.Props> = (props) => {
             <EditorIcon name="device" />
             Диагностика
           </Button>
+          <a
+            className={styles.feedbackLink}
+            href="https://t.me/avatarsikkk"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Открыть Telegram в новой вкладке"
+          >
+            <EditorIcon name="message" />
+            Обратная связь в Telegram
+          </a>
         </div>
       )}
       {props.diagnosticsOpen && (

@@ -34,6 +34,7 @@ export namespace EditorIconTypes {
     | "plus"
     | "fit"
     | "help"
+    | "message"
     | "settings"
     | "map"
     | "writing-return"
