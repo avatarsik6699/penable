@@ -1,0 +1,50 @@
+{
+  "applicationCommit": "6fbf9b6ee76ad65c680e23d9f39bdf5ce11dc78f",
+  "capture": "Production Pages build in Windows Chrome through Playwriter; authored demo notes and scripted mouse input. Playback is paced for explanation, not a physical-pen or latency measurement.",
+  "source": [
+    "scripts/media/capture.mjs",
+    "scripts/media/handwriting.mjs",
+    "scripts/media/encode.py"
+  ],
+  "assets": [
+    {
+      "name": "writing",
+      "gif": "writing.gif",
+      "poster": "writing.png",
+      "width": 960,
+      "height": 600,
+      "seconds": 10.0,
+      "frames": 100,
+      "sourceFrames": 63,
+      "bytes": 161063,
+      "sha256": "946fec82b32a2514300ab31ebee587c2bca982a32b532029f45573903cb04684",
+      "posterSha256": "25b4d86b0957d91f0b11a1959bdbaacf997d3fe192d046604e9ce666ebc6b9bc"
+    },
+    {
+      "name": "fragment-editing",
+      "gif": "fragment-editing.gif",
+      "poster": "fragment-editing.png",
+      "width": 960,
+      "height": 600,
+      "seconds": 10.0,
+      "frames": 100,
+      "sourceFrames": 27,
+      "bytes": 129317,
+      "sha256": "e501fe1d16ea841570c894f787b0ffa22048eab6f577bf5312e6a1d0d808d833",
+      "posterSha256": "e022d668915fe191f0eb2c848610691a985f6df932d649b40724d26068c92308"
+    },
+    {
+      "name": "math-boards",
+      "gif": "math-boards.gif",
+      "poster": "math-boards.png",
+      "width": 960,
+      "height": 600,
+      "seconds": 10.0,
+      "frames": 100,
+      "sourceFrames": 11,
+      "bytes": 238181,
+      "sha256": "d18e0d5339960dca4a3e07a300158806ea8c1092278340874eb37d5daf9fad48",
+      "posterSha256": "3ee03279323d0b91930eb3a5f0f2c918db477d0de1e8b1918a808d93c5fb6363"
+    }
+  ]
+}

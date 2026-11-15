@@ -575,3 +575,15 @@ E2E. Both resources must be bundled for offline boot. The exact locale-platform 
 DOM/storage capabilities. Document5/catalog2/IDB1 remain unchanged. Ordinary E2E explicitly uses
 ru-RU; locale fixtures test English/Russian/fallback and preference denial independently.
 Owned Windows Chrome Pages preview4216 isolates personal notes; E2E retains4185/offline4209.
+
+## Change37 — README demonstration media
+
+`npm run media:encode` uses Python3 and installed FFmpeg/ffprobe to encode finished owned
+Playwriter takes from .artifacts/change-37/frames into docs/media GIFs/PNG posters/manifest.
+Capture helpers are authored scripts/media/capture.mjs and handwriting.mjs; see docs/media/README.md.
+Use production Pages preview on an unused loopback4217 (strict port), first checking the origin
+has no existing IndexedDB databases. Never clear a browser profile or overwrite personal boards.
+Output is960×600,10fps,8–12seconds and<=3MiB per GIF, with static alternatives. Source templates
+and mouse paths are demonstration data; timing is explanatory, not measured physical pen latency.
+Use npm run format:tooling for authored JS/package changes; no new package/runtime dependency.
+Standard Full Gate/local ship applies; application code and Change36 runtime acceptance remain.
