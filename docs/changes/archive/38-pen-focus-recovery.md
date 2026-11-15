@@ -7,7 +7,7 @@
 | Change | `38` |
 | Slug | `pen-focus-recovery` |
 | Title | Pen contact recovery after window switching |
-| Status | `active` |
+| Status | `shipped locally` |
 | Branch | `feature/38-pen-focus-recovery` |
 
 ## Goal
@@ -57,7 +57,7 @@ start a new stroke. Existing single-owner/cancel/read-only/overlay guards remain
 
 ## Gate Checks
 
-Standard Fast/Full Gates in [STACK.md](../STACK.md). Owned smoke uses Pages preview4218 and
+Standard Fast/Full Gates in [STACK.md](../../STACK.md). Owned smoke uses Pages preview4218 and
 isolated data; E2E keeps4185. Reproduce the event sequence before the fix, verify contact recovery,
 blur/capture/resize cancellation, mouse and blocked UI, saved ink/history, console and screenshot.
 Native Wacom event ordering and actual OS Alt+Tab remain owner hardware acceptance. Full Gate
