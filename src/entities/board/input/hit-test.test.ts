@@ -2,6 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 import { StrokeHitTester } from "./hit-test";
 import { type Position, type Stroke, BoardConstants } from "../board.types";
 import { BoardStabilization } from "../geometry";
+import { BoardRegions } from "../regions";
+import { BoardTransforms } from "../transforms";
+import { intersection } from "polygon-clipping";
+import type { AffineMatrix } from "../board.types";
 
 function stroke(points: Position[], width = 2): Stroke {
   return {
@@ -202,4 +206,119 @@ describe("fragment eraser broad phase", () => {
       ),
     ).toBe(true);
   });
+});
+
+describe("expensive eraser query work bounds", () => {
+  it.each(["pressure", "affine", "clipped"])(
+    "rejects distant %s ink before constructing any sweep",
+    (kind) => {
+      const ink = stroke([p(10000, 10000), p(10100, 10000)]);
+
+      ink.style = { instrument: "pressure", opacity: 1, pressureStrength: 65 };
+
+      if (kind !== "pressure") ink.matrix = [1, 0.3, -0.2, 1, 100, 200];
+
+      if (kind === "clipped")
+        ink.clip = BoardRegions.rectangle(p(10000, 9990), p(10100, 10010));
+
+      const tester = new StrokeHitTester(1);
+      const capsule = vi.spyOn(BoardRegions, "capsule");
+
+      try {
+        for (let i = 0; i < 40; i++)
+          expect(tester.hits(ink, p(i, 0), p(i + 1, 0))).toBe(false);
+
+        expect(capsule).not.toHaveBeenCalled();
+      } finally {
+        capsule.mockRestore();
+      }
+    },
+  );
+
+  it("shares one sweep across nearby pressure candidates at the same sample", () => {
+    const first = stroke([p(0, 0), p(100, 0)]);
+
+    first.style = { instrument: "pressure", opacity: 1, pressureStrength: 65 };
+
+    const second = { ...first, id: 2 };
+    const tester = new StrokeHitTester(1);
+    const capsule = vi.spyOn(BoardRegions, "capsule");
+
+    try {
+      expect(tester.hits(first, p(50, 0), p(50, 0))).toBe(true);
+      expect(tester.hits(second, p(50, 0), p(50, 0))).toBe(true);
+      expect(capsule).toHaveBeenCalledTimes(1);
+      tester.hits(second, p(60, 0), p(60, 0));
+      expect(capsule).toHaveBeenCalledTimes(2);
+    } finally {
+      capsule.mockRestore();
+    }
+  });
+});
+
+it.each([0.25, 1, 4, 8])(
+  "preserves exact pressure/affine/clip intersection answers at zoom %s",
+  (zoom) => {
+    const matrices: AffineMatrix[] = [
+      [1, 0, 0, 1, 100, 200],
+      [1.4, 0.7, -0.2, 0.6, -50, 30],
+      [-1, 0.2, 0.6, 2, 500, -100],
+    ];
+
+    let hits = 0;
+
+    for (const matrix of matrices)
+      for (const instrument of ["pen", "pressure"] as const)
+        for (const clipped of [false, true]) {
+          const ink = stroke([p(0, 0), p(25, 40), p(60, 0)], 12);
+
+          ink.matrix = matrix;
+          ink.style = { instrument, opacity: 1, pressureStrength: 100 };
+
+          if (clipped) ink.clip = BoardRegions.rectangle(p(10, -8), p(50, 45));
+
+          const tester = new StrokeHitTester(zoom);
+
+          for (let i = 0; i < 20; i++) {
+            const from = BoardTransforms.point(
+              matrix,
+              p((i % 5) * 20 - 10, Math.floor(i / 5) * 20 - 10),
+            );
+
+            const to = { x: from.x + 5, y: from.y + 3 };
+
+            const local = BoardTransforms.mask(
+              BoardRegions.capsule(from, to, 8 / zoom),
+              BoardTransforms.inverse(matrix),
+            );
+
+            const expected = BoardRegions.inkIntersectsMask(
+              ink,
+              ink.clip ? intersection(ink.clip, local) : local,
+            );
+
+            expect(tester.hits(ink, from, to)).toBe(expected);
+
+            if (expected) hits++;
+          }
+        }
+
+    expect(hits).toBeGreaterThan(0);
+  },
+);
+
+it("does not retain a stale sweep when caller-owned positions change", () => {
+  const ink = stroke([p(0, 0), p(100, 0)]);
+
+  ink.style = { instrument: "pressure", opacity: 1, pressureStrength: 65 };
+
+  const tester = new StrokeHitTester(1);
+
+  const from = p(50, 0),
+    to = p(50, 0);
+
+  expect(tester.hits(ink, from, to)).toBe(true);
+  from.y = 20;
+  to.y = 20;
+  expect(tester.hits(ink, from, to)).toBe(false);
 });

@@ -141,3 +141,14 @@ worker-fault fixtures explicitly remove only the optional serviceWorker capabili
 startup; their original network failure, recovery and saved-ink assertions stay intact. The
 separate offline fixtures keep native SW support and verify real cache/update failure paths.
 Do not disable SW globally, filter new runtime errors or weaken the fault assertions.
+
+
+## Plain-stroke eraser benchmarks miss pressure and affine stalls
+
+The original `penBench.eraser` measured ordinary hit-testing only, excluding preview and commit.
+Pressure/affine candidates built a polygonal capsule before rejecting distant ink, per stroke and
+coalesced sample. An800-stroke native test took76–126ms per batch while the ordinary case stayed
+near1ms. Before optimizing eraser input, compare plain/pressure/transformed/clipped scenes with
+actual preview redraw and history, and separate hit-test time from paint time. Gesture-local
+conservative world bounds must reject distant items before masks/clipping/inverses; exact pressure
+segments also need bounds before edge tests. Do not remove coalesced samples or relax hit accuracy.

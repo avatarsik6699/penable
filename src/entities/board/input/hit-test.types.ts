@@ -1,4 +1,5 @@
 import { type StrokeGeometry } from "../geometry";
+import type { AffineMatrix } from "../board.types";
 
 type Bounds = {
   left: number;
@@ -8,7 +9,8 @@ type Bounds = {
 };
 
 type CachedStroke = {
-  bounds: Bounds;
+  bounds: Bounds | null;
+  inverse?: AffineMatrix;
   geometry?: StrokeGeometry;
 };
 

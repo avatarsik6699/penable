@@ -76,12 +76,23 @@ function inkIntersectsMask(stroke: BoardItem, mask: ClipMask): boolean {
     return TemplateIntersections.intersects(stroke, mask);
 
   if (stroke.style?.instrument === "pressure")
-    return BoardPressure.segments(stroke).some(
-      ({ a, b }) =>
+    return BoardPressure.segments(stroke).some(({ a, b }) => {
+      const radius = Math.max(a.radius, b.radius);
+
+      if (
+        !InkUtils.overlaps(
+          bounds,
+          InkUtils.segmentBounds({ a, b, error: 0 }, radius),
+        )
+      )
+        return false;
+
+      return (
         RegionMask.contains(mask, a) ||
         RegionMask.contains(mask, b) ||
-        chordDistance(a, b, mask) <= Math.max(a.radius, b.radius),
-    );
+        chordDistance(a, b, mask) <= radius
+      );
+    });
 
   const geometry = BoardSourceGeometry.sourceGeometry(stroke),
     radius = stroke.width / 2;

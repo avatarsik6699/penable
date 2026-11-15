@@ -59,6 +59,57 @@ export const testBoards = {
     return result;
   },
 
+  eraserHeavy(): TestBoardTypes.StoredDocument {
+    const document = testBoards.pressureHeavy();
+
+    return {
+      ...document,
+      schemaVersion: 5,
+      assets: [],
+      items: Array.from(
+        { length: 800 },
+        (_, index): TestBoardTypes.InkItem => ({
+          kind: "ink",
+          id: index + 1,
+          color: "#182230",
+          width: 3,
+          matrix: [
+            1,
+            index % 3 ? 0.15 : 0,
+            index % 3 ? -0.08 : 0,
+            1,
+            100 + (index % 40) * 120,
+            200 + Math.floor(index / 40) * 40,
+          ],
+          style: { instrument: "pressure", opacity: 1, pressureStrength: 65 },
+          stabilization: { strength: 65, captureZoom: 1 },
+          points: Array.from({ length: 40 }, (_, i) => ({
+            x: i * 2,
+            y: Math.sin(i * 0.7) * 8,
+            pressure: 0.2 + ((i % 7) / 7) * 0.8,
+            time: i * 4 + 1,
+          })),
+          ...(index % 3 === 2
+            ? {
+                source: `eraser-${index}`,
+                clip: [
+                  [
+                    [
+                      [-2, -12],
+                      [80, -12],
+                      [80, 12],
+                      [-2, 12],
+                      [-2, -12],
+                    ],
+                  ],
+                ],
+              }
+            : {}),
+        }),
+      ),
+    };
+  },
+
   previousV2(): TestBoardTypes.Document {
     return { ...testBoards.legacy(), schemaVersion: 2, background: "dots" };
   },

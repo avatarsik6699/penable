@@ -11,6 +11,7 @@ import {
 } from "@engine";
 
 import { mathBench } from "./math-templates.js";
+import { EraserBenchmark } from "./eraser.js";
 
 let scheduling = "raf";
 
@@ -678,5 +679,13 @@ const api = {
 };
 
 api.math = mathBench;
+
+api.eraserScene = EraserBenchmark.create({
+  setup,
+  observe,
+  nextFrame,
+  stats,
+  pointer,
+});
 
 window.penBench = api;

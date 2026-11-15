@@ -230,6 +230,7 @@ type Fixtures = {
   v3Board: BoardPage;
   v4Board: BoardPage;
   pressureHeavyBoard: BoardPage;
+  eraserHeavyBoard: BoardPage;
   corruptStorage: StoragePage;
   missingBoardStorage: StoragePage;
   saveFailureBoard: BoardPage;
@@ -679,6 +680,19 @@ export const test = base.extend<Fixtures>({
         "before-schema4": testBoards.previousV3(),
       });
 
+      await board.open();
+      await use(board);
+    } finally {
+      verify();
+    }
+  },
+
+  eraserHeavyBoard: async ({ page }, use) => {
+    const verify = monitor(page),
+      board = new BoardPage(page, new StoragePage(page));
+
+    try {
+      await seedRecords(page, { main: testBoards.eraserHeavy() });
       await board.open();
       await use(board);
     } finally {

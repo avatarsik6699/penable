@@ -1,92 +1,83 @@
-import { type Stroke, type Position } from "../board.types";
+import { type Stroke, type Position, type ClipMask } from "../board.types";
 import { BoardTransforms } from "../transforms";
 import { BoardRegions } from "../regions";
 import { intersection } from "polygon-clipping";
 import { BoardGeometry, BoardStabilization } from "../geometry";
-import { type Bounds, type CachedStroke } from "./hit-test.types";
+import { type CachedStroke } from "./hit-test.types";
 import { HitTestConfig } from "./hit-test.config";
 import { HitTestQueries } from "./hit-test.utils";
 
 // One instance per gesture: references, rather than reusable numeric IDs, key derived geometry.
 export class StrokeHitTester {
   private readonly cache = new WeakMap<Stroke, CachedStroke>();
+  private lastSweep: { from: Position; to: Position; mask: ClipMask } | null =
+    null;
 
   constructor(private readonly zoom: number) {}
 
   hits(stroke: Stroke, from: Position, to: Position): boolean {
-    if (stroke.matrix || stroke.style?.instrument === "pressure") {
-      const sweep = BoardTransforms.mask(
-        BoardRegions.capsule(from, to, HitTestConfig.ERASER_RADIUS / this.zoom),
-        BoardTransforms.inverse(BoardTransforms.matrix(stroke)),
-      );
-
-      return BoardRegions.inkIntersectsMask(
-        stroke,
-        stroke.clip ? intersection(stroke.clip, sweep) : sweep,
-      );
-    }
-
-    if (stroke.clip || stroke.translation) {
-      const offset = stroke.translation ?? { x: 0, y: 0 };
-
-      const localFrom = { x: from.x - offset.x, y: from.y - offset.y },
-        localTo = { x: to.x - offset.x, y: to.y - offset.y };
-
-      const radius = HitTestConfig.ERASER_RADIUS / this.zoom,
-        source = BoardRegions.sourceBounds(stroke),
-        clip = stroke.clip ? BoardRegions.maskBounds(stroke.clip) : null;
-
-      if (
-        !source ||
-        !HitTestQueries.overlapsSweep(source, localFrom, localTo, radius) ||
-        (stroke.clip &&
-          (!clip ||
-            !HitTestQueries.overlapsSweep(clip, localFrom, localTo, radius)))
-      )
-        return false;
-
-      const sweep = BoardRegions.capsule(localFrom, localTo, radius);
-
-      return BoardRegions.inkIntersectsMask(
-        stroke,
-        stroke.clip ? intersection(stroke.clip, sweep) : sweep,
-      );
-    }
-
     let cached = this.cache.get(stroke);
 
     if (!cached) {
-      const bounds: Bounds = {
-        left: Infinity,
-        top: Infinity,
-        right: -Infinity,
-        bottom: -Infinity,
+      const source = BoardRegions.sourceBounds(stroke);
+      const clip = stroke.clip ? BoardRegions.maskBounds(stroke.clip) : null;
+
+      const local =
+        source && (!stroke.clip || clip)
+          ? {
+              left: Math.max(source.left, clip?.left ?? -Infinity),
+              top: Math.max(source.top, clip?.top ?? -Infinity),
+              right: Math.min(source.right, clip?.right ?? Infinity),
+              bottom: Math.min(source.bottom, clip?.bottom ?? Infinity),
+            }
+          : null;
+
+      cached = {
+        bounds:
+          local && local.left <= local.right && local.top <= local.bottom
+            ? BoardTransforms.bounds(local, BoardTransforms.matrix(stroke))
+            : null,
       };
 
-      for (const point of stroke.points) {
-        bounds.left = Math.min(bounds.left, point.x);
-        bounds.top = Math.min(bounds.top, point.y);
-        bounds.right = Math.max(bounds.right, point.x);
-        bounds.bottom = Math.max(bounds.bottom, point.y);
-      }
-
-      // Stabilization is capped at three capture-time CSS pixels; curves stay in the control hull.
-      const deviation = stroke.stabilization
-        ? 3 / stroke.stabilization.captureZoom
-        : 0;
-
-      bounds.left -= deviation;
-      bounds.top -= deviation;
-      bounds.right += deviation;
-      bounds.bottom += deviation;
-      cached = { bounds };
       this.cache.set(stroke, cached);
     }
 
-    const radius = HitTestConfig.ERASER_RADIUS / this.zoom + stroke.width / 2;
-    const { bounds } = cached;
+    if (
+      !cached.bounds ||
+      !HitTestQueries.overlapsSweep(
+        cached.bounds,
+        from,
+        to,
+        HitTestConfig.ERASER_RADIUS / this.zoom,
+      )
+    )
+      return false;
 
-    if (!HitTestQueries.overlapsSweep(bounds, from, to, radius)) return false;
+    if (
+      stroke.matrix ||
+      stroke.clip ||
+      stroke.translation ||
+      stroke.style?.instrument === "pressure"
+    ) {
+      const sweep = this.sweep(from, to);
+
+      const local =
+        stroke.matrix || stroke.translation
+          ? BoardTransforms.mask(
+              sweep,
+              (cached.inverse ??= BoardTransforms.inverse(
+                BoardTransforms.matrix(stroke),
+              )),
+            )
+          : sweep;
+
+      return BoardRegions.inkIntersectsMask(
+        stroke,
+        stroke.clip ? intersection(stroke.clip, local) : local,
+      );
+    }
+
+    const radius = HitTestConfig.ERASER_RADIUS / this.zoom + stroke.width / 2;
 
     cached.geometry ??= BoardGeometry.strokeGeometry(
       BoardStabilization.stabilizedPositions(
@@ -103,6 +94,29 @@ export class StrokeHitTester {
       radius,
       HitTestConfig.CURVE_TOLERANCE / this.zoom,
     );
+  }
+
+  private sweep(from: Position, to: Position): ClipMask {
+    const previous = this.lastSweep;
+
+    if (
+      previous &&
+      previous.from.x === from.x &&
+      previous.from.y === from.y &&
+      previous.to.x === to.x &&
+      previous.to.y === to.y
+    )
+      return previous.mask;
+
+    const mask = BoardRegions.capsule(
+      from,
+      to,
+      HitTestConfig.ERASER_RADIUS / this.zoom,
+    );
+
+    this.lastSweep = { from: { ...from }, to: { ...to }, mask };
+
+    return mask;
   }
 }
 

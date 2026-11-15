@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { RegionMask } from "./modules/mask";
 import { BoardRegions } from "./regions";
 import { type Stroke, BoardConstants } from "../board.types";
 import { StrokeHitTester } from "../input";
@@ -483,4 +484,37 @@ describe("colored fragment compositing order", () => {
       BoardRegions.visibleBounds([stroke()]),
     );
   });
+});
+
+it("rejects distant pressure segments inside a large source bound before exact mask tests", () => {
+  const ink = stroke();
+
+  ink.style = { instrument: "pressure", opacity: 1, pressureStrength: 65 };
+
+  ink.points = Array.from({ length: 2000 }, (_, i) => ({
+    x: (i % 2) * 200 - 100,
+    y: -1000,
+    pressure: 0.5,
+    time: i,
+  }));
+
+  ink.points.push(
+    { x: 1000, y: -1000, pressure: 0.5, time: 2000 },
+    { x: 1000, y: 1000, pressure: 0.5, time: 2001 },
+  );
+
+  const contains = vi.spyOn(RegionMask, "contains");
+
+  try {
+    expect(
+      BoardRegions.inkIntersectsMask(
+        ink,
+        BoardRegions.rectangle({ x: -1, y: -1 }, { x: 1, y: 1 }),
+      ),
+    ).toBe(false);
+
+    expect(contains).not.toHaveBeenCalled();
+  } finally {
+    contains.mockRestore();
+  }
 });

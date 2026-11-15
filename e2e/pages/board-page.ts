@@ -224,6 +224,51 @@ export class BoardPage {
     await this.page.mouse.up();
   }
 
+  async expectDenseEraserTransaction() {
+    const original = await this.storage.sceneFingerprint();
+    const completed = this.page.locator("canvas[data-layer=completed]");
+
+    const raster = () =>
+      completed.evaluate((canvas) => (canvas as HTMLCanvasElement).toDataURL());
+
+    const originalRaster = await raster();
+
+    await this.page
+      .getByRole("button", { name: "Ластик", exact: true })
+      .click();
+
+    await this.move({ x: 120, y: 200 });
+    await this.page.mouse.down();
+    await this.move({ x: 380, y: 200 }, 12);
+
+    await expect(
+      this.page.getByRole("button", { name: "Ластик", exact: true }),
+    ).toBeDisabled();
+
+    await this.storage.expectStrokeCount(800);
+    await expect.poll(raster).not.toBe(originalRaster);
+    await this.page.keyboard.press("Escape");
+    await this.page.mouse.up();
+    await this.storage.expectFingerprint(original);
+    await expect.poll(raster).toBe(originalRaster);
+    await this.erase({ x: 120, y: 200 }, { x: 380, y: 200 });
+    await this.storage.expectStrokeCount(797);
+
+    const erased = await this.storage.sceneFingerprint();
+    const erasedRaster = await raster();
+
+    expect(erasedRaster).not.toBe(originalRaster);
+
+    await this.undo();
+    await this.storage.expectFingerprint(original);
+    await expect.poll(raster).toBe(originalRaster);
+    await this.redo();
+    await this.storage.expectFingerprint(erased);
+    await expect.poll(raster).toBe(erasedRaster);
+    await this.reopenSavedBoard();
+    await this.storage.expectFingerprint(erased);
+  }
+
   async cancelStroke() {
     await this.selectPen();
     await this.move({ x: 500, y: 150 });

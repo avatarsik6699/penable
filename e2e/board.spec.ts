@@ -177,3 +177,9 @@ test("overview worker failure leaves writing and saving intact and can retry", a
 }) => {
   await overviewFailureNavigation.expectOverviewFailureRecovery();
 });
+
+test("dense pressure and affine ink erases as one durable transaction and cancellation restores its preview", async ({
+  eraserHeavyBoard,
+}) => {
+  await eraserHeavyBoard.expectDenseEraserTransaction();
+});
