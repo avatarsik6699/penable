@@ -38,7 +38,8 @@ export const BoardWorkspace: React.FC<BoardWorkspaceTypes.Props> = () => {
             state={workspace.ui.library}
             onAppearance={workspace.model.setBoardAppearance}
             readOnly={readOnly}
-            blocked={unavailable || workspace.ui.history.busy}
+            blocked={unavailable}
+            transientDisabled={workspace.ui.history.busy}
             open={workspace.panel === "library"}
             onOpenChange={(open) =>
               workspace.changePanel(open ? "library" : null)

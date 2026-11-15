@@ -1216,3 +1216,30 @@ Acceptance checks actual useful group bounds/density, not only tool-switch invar
 390,406/407,422/423,600,650,768,801/802,830,837/838,899/900,1000,1440; fine/coarse, all tools,
 long names, native keyboard/focus and fresh console; retain existing browser regressions. Local
 ship follows Full Gate and independent review; publication remains separate.
+
+## 5.26 — Pen release and calm writing feedback (Change34)
+
+Owner-requested2026-11-15: Wacom One sometimes shows a short cursor displacement on pen lift,
+and toolbar disabled styling flashes on repeated handwriting. Treat the reported hardware cause
+as unconfirmed until owner reproduction; repair the concrete presentation path and test it.
+
+For pen pointerup, retain the last accepted move/down cursor sample rather than consuming the
+terminal event's potentially unreliable position. Do the same for an active pen contact's first
+buttons-loss move; preserve existing ink handling/cancellation. The next genuine hover/move
+updates normally. Mouse release retains normal sampling; foreign active pointers/cancel/blur/UI
+ownership remain. No delay, distance cap, prediction, raw-data filtering or document change.
+
+Toolbar controls temporarily unavailable because of existing interaction/job busy state keep
+their prior ordinary/selected visual colors while native disabled semantics and all immediate
+command guards remain. A reusable Button transientDisabled input represents this independently
+of intrinsic disabled(readonly/no undo/redo); intrinsic unavailability still takes precedence and
+uses standard muted styling. No CSS transition from a stroke should fade the whole toolbar.
+Existing save status remains the feedback for persistence; processing/error/readonly feedback
+stays explicit. Preserve revision-aware background autosave and blocking import/replacement;
+do not add a global save lock or weaken existing barriers. Controls recover after input ends.
+
+Acceptance covers pen lift/missing-button event order, next hover, mouse/other pointers and
+unchanged geometry; repeated handwriting computed styles/layout; blocked buttons and command
+recovery; intrinsically disabled/readonly behavior; normal save/reload and existing touch modes.
+Physical Wacom acceptance remains an owner check. Full Gate/review precede immediate local ship;
+release is separate.

@@ -25,6 +25,7 @@ export const BoardLibrary: React.FC<BoardLibraryTypes.Props> = (props) => {
         aria-expanded={props.open}
         aria-controls="board-library"
         disabled={props.blocked || props.state.busy}
+        transientDisabled={props.transientDisabled}
         onClick={() => props.onOpenChange(!props.open)}
         className={styles.trigger}
       >
@@ -37,6 +38,7 @@ export const BoardLibrary: React.FC<BoardLibraryTypes.Props> = (props) => {
       {props.open && (
         <LibraryPanel
           {...props}
+          blocked={props.blocked || Boolean(props.transientDisabled)}
           bindPanel={panel.bindPanel}
           closeAndFocus={panel.closeAndFocus}
           focusTrigger={panel.focusTrigger}

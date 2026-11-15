@@ -141,12 +141,15 @@ function thinForwarder(fn, binding) {
   )
     return false;
 
-  const expression = ts.isBlock(fn.body)
+  let expression = ts.isBlock(fn.body)
     ? fn.body.statements.length === 1 &&
       ts.isReturnStatement(fn.body.statements[0])
       ? fn.body.statements[0].expression
       : undefined
     : fn.body;
+
+  while (expression && ts.isParenthesizedExpression(expression))
+    expression = expression.expression;
 
   if (
     !expression ||

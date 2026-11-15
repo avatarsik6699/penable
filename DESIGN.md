@@ -114,6 +114,11 @@ Primary roles: **Notebook Blue** (`accent`) for focus, selected controls and ran
 Neutral roles: **Paper White** (`paper`) for the board and chrome, **Ink** (`ink`) for primary text, **Muted Slate** (`muted`) for supporting text, **Soft Selection** (`selected`) for active tools, **Hover Mist** (`hover`) for hover, **Divider** for separators, and **Disabled Slate** for unavailable actions.
 **The Semantic State Rule.** Keep error, selected, hover and disabled treatments distinct; do not rely on color alone to name a failure.
 
+**Brief writing locks.** During an active stroke, toolbar controls retain their available colors,
+selected state and hovered appearance while native disabled blocks activation. Intrinsically
+unavailable controls (read-only or empty history) retain Disabled Slate. The document status dot
+continues to report saving without dimming the whole toolbar on every stroke.
+
 ## Typography
 
 Segoe UI with system/sans-serif fallback is the interface family throughout. There is no separate display face or downloaded font.

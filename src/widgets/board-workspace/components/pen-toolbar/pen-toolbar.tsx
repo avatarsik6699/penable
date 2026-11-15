@@ -36,7 +36,8 @@ export const PenToolbar: React.FC<PenToolbarTypes.Props> = (props) => {
             className={styles.imageInsert}
             aria-label="Вставить изображение"
             title="Вставить изображение"
-            disabled={props.readOnly || props.historyState.busy}
+            disabled={props.readOnly}
+            transientDisabled={props.historyState.busy}
             onClick={props.onInsertImage}
           >
             <EditorIcon name="image" />
@@ -48,7 +49,8 @@ export const PenToolbar: React.FC<PenToolbarTypes.Props> = (props) => {
             title="Фигуры и заготовки"
             aria-haspopup="dialog"
             aria-expanded={props.templatesOpen}
-            disabled={props.readOnly || props.historyState.busy}
+            disabled={props.readOnly}
+            transientDisabled={props.historyState.busy}
             onClick={() => props.onTemplatesOpenChange(!props.templatesOpen)}
           >
             <EditorIcon name="shapes" />

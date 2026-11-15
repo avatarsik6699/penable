@@ -340,6 +340,12 @@ test("object props and hook results stay named, while useState tuples and defaul
 test("thin purpose-named forwarding props are the only rest exception", () => {
   accepts(
     view(
+      'export const Example: React.FC<ExampleTypes.Props> = ({kind = "button", ...buttonProps}) => (<button {...buttonProps} type={kind} />);',
+    ),
+  );
+
+  accepts(
+    view(
       "export const Example: React.FC<ExampleTypes.Props> = ({...buttonProps}) => <button {...buttonProps} />;",
     ),
   );

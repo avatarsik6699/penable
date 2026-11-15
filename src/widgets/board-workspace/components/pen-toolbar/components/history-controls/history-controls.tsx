@@ -11,9 +11,8 @@ export const HistoryControls: React.FC<HistoryControlsTypes.Props> = (
     <Button
       aria-label="Отменить действие"
       title="Отменить · Ctrl+Z"
-      disabled={
-        props.readOnly || !props.historyState.canUndo || props.historyState.busy
-      }
+      disabled={props.readOnly || !props.historyState.canUndo}
+      transientDisabled={props.historyState.busy}
       onClick={props.onUndo}
     >
       <EditorIcon name="undo" />
@@ -21,9 +20,8 @@ export const HistoryControls: React.FC<HistoryControlsTypes.Props> = (
     <Button
       aria-label="Вернуть действие"
       title="Вернуть · Ctrl+Shift+Z"
-      disabled={
-        props.readOnly || !props.historyState.canRedo || props.historyState.busy
-      }
+      disabled={props.readOnly || !props.historyState.canRedo}
+      transientDisabled={props.historyState.busy}
       onClick={props.onRedo}
     >
       <EditorIcon name="redo" />

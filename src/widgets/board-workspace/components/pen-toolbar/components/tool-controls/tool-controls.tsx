@@ -16,7 +16,8 @@ export const ToolControls: React.FC<ToolControlsTypes.Props> = (props) => (
       aria-haspopup="dialog"
       aria-expanded={props.penOpen}
       aria-controls="pen-panel"
-      disabled={props.readOnly || props.historyState.busy}
+      disabled={props.readOnly}
+      transientDisabled={props.historyState.busy}
       onClick={() =>
         props.tool === "pen"
           ? props.onPenParameters()
@@ -33,7 +34,8 @@ export const ToolControls: React.FC<ToolControlsTypes.Props> = (props) => (
       title="Ластик: штрих целиком"
       aria-pressed={props.tool === "eraser"}
       onClick={() => props.onToolChange("eraser")}
-      disabled={props.readOnly || props.historyState.busy}
+      disabled={props.readOnly}
+      transientDisabled={props.historyState.busy}
     >
       <EditorIcon name="eraser" />
     </Button>
@@ -42,7 +44,8 @@ export const ToolControls: React.FC<ToolControlsTypes.Props> = (props) => (
       title="Выделение"
       aria-pressed={props.tool === "selection"}
       onClick={() => props.onToolChange("selection")}
-      disabled={props.selectionDisabled || props.historyState.busy}
+      disabled={props.selectionDisabled}
+      transientDisabled={props.historyState.busy}
     >
       <EditorIcon name="selection" />
     </Button>

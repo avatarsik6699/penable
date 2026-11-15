@@ -18,6 +18,7 @@ import { ToolPanelsPage } from "./pages/tool-panels-page";
 import { TouchInputPage } from "./pages/touch-input-page";
 import { TouchLayoutPage } from "./pages/touch-layout-page";
 import { NativeTouchPage } from "./pages/native-touch-page";
+import { WritingFeedbackPage } from "./pages/writing-feedback-page";
 
 function monitor(
   page: Page,
@@ -183,6 +184,8 @@ type Samples = {
 };
 
 type Fixtures = {
+  writingFeedback: WritingFeedbackPage;
+  readOnlyWritingFeedback: WritingFeedbackPage;
   writing: WritingToolsPage;
   templates: TemplatesPage;
   toolPanels: ToolPanelsPage;
@@ -233,6 +236,14 @@ type Fixtures = {
 };
 
 export const test = base.extend<Fixtures>({
+  writingFeedback: async ({ page, board }, use) => {
+    await use(new WritingFeedbackPage(page, board));
+  },
+
+  readOnlyWritingFeedback: async ({ secondBoard }, use) => {
+    await use(new WritingFeedbackPage(secondBoard.surface.page(), secondBoard));
+  },
+
   writing: async ({ page, board }, use) => {
     await use(new WritingToolsPage(page, board));
   },

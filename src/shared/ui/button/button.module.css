@@ -1,0 +1,16 @@
+.transient:disabled {
+  color: inherit;
+}
+
+.unavailable:disabled {
+  color: var(--control-disabled);
+}
+
+.transient:disabled[aria-pressed="true"] {
+  color: var(--control-selected-text);
+  background: var(--control-selected-bg);
+}
+
+.transient:disabled:hover {
+  background: var(--control-hover);
+}

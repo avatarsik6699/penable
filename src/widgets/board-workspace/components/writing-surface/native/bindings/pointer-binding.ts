@@ -148,7 +148,12 @@ function create(
       return;
     }
 
-    cursor.sample(event);
+    if (
+      event.pointerType !== "pen" ||
+      (event.buttons & 1) !== 0 ||
+      drawingPointerId() !== event.pointerId
+    )
+      cursor.sample(event);
 
     if (event.target === canvas && options.templatePlacement?.active)
       options.templatePlacement.move(event.clientX, event.clientY);
@@ -205,7 +210,8 @@ function create(
       return;
     }
 
-    cursor.sample(event);
+    if (event.pointerType !== "pen") cursor.sample(event);
+
     cursor.model.end(event.pointerId);
 
     if (

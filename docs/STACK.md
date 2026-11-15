@@ -1,7 +1,7 @@
 # Stack Guide
 
 > Source of truth for technologies, commands and required tools.
-> Status: CONFIGURED; changes01–33 shipped locally; Pages publication follows the origin/main workflow for the current release.
+> Status: CONFIGURED; changes01–34 shipped locally; Pages publication follows the origin/main workflow for the current release.
 > SPEC approved 2026-11-12. Desktop acceptance: Wacom One, Windows 11. Touch target: current phone/tablet browsers and iPad/Pencil; physical acceptance remains separate.
 
 ## Stack
@@ -544,3 +544,14 @@ No package/schema/input/renderer change. Existing Fast/Full commands apply; engi
 Owned Pages4212; E2E4185. Expanded existing Page Objects cover density, non-overlap, long names,
 all tools, exact transitions, coarse320/423/838 with20px safe sides, keyboard-sized sheets and
 canvas invariance. Playwriter native DOM/keyboard/console; DevTools screenshot fallback if needed.
+
+## Change34 — Pen release and calm writing feedback
+
+Pen release and active-contact buttons-loss keep the last accepted cursor presentation; original
+events still reach the input controller. Genuine subsequent hover and mouse release remain live.
+Shared Button separates transient native disabled from intrinsic unavailable presentation; all
+existing command/storage guards remain. No new global autosave lock or geometry change.
+Owned Pages4214; E2E4185. New unit/browser regressions cover terminal coordinates, next hover,
+repeated hovered toolbar style/bounds, blocked commands, readonly state and saved reload/history.
+Physical Wacom driver behavior remains owner acceptance; synthetic events isolate the code path.
+Architecture thin-forwarder exception accepts formatter-parenthesized JSX with existing checks.

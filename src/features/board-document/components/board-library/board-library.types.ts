@@ -7,6 +7,7 @@ export namespace BoardLibraryTypes {
     onAppearance: (id: string, appearance: BoardAppearance) => Promise<void>;
     readOnly: boolean;
     blocked: boolean;
+    transientDisabled?: boolean;
     open: boolean;
     onOpenChange: (open: boolean) => void;
     onCreate: (title: string) => Promise<void>;
