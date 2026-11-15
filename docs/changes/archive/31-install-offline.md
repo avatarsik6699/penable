@@ -6,7 +6,7 @@
 |---|---|
 | Change | 31 |
 | Slug | install-offline |
-| Status | active |
+| Status | `shipped locally` |
 | Branch | feature/31-install-offline |
 
 ## Goal
