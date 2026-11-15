@@ -1,3 +1,4 @@
+import type { MessageTypes } from "~/shared/lib/messages";
 import type { BackgroundMode } from "~/entities/board";
 import type {
   BoardItem,
@@ -42,17 +43,27 @@ export type BoardIcon =
   | "graduation"
   | "pen";
 
-export type BoardAppearance = Readonly<{ color: BoardColor; icon: BoardIcon }>;
+export type BoardAppearance = Readonly<{
+  color: BoardColor;
+  icon: BoardIcon;
+}>;
 
 export type BoardCatalog = {
   format: "penable-library";
   schemaVersion: 2;
   activeId: string;
-  boards: Array<{ id: string; title: string; appearance: BoardAppearance }>;
+  boards: Array<{
+    id: string;
+    title: string;
+    appearance: BoardAppearance;
+  }>;
 };
 
 export type LibraryRepository = {
-  read: () => Promise<{ catalog: StoredRecord; main: StoredRecord }>;
+  read: () => Promise<{
+    catalog: StoredRecord;
+    main: StoredRecord;
+  }>;
   board: (id: string) => Promise<StoredRecord>;
   bootstrap: (
     catalog: BoardCatalog,
@@ -63,7 +74,10 @@ export type LibraryRepository = {
   update: (
     catalog: BoardCatalog,
     change?: {
-      create?: { id: string; document: BoardDocument };
+      create?: {
+        id: string;
+        document: BoardDocument;
+      };
       remove?: string;
     },
   ) => Promise<void>;
@@ -92,7 +106,7 @@ export type StoredRecord = {
 
 export type WriterLease = {
   acquired: boolean;
-  message: string;
+  message: MessageTypes.Value;
   release: () => Promise<void>;
 };
 
@@ -113,7 +127,7 @@ export type StorageState = {
   hasLibraryCopy?: boolean;
   hasRawCopy?: boolean;
   canReconnect: boolean;
-  message: string;
+  message: MessageTypes.Value;
 };
 
 export type DocumentPersistence = {

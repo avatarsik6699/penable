@@ -1,3 +1,4 @@
+import { Messages } from "~/shared/lib/messages";
 import {
   BoardTransforms,
   BoardRegions,
@@ -151,7 +152,7 @@ function decode(
     vertices += result.clip ? BoardRegions.vertexCount(result.clip) : 0;
 
     if (vertices > BoardRegions.REGION_LIMITS.document)
-      CodecPrimitives.invalid("clip: превышен общий предел");
+      CodecPrimitives.invalid(Messages.create("clipTotalLimitExceeded"));
 
     if (result.source) {
       const signature =
@@ -165,7 +166,7 @@ function decode(
         sourceKinds.has(result.source) &&
         sourceKinds.get(result.source) !== signature
       )
-        CodecPrimitives.invalid("item.source: несовместимый тип");
+        CodecPrimitives.invalid(Messages.create("itemSourceIncompatibleType"));
 
       sourceKinds.set(result.source, signature);
     }
@@ -178,7 +179,9 @@ function decode(
         (n) => Number.isFinite(n) && Math.abs(n) <= 1e9,
       )
     )
-      CodecPrimitives.invalid("item: преобразование за пределами доски");
+      CodecPrimitives.invalid(
+        Messages.create("itemTransformExceedsBoardCoordinates"),
+      );
 
     return result;
   });
@@ -190,13 +193,15 @@ function decode(
       0,
     ) > ImageAssets.LIMITS.boardPixels
   )
-    CodecPrimitives.invalid("assets: превышен предел 32 млн пикселей");
+    CodecPrimitives.invalid(
+      Messages.create("assetsLimitOf32MillionPixelsExceeded"),
+    );
 
   if (
     assets.size !==
     new Set(items.filter((i) => i.kind === "image").map((i) => i.asset.id)).size
   )
-    CodecPrimitives.invalid("assets: неиспользуемый ресурс");
+    CodecPrimitives.invalid(Messages.create("assetsUnusedResource"));
 
   return items;
 }

@@ -1,3 +1,4 @@
+import { I18n } from "~/shared/lib/i18n";
 import type React from "react";
 import type { HistoryControlsTypes } from "./history-controls.types";
 import styles from "./history-controls.module.css";
@@ -7,10 +8,14 @@ import { EditorIcon } from "~/shared/ui/editor-icon";
 export const HistoryControls: React.FC<HistoryControlsTypes.Props> = (
   props,
 ) => (
-  <div className={styles.history} role="group" aria-label="История действий">
+  <div
+    className={styles.history}
+    role="group"
+    aria-label={I18n.t("actionHistory")}
+  >
     <Button
-      aria-label="Отменить действие"
-      title="Отменить · Ctrl+Z"
+      aria-label={I18n.t("undo")}
+      title={I18n.t("undoCtrlZ")}
       disabled={props.readOnly || !props.historyState.canUndo}
       transientDisabled={props.historyState.busy}
       onClick={props.onUndo}
@@ -18,8 +23,8 @@ export const HistoryControls: React.FC<HistoryControlsTypes.Props> = (
       <EditorIcon name="undo" />
     </Button>
     <Button
-      aria-label="Вернуть действие"
-      title="Вернуть · Ctrl+Shift+Z"
+      aria-label={I18n.t("redo")}
+      title={I18n.t("redoCtrlShiftZ")}
       disabled={props.readOnly || !props.historyState.canRedo}
       transientDisabled={props.historyState.busy}
       onClick={props.onRedo}

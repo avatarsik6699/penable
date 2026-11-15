@@ -1,3 +1,5 @@
+import { Messages } from "~/shared/lib/messages";
+import { I18n } from "~/shared/lib/i18n";
 import { useState } from "react";
 import { TransformControls } from "../transform-controls";
 import type React from "react";
@@ -17,13 +19,13 @@ export const SelectionActions: React.FC<SelectionActionsTypes.Props> = (
       id="selection-menu"
       className={styles.menu}
       role="dialog"
-      aria-label="Действия с выделением"
+      aria-label={I18n.t("selectionActions")}
     >
       <div className={styles.heading}>
-        <span>Выделенная область</span>
+        <span>{I18n.t("selectedArea")}</span>
         <Button
           className={styles.close}
-          aria-label="Закрыть действия с выделением"
+          aria-label={I18n.t("closeSelectionActions")}
           onClick={props.onClose}
         >
           <EditorIcon name="close" />
@@ -32,7 +34,7 @@ export const SelectionActions: React.FC<SelectionActionsTypes.Props> = (
       <div
         className={styles.actions}
         role="group"
-        aria-label="Редактирование фрагмента"
+        aria-label={I18n.t("editFragment")}
       >
         <Button
           className={styles["action"]}
@@ -40,7 +42,7 @@ export const SelectionActions: React.FC<SelectionActionsTypes.Props> = (
           onClick={() => props.command("all")}
         >
           <EditorIcon name="selection" />
-          <span>Выделить всё</span>
+          <span>{I18n.t("selectAll")}</span>
           <kbd aria-hidden="true">Ctrl+A</kbd>
         </Button>
         <Button
@@ -49,7 +51,7 @@ export const SelectionActions: React.FC<SelectionActionsTypes.Props> = (
           onClick={() => props.command("copy")}
         >
           <EditorIcon name="copy" />
-          <span>Копировать</span>
+          <span>{I18n.t("copy")}</span>
           <kbd aria-hidden="true">Ctrl+C</kbd>
         </Button>
         <Button
@@ -58,7 +60,7 @@ export const SelectionActions: React.FC<SelectionActionsTypes.Props> = (
           onClick={() => props.command("cut")}
         >
           <EditorIcon name="cut" />
-          <span>Вырезать</span>
+          <span>{I18n.t("cut")}</span>
           <kbd aria-hidden="true">Ctrl+X</kbd>
         </Button>
         <Button
@@ -67,7 +69,7 @@ export const SelectionActions: React.FC<SelectionActionsTypes.Props> = (
           onClick={() => props.command("paste")}
         >
           <EditorIcon name="paste" />
-          <span>Вставить</span>
+          <span>{I18n.t("paste")}</span>
           <kbd aria-hidden="true">Ctrl+V</kbd>
         </Button>
         <Button
@@ -76,7 +78,7 @@ export const SelectionActions: React.FC<SelectionActionsTypes.Props> = (
           onClick={() => props.command("duplicate")}
         >
           <EditorIcon name="duplicate" />
-          <span>Дублировать</span>
+          <span>{I18n.t("duplicate")}</span>
           <kbd aria-hidden="true">Ctrl+D</kbd>
         </Button>
         <Button
@@ -85,7 +87,7 @@ export const SelectionActions: React.FC<SelectionActionsTypes.Props> = (
           onClick={() => props.command("download")}
         >
           <EditorIcon name="download" />
-          <span>Скачать PNG</span>
+          <span>{I18n.t("downloadPng")}</span>
           <kbd aria-hidden="true"></kbd>
         </Button>
         <Button
@@ -95,7 +97,7 @@ export const SelectionActions: React.FC<SelectionActionsTypes.Props> = (
           onClick={() => setTransformOpen(!transformOpen)}
         >
           <EditorIcon name="fit" />
-          <span>Преобразовать</span>
+          <span>{I18n.t("transform")}</span>
         </Button>
         {transformOpen && (
           <TransformControls
@@ -109,7 +111,7 @@ export const SelectionActions: React.FC<SelectionActionsTypes.Props> = (
           onClick={() => props.command("crop")}
         >
           <EditorIcon name="image" />
-          <span>Обрезать изображения</span>
+          <span>{I18n.t("cropImages")}</span>
         </Button>
         <Button
           className={styles["destructive"]}
@@ -117,7 +119,7 @@ export const SelectionActions: React.FC<SelectionActionsTypes.Props> = (
           onClick={() => props.command("delete")}
         >
           <EditorIcon name="trash" />
-          <span>Удалить</span>
+          <span>{I18n.t("delete")}</span>
           <kbd aria-hidden="true">Del</kbd>
         </Button>
         <Button
@@ -128,13 +130,15 @@ export const SelectionActions: React.FC<SelectionActionsTypes.Props> = (
           onClick={() => props.command("clear")}
         >
           <EditorIcon name="close" />
-          <span>Снять выделение</span>
+          <span>{I18n.t("deselect")}</span>
           <kbd aria-hidden="true">Esc</kbd>
         </Button>
       </div>
       <p className={styles.help} role="status">
-        {props.state.message ||
-          "Обведите записи. Перетащите выделение или двигайте стрелками. Esc — отмена."}
+        {I18n.text(
+          props.state.message ||
+            Messages.create("drawAroundNotesDragTheSelectionOr"),
+        )}
       </p>
     </div>
   );

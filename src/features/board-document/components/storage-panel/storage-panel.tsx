@@ -1,3 +1,4 @@
+import { I18n } from "~/shared/lib/i18n";
 import type React from "react";
 import { ImportDialog } from "./components/import-dialog";
 import { StorageDetails } from "./components/storage-details";
@@ -25,15 +26,18 @@ export const StoragePanel: React.FC<StoragePanelTypes.Props> = (props) => {
           : "pending";
 
   return (
-    <section className={styles.storage} aria-label="Настройки и сохранение">
+    <section
+      className={styles.storage}
+      aria-label={I18n.t("settingsAndSaving")}
+    >
       <div className={styles.controls}>
         {props.state.phase === "error" && (
-          <span className={styles.errorText}>Не удалось сохранить</span>
+          <span className={styles.errorText}>{I18n.t("couldNotSave")}</span>
         )}
         <Button
           ref={(node) => panel.save.bindTrigger(node)}
           className={styles.statusButton}
-          aria-label="Состояние сохранения"
+          aria-label={I18n.t("saveStatus")}
           aria-describedby="storage-summary"
           aria-haspopup="dialog"
           aria-expanded={props.openPanel === "save"}
@@ -41,7 +45,7 @@ export const StoragePanel: React.FC<StoragePanelTypes.Props> = (props) => {
           onClick={() =>
             props.onPanelChange(props.openPanel === "save" ? null : "save")
           }
-          title={StorageStatusPresentation.label(props.state)}
+          title={I18n.text(StorageStatusPresentation.label(props.state))}
         >
           <span
             className={[styles.statusDot, styles[status]].join(" ")}
@@ -57,8 +61,8 @@ export const StoragePanel: React.FC<StoragePanelTypes.Props> = (props) => {
         <Button
           ref={(node) => panel.board.bindTrigger(node)}
           className={styles.gear}
-          aria-label="Настройки доски"
-          title="Настройки доски"
+          aria-label={I18n.t("boardSettings")}
+          title={I18n.t("boardSettings")}
           aria-haspopup="dialog"
           aria-expanded={props.openPanel === "board"}
           aria-controls="board-menu"
@@ -71,6 +75,7 @@ export const StoragePanel: React.FC<StoragePanelTypes.Props> = (props) => {
       </div>
       {props.openPanel && (
         <BoardMenu
+          languageSettings={props.languageSettings}
           tab={props.openPanel}
           onTab={props.onPanelChange}
           backgroundControl={props.backgroundControl}

@@ -1,3 +1,4 @@
+import { I18n } from "~/shared/lib/i18n";
 import type React from "react";
 import { useId } from "react";
 import { Button } from "~/shared/ui/button";
@@ -9,10 +10,10 @@ export const MathSettings: React.FC<MathSettingsTypes.Props> = (props) => {
 
   return (
     <fieldset className={styles.settings} disabled={props.disabled}>
-      <legend>Диапазон и деления</legend>
+      <legend>{I18n.t("rangeAndTicks")}</legend>
       <div className={styles.fields}>
         <label>
-          От
+          {I18n.t("from")}
           <input
             type="text"
             inputMode="decimal"
@@ -25,7 +26,7 @@ export const MathSettings: React.FC<MathSettingsTypes.Props> = (props) => {
           />
         </label>
         <label>
-          До
+          {I18n.t("to")}
           <input
             type="text"
             inputMode="decimal"
@@ -39,7 +40,7 @@ export const MathSettings: React.FC<MathSettingsTypes.Props> = (props) => {
         </label>
         {!props.state.automatic && (
           <label>
-            Шаг делений
+            {I18n.t("tickStep")}
             <input
               type="text"
               inputMode="decimal"
@@ -54,30 +55,34 @@ export const MathSettings: React.FC<MathSettingsTypes.Props> = (props) => {
         )}
       </div>
       <div className={styles.stepRow}>
-        <div role="radiogroup" aria-label="Выбор шага" className={styles.mode}>
+        <div
+          role="radiogroup"
+          aria-label={I18n.t("stepMode")}
+          className={styles.mode}
+        >
           <label>
             <input
               type="radio"
               name={`${id}-mode`}
-              aria-label="Автоматический шаг"
+              aria-label={I18n.t("automaticStep")}
               checked={props.state.automatic}
               onChange={() => props.onAutomatic(true)}
             />
-            <span>Авто</span>
+            <span>{I18n.t("auto")}</span>
           </label>
           <label>
             <input
               type="radio"
               name={`${id}-mode`}
-              aria-label="Шаг вручную"
+              aria-label={I18n.t("manualStep")}
               checked={!props.state.automatic}
               onChange={() => props.onAutomatic(false)}
             />
-            <span>Вручную</span>
+            <span>{I18n.t("manual")}</span>
           </label>
         </div>
-        <output aria-label="Текущий шаг">
-          Шаг: {props.state.resolved?.step ?? "—"}
+        <output aria-label={I18n.t("currentStep")}>
+          {I18n.t("step", { p0: props.state.resolved?.step ?? "—" })}
         </output>
       </div>
       <div className={styles.toggles}>
@@ -87,7 +92,7 @@ export const MathSettings: React.FC<MathSettingsTypes.Props> = (props) => {
             checked={props.state.config.numbers}
             onChange={(event) => props.onNumbers(event.target.checked)}
           />
-          Числа
+          {I18n.t("numbers")}
         </label>
         {props.state.config.kind === "axes" && (
           <label>
@@ -96,17 +101,17 @@ export const MathSettings: React.FC<MathSettingsTypes.Props> = (props) => {
               checked={props.state.config.grid}
               onChange={(event) => props.onGrid(event.target.checked)}
             />
-            Сетка
+            {I18n.t("grid331")}
           </label>
         )}
       </div>
       {props.state.error && (
         <div className={styles.error} id={`${id}-error`} role="alert">
-          <span>{props.state.error.message}</span>
+          <span>{I18n.text(props.state.error.message)}</span>
           {props.state.error.field === "step" &&
             props.state.recommendation !== null && (
               <Button onClick={props.onRecommendation}>
-                Применить шаг {props.state.recommendation}
+                {I18n.t("applyStep", { p0: props.state.recommendation })}
               </Button>
             )}
         </div>

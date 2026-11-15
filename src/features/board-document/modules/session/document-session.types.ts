@@ -1,3 +1,4 @@
+import type { MessageTypes } from "~/shared/lib/messages";
 import type { BoardSnapshot } from "~/entities/board";
 import type {
   DocumentPersistence,
@@ -17,5 +18,7 @@ export type SessionOptions = {
   onHydrate: (document: BoardSnapshot) => void;
   onState: (state: StorageState) => void;
   acquire: () => Promise<WriterLease>;
-  open: (invalidated: (message: string) => void) => Promise<DocumentRepository>;
+  open: (
+    invalidated: (message: MessageTypes.Value) => void,
+  ) => Promise<DocumentRepository>;
 };

@@ -1,7 +1,7 @@
 # Stack Guide
 
 > Source of truth for technologies, commands and required tools.
-> Status: CONFIGURED; changes01–34 shipped locally; Pages publication follows the origin/main workflow for the current release.
+> Status: CONFIGURED. Shipped changes are recorded in the archive index and individual records; Pages publication uses a separate release.
 > SPEC approved 2026-11-12. Desktop acceptance: Wacom One, Windows 11. Touch target: current phone/tablet browsers and iPad/Pencil; physical acceptance remains separate.
 
 ## Stack
@@ -10,6 +10,7 @@
 |-------|------------|
 | Frontend | React + TypeScript, Vite SPA, colocated CSS Modules, Canvas 2D |
 | Input | Pointer Events, world-coordinate controller outside React's rendering cycle |
+| Localization | i18next27.1.2 + react-i18next18.0.1, bundled EN/RU, app-owned locale adapter |
 | Icons | lucide-react1.72.0, static named imports |
 | Selection geometry | polygon-clipping0.15.7; normalized local vector clips and source lineage |
 | Background jobs | Native module Worker; bounded transferable point chunks for large selection/validation/save |
@@ -565,3 +566,12 @@ Owned Pages4214; E2E4185. New unit/browser regressions cover terminal coordinate
 repeated hovered toolbar style/bounds, blocked commands, readonly state and saved reload/history.
 Physical Wacom driver behavior remains owner acceptance; synthetic events isolate the code path.
 Architecture thin-forwarder exception accepts formatter-parenthesized JSX with existing checks.
+
+## Change36 — English and Russian interface
+
+SPEC5.27 and FRONTEND Interface language govern app-owned preference/metadata and pure message
+descriptors. Use existing gates, source-only formatting for source writer and format:e2e for parent
+E2E. Both resources must be bundled for offline boot. The exact locale-platform adapter owns only
+DOM/storage capabilities. Document5/catalog2/IDB1 remain unchanged. Ordinary E2E explicitly uses
+ru-RU; locale fixtures test English/Russian/fallback and preference denial independently.
+Owned Windows Chrome Pages preview4216 isolates personal notes; E2E retains4185/offline4209.

@@ -1,3 +1,4 @@
+import { Messages } from "~/shared/lib/messages";
 import type { WriterLease } from "../board-document.types";
 
 const WRITER_LOCK = "penable:board:main";
@@ -10,8 +11,7 @@ async function acquireWriterLease(
   if (!manager)
     return {
       acquired: false,
-      message:
-        "Запись недоступна: браузер не поддерживает блокировку вкладок. Используйте актуальный Chrome или Edge.",
+      message: Messages.create("writingIsUnavailableThisBrowserCannotLock"),
 
       release: async () => {},
     };
@@ -30,8 +30,7 @@ async function acquireWriterLease(
         if (!lock) {
           resolve({
             acquired: false,
-            message:
-              "Доска открыта в другой вкладке. Здесь только просмотр. Закройте её и повторите подключение.",
+            message: Messages.create("thisBoardIsOpenInAnotherTab"),
 
             release: async () => {},
           });

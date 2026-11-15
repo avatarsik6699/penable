@@ -1,3 +1,4 @@
+import { I18n } from "~/shared/lib/i18n";
 import type React from "react";
 import { useState } from "react";
 import { Button } from "~/shared/ui/button";
@@ -21,7 +22,7 @@ export const TransformControls: React.FC<TransformControlsTypes.Props> = (
   return (
     <form
       className={styles.form}
-      aria-label="Преобразование выделения"
+      aria-label={I18n.t("transformSelection")}
       onSubmit={(event) => {
         event.preventDefault();
 
@@ -29,7 +30,7 @@ export const TransformControls: React.FC<TransformControlsTypes.Props> = (
       }}
     >
       <label>
-        Ширина, %
+        {I18n.t("width402")}
         <input
           type="number"
           min="0.1"
@@ -40,7 +41,7 @@ export const TransformControls: React.FC<TransformControlsTypes.Props> = (
         />
       </label>
       <label>
-        Высота, %
+        {I18n.t("height")}
         <input
           type="number"
           min="0.1"
@@ -51,7 +52,7 @@ export const TransformControls: React.FC<TransformControlsTypes.Props> = (
         />
       </label>
       <label>
-        Угол, °
+        {I18n.t("angle")}
         <input
           type="number"
           step="any"
@@ -61,7 +62,7 @@ export const TransformControls: React.FC<TransformControlsTypes.Props> = (
         />
       </label>
       <Button type="submit" disabled={props.disabled || !valid}>
-        Применить преобразование
+        {I18n.t("applyTransform")}
       </Button>
     </form>
   );

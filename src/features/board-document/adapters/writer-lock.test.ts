@@ -1,3 +1,4 @@
+import { Messages } from "~/shared/lib/messages";
 import { describe, expect, it, vi } from "vitest";
 import { DocumentWriterLease } from "./writer-lock";
 
@@ -53,7 +54,7 @@ describe("writer lease", () => {
     const lease = await DocumentWriterLease.acquireWriterLease(locks.manager);
 
     expect(lease.acquired).toBe(false);
-    expect(lease.message).toContain("просмотр");
+    expect(Messages.plain(lease.message)).toContain("просмотр");
     await lease.release();
   });
 
@@ -64,7 +65,7 @@ describe("writer lease", () => {
       const lease = await DocumentWriterLease.acquireWriterLease();
 
       expect(lease.acquired).toBe(false);
-      expect(lease.message).toContain("не поддерживает");
+      expect(Messages.plain(lease.message)).toContain("не поддерживает");
     } finally {
       vi.unstubAllGlobals();
     }

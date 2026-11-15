@@ -1,3 +1,4 @@
+import { Messages } from "~/shared/lib/messages";
 import type { RegionInput, BoardItem, SelectedPart } from "~/entities/board";
 import { DocumentCodec } from "../codec";
 import type {
@@ -26,7 +27,9 @@ export class DocumentJobs implements DocumentPersistence {
     parts: SelectedPart[];
   }> {
     if (this.closing)
-      return Promise.reject(new Error("Обработка документа закрывается."));
+      return Promise.reject(
+        Messages.error(Messages.create("documentProcessingIsClosing")),
+      );
 
     const originals = [...strokes];
 
@@ -39,7 +42,9 @@ export class DocumentJobs implements DocumentPersistence {
       )
       .then((result) => {
         if (!result.selection)
-          throw new Error("Фоновый поток не вернул выделение.");
+          throw Messages.error(
+            Messages.create("theBackgroundWorkerDidNotReturnA"),
+          );
 
         return {
           region: result.selection.region,
@@ -66,7 +71,9 @@ export class DocumentJobs implements DocumentPersistence {
     root: BoardDocument = DocumentCodec.emptyDocument(),
   ): Promise<void> {
     if (this.closing)
-      return Promise.reject(new Error("Обработка документа закрывается."));
+      return Promise.reject(
+        Messages.error(Messages.create("documentProcessingIsClosing")),
+      );
 
     return this.transport
       .execute(
@@ -80,7 +87,9 @@ export class DocumentJobs implements DocumentPersistence {
 
   write(document: BoardDocument): Promise<void> {
     if (this.closing)
-      return Promise.reject(new Error("Обработка документа закрывается."));
+      return Promise.reject(
+        Messages.error(Messages.create("documentProcessingIsClosing")),
+      );
 
     const captured = {
       ...document,
@@ -111,7 +120,10 @@ export class DocumentJobs implements DocumentPersistence {
     strokes: readonly BoardItem[],
     signal: AbortSignal,
   ): Promise<import("./modules/overview").OverviewResult> {
-    if (this.closing) return Promise.reject(new Error("Обзор закрывается."));
+    if (this.closing)
+      return Promise.reject(
+        Messages.error(Messages.create("overviewIsClosing")),
+      );
 
     return this.transport
       .execute(
@@ -137,7 +149,8 @@ export class DocumentJobs implements DocumentPersistence {
       fragment.region,
     );
 
-    if (!result.fragment) throw new Error("Фрагмент не подготовлен.");
+    if (!result.fragment)
+      throw Messages.error(Messages.create("fragmentIsNotReady"));
 
     return result.fragment;
   }

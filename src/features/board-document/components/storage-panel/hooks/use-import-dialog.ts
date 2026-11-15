@@ -1,3 +1,5 @@
+import type { MessageTypes } from "~/shared/lib/messages";
+import { Messages } from "~/shared/lib/messages";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Overlay, type OverlayElements } from "~/shared/lib/overlay";
 import {
@@ -11,7 +13,7 @@ import type { StoragePanelTypes } from "../storage-panel.types";
 
 export function useImportDialog(
   props: StoragePanelTypes.Props,
-  feedback: (message: string) => void,
+  feedback: (message: MessageTypes.Value) => void,
   beforeOpen: () => void,
   imported: () => void,
   onClosed: () => void,
@@ -20,7 +22,7 @@ export function useImportDialog(
   const [candidate, setCandidate] = useState<BoardDocument | null>(null);
   const [reading, setReading] = useState(false);
   const [confirming, setConfirming] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<MessageTypes.Value>("");
   const dialogRef = useRef<OverlayElements.Dialog>(null);
   const lifetime = useRef({ mounted: false, readGeneration: 0 });
   const wasOpen = useRef(false);
@@ -88,7 +90,7 @@ export function useImportDialog(
 
     if (file.size > DocumentCodec.DOCUMENT_LIMITS.bytes) {
       setReading(false);
-      setError("Файл превышает 64 MiB.");
+      setError(Messages.create("fileExceeds64Mib"));
 
       return;
     }

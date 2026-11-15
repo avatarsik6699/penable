@@ -1,3 +1,4 @@
+import { I18n } from "~/shared/lib/i18n";
 import { MinimapView } from "./components/minimap-view";
 import { BoardCursorView } from "./components/board-cursor";
 import { SurfaceLayers } from "./components/surface-layers";
@@ -13,7 +14,7 @@ export const WritingSurface: React.FC<WritingSurfaceTypes.Props> = (props) => {
     <section
       data-testid="board-surface"
       className={styles["writing-surface"]}
-      aria-label="Лист для проверки пера"
+      aria-label={I18n.t("penInputTestBoard")}
     >
       <SurfaceLayers
         background={props.background}
@@ -42,10 +43,7 @@ export const WritingSurface: React.FC<WritingSurfaceTypes.Props> = (props) => {
         />
       )}
       <p id="writing-help" className={styles["visually-hidden"]}>
-        Пишите кончиком пера или левой кнопкой мыши. Ластик удаляет штрихи
-        целиком. Толщина меняется со следующего штриха пера. Колесо перемещает
-        доску. Ctrl и колесо меняют масштаб вокруг курсора. Пробел и
-        перетаскивание или средняя кнопка перемещают доску.
+        {I18n.t("writeWithAPenTipOrPrimary")}
       </p>
     </section>
   );

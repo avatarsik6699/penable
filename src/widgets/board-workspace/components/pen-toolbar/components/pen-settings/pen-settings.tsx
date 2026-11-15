@@ -1,3 +1,4 @@
+import { I18n } from "~/shared/lib/i18n";
 import type React from "react";
 import { StrokeSample } from "./components/stroke-sample";
 import type { PenSettingsTypes } from "./pen-settings.types";
@@ -15,16 +16,16 @@ export const PenSettings: React.FC<PenSettingsTypes.Props> = (props) => (
     id="pen-panel"
     className={styles.panel}
     role="dialog"
-    aria-label="Параметры пера"
+    aria-label={I18n.t("penSettings")}
   >
     <div className={styles.heading}>
-      <h2>Инструмент письма</h2>
+      <h2>{I18n.t("writingInstrument")}</h2>
       <div className={styles.actions}>
         <HelpHint
-          label="О настройках письма"
-          text="Настройки применяются к следующему штриху. Стабилизация сглаживает дрожание. Сила нажима меняет разницу толщины при письме пером; мышь рисует ровной линией."
+          label={I18n.t("aboutWritingSettings")}
+          text={I18n.t("settingsApplyToTheNextStrokeStabilization")}
         />
-        <Button onClick={props.onClose} aria-label="Закрыть параметры пера">
+        <Button onClick={props.onClose} aria-label={I18n.t("closePenSettings")}>
           <EditorIcon name="close" />
         </Button>
       </div>
@@ -42,11 +43,11 @@ export const PenSettings: React.FC<PenSettingsTypes.Props> = (props) => (
           disabled={props.readOnly}
           onChange={(event) => props.onFingerInputChange(event.target.checked)}
         />
-        <span>Рисовать пальцем</span>
+        <span>{I18n.t("drawWithFinger")}</span>
       </label>
       <HelpHint
-        label="О вводе пальцем"
-        text="По умолчанию один палец перемещает доску, два — перемещают и меняют масштаб. Включите, чтобы пальцем использовать выбранную ручку, ластик или выделение. Во время письма пером касания пальцами игнорируются."
+        label={I18n.t("aboutFingerInput")}
+        text={I18n.t("byDefaultOneFingerPansAndTwo")}
       />
     </div>
     <div className={styles.sample}>
@@ -58,9 +59,9 @@ export const PenSettings: React.FC<PenSettingsTypes.Props> = (props) => (
       onChange={(color) => props.onInkSettingsChange({ color })}
     />
     <div className={styles.caption}>
-      <label htmlFor="pen-stabilization">Стабилизация</label>
+      <label htmlFor="pen-stabilization">{I18n.t("stabilization")}</label>
       <output htmlFor="pen-stabilization">
-        {props.stabilization.toFixed(0)}
+        {I18n.text(props.stabilization.toFixed(0))}
         <span>%</span>
       </output>
     </div>
@@ -76,13 +77,15 @@ export const PenSettings: React.FC<PenSettingsTypes.Props> = (props) => (
       }
     />
     <div className={styles.endpoints}>
-      <span>Естественнее</span>
-      <span>Плавнее</span>
+      <span>{I18n.t("moreNatural")}</span>
+      <span>{I18n.t("smoother")}</span>
     </div>
     {props.writing.instrument === "pressure" && (
       <div className={styles.parameter}>
         <div className={styles.caption}>
-          <label htmlFor="pressure-strength">Сила нажима</label>
+          <label htmlFor="pressure-strength">
+            {I18n.t("pressureStrength")}
+          </label>
           <output htmlFor="pressure-strength">
             {props.writing.instruments.pressure.pressureStrength}%
           </output>
@@ -105,7 +108,7 @@ export const PenSettings: React.FC<PenSettingsTypes.Props> = (props) => (
     {props.writing.instrument === "highlighter" && (
       <div className={styles.parameter}>
         <div className={styles.caption}>
-          <label htmlFor="ink-opacity">Непрозрачность</label>
+          <label htmlFor="ink-opacity">{I18n.t("opacity")}</label>
           <output htmlFor="ink-opacity">
             {Math.round(props.writing.instruments.highlighter.opacity * 100)}%
           </output>

@@ -1,3 +1,4 @@
+import type { MessageTypes } from "~/shared/lib/messages";
 import type {
   InputDiagnostics,
   SelectionState,
@@ -28,7 +29,7 @@ export namespace WritingSurfaceTypes {
     background: BackgroundMode;
     backgroundSettings: BackgroundSettings;
     lastWritingView: WritingView | null;
-    onNavigationNotice: (message: string) => void;
+    onNavigationNotice: (message: MessageTypes.Value) => void;
     onScenePresence: (hasInk: boolean) => void;
     onWritingCommitted: (view: WritingView) => void;
     minimapOpen: boolean;
@@ -44,7 +45,7 @@ export namespace WritingSurfaceTypes {
     onDocumentChange: (urgent: boolean) => void;
     onHistoryState: (state: HistoryState) => void;
     onDiagnostics: (value: InputDiagnostics) => void;
-    onUnavailable: (reason: string) => void;
+    onUnavailable: (reason: MessageTypes.Value) => void;
     controlsRef: RefObject<SurfaceControls | null>;
   };
 }

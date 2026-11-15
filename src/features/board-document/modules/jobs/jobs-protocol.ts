@@ -1,3 +1,5 @@
+import type { MessageTypes } from "~/shared/lib/messages";
+import { Messages } from "~/shared/lib/messages";
 import type { OverviewResult } from "./modules/overview";
 import type { BoardDocument } from "../../board-document.types";
 import type {
@@ -18,8 +20,13 @@ export type FragmentMetadata =
 
 export type StrokeMetadata =
   | TemplateItem
-  | (Omit<Stroke, "points"> & { kind: "ink"; geometry: number })
-  | (Omit<ImageItem, "asset"> & { asset: Omit<ImageAsset, "base64"> });
+  | (Omit<Stroke, "points"> & {
+      kind: "ink";
+      geometry: number;
+    })
+  | (Omit<ImageItem, "asset"> & {
+      asset: Omit<ImageAsset, "base64">;
+    });
 
 export type SelectionResult = {
   region: ClipMask;
@@ -57,13 +64,23 @@ export type JobRequest =
       length: number;
       value: string;
     }
-  | { type: "strokes"; id: number; values: StrokeMetadata[] }
-  | { type: "finish"; id: number }
-  | { type: "close"; id: number };
+  | {
+      type: "strokes";
+      id: number;
+      values: StrokeMetadata[];
+    }
+  | {
+      type: "finish";
+      id: number;
+    }
+  | {
+      type: "close";
+      id: number;
+    };
 
 export type JobResponse = {
   id: number;
-  error?: string;
+  error?: MessageTypes.Value;
   selection?: SelectionResult;
   overview?: OverviewResult;
   fragment?: Blob;
@@ -102,7 +119,9 @@ function overviewResult(value: OverviewResult | undefined): OverviewResult {
         bounds.right <= bounds.left ||
         bounds.bottom <= bounds.top))
   )
-    throw new Error("Фоновый поток не вернул корректный обзор.");
+    throw Messages.error(
+      Messages.create("theBackgroundWorkerDidNotReturnA226"),
+    );
 
   return value;
 }

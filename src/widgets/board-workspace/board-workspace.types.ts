@@ -9,5 +9,5 @@ export namespace BoardWorkspaceTypes {
     | "library"
     | null;
 
-  export type Props = Record<string, never>;
+  export type Props = { languageSettings?: import("react").ReactNode };
 }

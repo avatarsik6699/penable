@@ -1,3 +1,5 @@
+import type { MessageTypes } from "~/shared/lib/messages";
+import { Messages } from "~/shared/lib/messages";
 import { BoardWriting } from "~/entities/board";
 import { WritingDecoder } from "./writing-decoder";
 import { ItemCodec } from "./item-codec";
@@ -167,7 +169,7 @@ function decodeDocument(
     new TextEncoder().encode(JSON.stringify(encodeDocument(result)))
       .byteLength > limits.bytes
   )
-    CodecPrimitives.invalid("размер документа превышает 64 MiB");
+    CodecPrimitives.invalid(Messages.create("documentSizeExceeds64Mib"));
 
   return result;
 }
@@ -177,26 +179,25 @@ function parseDocumentJSON(text: string): BoardDocument {
     new TextEncoder().encode(text).byteLength >
     DocumentCodec.DOCUMENT_LIMITS.bytes
   )
-    throw new Error("Файл превышает 64 MiB.");
+    throw Messages.error(Messages.create("fileExceeds64Mib"));
 
   return decodeDocument(JSON.parse(text) as unknown);
 }
 
 function serializeDocument(document: BoardDocument): {
   json: string;
-  warning: string;
+  warning: MessageTypes.Value;
 } {
   const json = JSON.stringify(
     encodeDocument(SnapshotOperations.cloneDocument(document)),
   );
 
-  let warning = "";
+  let warning: MessageTypes.Value = "";
 
   try {
     parseDocumentJSON(json);
   } catch {
-    warning =
-      "Копия содержит все завершённые данные, но выходит за пределы поддерживаемого формата. Обратный импорт этой версией не поддерживается.";
+    warning = Messages.create("thisCopyContainsAllCompletedContentBut");
   }
 
   return { json, warning };

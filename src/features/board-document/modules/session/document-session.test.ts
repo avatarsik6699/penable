@@ -1,3 +1,4 @@
+import { Messages } from "~/shared/lib/messages";
 import { BoardSnapshots, type BoardSnapshot } from "~/entities/board";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DocumentCodec } from "../codec";
@@ -268,7 +269,7 @@ describe("serialized document session", () => {
     h.invalidate("versionchange");
     expect(h.session.canWrite).toBe(false);
     expect(h.session.state.canReconnect).toBe(false);
-    expect(h.session.state.message).toContain("Скачайте");
+    expect(Messages.plain(h.session.state.message)).toContain("Скачайте");
     expect(h.live.tools.width).toBe(0.7);
     await h.session.flush();
     expect(h.repository.write).not.toHaveBeenCalled();

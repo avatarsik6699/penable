@@ -1,3 +1,5 @@
+import type { MessageTypes } from "~/shared/lib/messages";
+import { Messages } from "~/shared/lib/messages";
 import type { TemplateConfig, TemplateItem } from "../board.types";
 import { LegacyTemplates } from "./legacy-templates";
 import { MathLayout } from "./modules/math-layout";
@@ -11,10 +13,13 @@ function version(config: TemplateConfig): TemplateItem["generatorVersion"] {
     : 1;
 }
 
-function validate(config: TemplateConfig, generatorVersion: 1 | 2 = 1): string {
+function validate(
+  config: TemplateConfig,
+  generatorVersion: 1 | 2 = 1,
+): MessageTypes.Value {
   if (generatorVersion === 1) return LegacyTemplates.validate(config);
 
-  if (generatorVersion !== 2) return "Неизвестная версия заготовки.";
+  if (generatorVersion !== 2) return Messages.create("unknownTemplateVersion");
 
   if (version(config) !== 2) return LegacyTemplates.validate(config);
 
@@ -32,14 +37,16 @@ function validate(config: TemplateConfig, generatorVersion: 1 | 2 = 1): string {
       (n) => Number.isFinite(n) && n >= 40 && n <= 32768,
     )
   )
-    return "Размер должен быть от 40 до 32 768.";
+    return Messages.create("sizeMustBeBetween40And32");
 
   try {
     MathLayout.measure(config);
 
     return "";
   } catch (error) {
-    return error instanceof Error ? error.message : "Проверьте диапазон и шаг.";
+    return error instanceof Error
+      ? Messages.from(error)
+      : Messages.create("checkTheRangeAndStep");
   }
 }
 
@@ -55,7 +62,7 @@ function layout(
 
   const error = validate(config, generatorVersion);
 
-  if (error) throw new Error(error);
+  if (error) throw Messages.error(error);
 
   return version(config) === 2
     ? MathLayout.layout(config)
@@ -67,7 +74,7 @@ function prepare(config: TemplateConfig): TemplateConfig {
 
   const error = validate(config, 2);
 
-  if (error) throw new Error(error);
+  if (error) throw Messages.error(error);
 
   const m = MathLayout.measure(config);
 
@@ -77,7 +84,10 @@ function prepare(config: TemplateConfig): TemplateConfig {
 function origin(
   config: TemplateConfig,
   generatorVersion: 1 | 2,
-): { x: number; y: number } {
+): {
+  x: number;
+  y: number;
+} {
   return generatorVersion === 2 && version(config) === 2
     ? MathLayout.layout(config).origin
     : { x: config.width / 2, y: config.height / 2 };

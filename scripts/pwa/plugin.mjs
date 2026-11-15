@@ -70,9 +70,9 @@ export function appAvailabilityPlugin() {
 
       const manifest = {
         id: base,
-        name: "penable — рукописные конспекты",
+        name: "penable — handwritten notes",
         short_name: "penable",
-        lang: "ru",
+        lang: "en",
         start_url: base,
         scope: base,
         display: "standalone",

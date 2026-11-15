@@ -1,3 +1,5 @@
+import { Messages } from "~/shared/lib/messages";
+import { I18n } from "~/shared/lib/i18n";
 import type React from "react";
 import type { StorageDetailsTypes } from "./storage-details.types";
 import styles from "./storage-details.module.css";
@@ -12,84 +14,86 @@ export const StorageDetails: React.FC<StorageDetailsTypes.Props> = (props) => (
     </div>
     {props.state.message && (
       <p className={props.state.phase === "error" ? styles.error : undefined}>
-        {props.state.message}
+        {I18n.text(props.state.message)}
       </p>
     )}
-    {props.notice && <p role="status">{props.notice}</p>}
+    {props.notice && <p role="status">{I18n.text(props.notice)}</p>}
     {props.state.phase === "error" && props.state.writable ? (
       <Button className={styles.primary} onClick={props.onRetry}>
         <EditorIcon name="retry" />
-        Повторить сохранение
+        {I18n.t("retrySave")}
       </Button>
     ) : (
       props.state.canReconnect && (
         <Button className={styles.secondary} onClick={props.onRetry}>
           <EditorIcon name="retry" />
-          Повторить подключение
+          {I18n.t("reconnect")}
         </Button>
       )
     )}
     <div className={styles.actions}>
       <Button
         disabled={!props.hasDocument}
-        aria-label="Скачать копию"
+        aria-label={I18n.t("downloadCopy")}
         onClick={() => props.onFeedback(props.onExport())}
       >
         <EditorIcon name="download" />
-        Скачать JSON-копию
+        {I18n.t("downloadJsonCopy")}
       </Button>
       <Button
         disabled={!props.state.canImport || props.busy || props.state.importing}
-        aria-label="Импорт"
+        aria-label={I18n.t("import")}
         onClick={props.onImport}
       >
         <EditorIcon name="upload" />
-        Импортировать копию
+        {I18n.t("importBackup")}
       </Button>
     </div>
     <div className={styles.recovery}>
-      <h3>Восстановительные копии</h3>
+      <h3>{I18n.t("recoveryCopies")}</h3>
       {props.state.hasRawCopy && (
         <Button onClick={() => props.onFeedback(props.onRaw())}>
           <EditorIcon name="history" />
-          Исходная запись
+          {I18n.t("originalRecord")}
         </Button>
       )}
       {props.state.hasSchema5Copy && props.onSchema5 && (
         <Button onClick={() => props.onFeedback(props.onSchema5!())}>
-          До обновления инструментов
+          {I18n.t("beforeTheToolsUpdate")}
         </Button>
       )}
       {props.state.hasSchema4Copy && (
         <Button onClick={() => props.onFeedback(props.onSchema4())}>
           <EditorIcon name="history" />
-          Копия до обновления v4
+          {I18n.t("copyBeforeV4Update")}
         </Button>
       )}
       {props.state.hasLibraryCopy && (
         <Button onClick={() => props.onFeedback(props.onLibrary())}>
           <EditorIcon name="history" />
-          Копия до библиотеки досок
+          {I18n.t("copyBeforeBoardLibrary")}
         </Button>
       )}
       {props.state.hasPrevious && (
         <Button onClick={() => props.onFeedback(props.onPrevious())}>
           <EditorIcon name="history" />
-          Копия до замены
+          {I18n.t("copyBeforeReplacement")}
         </Button>
       )}
       {props.state.hasSchema3Copy && (
         <Button onClick={() => props.onFeedback(props.onSchema3())}>
           <EditorIcon name="history" />
-          Копия до обновления
+          {I18n.t("copyBeforeUpdate")}
         </Button>
       )}
       {props.state.hasUpgradeCopy && (
         <Button onClick={() => props.onFeedback(props.onUpgrade())}>
           <EditorIcon name="history" />
-          {props.state.hasSchema3Copy
-            ? "Более ранняя копия до обновления"
-            : "Копия до обновления"}
+          {I18n.text(
+            props.state.hasSchema3Copy
+              ? Messages.create("earlierCopyBeforeUpdate")
+              : Messages.create("copyBeforeUpdate"),
+          )}
         </Button>
       )}
       {!props.state.hasPrevious &&
@@ -98,12 +102,8 @@ export const StorageDetails: React.FC<StorageDetailsTypes.Props> = (props) => (
         !props.state.hasLibraryCopy &&
         !props.state.hasRawCopy &&
         !props.state.hasSchema3Copy &&
-        !props.state.hasUpgradeCopy && <p>Восстановительных копий пока нет.</p>}
+        !props.state.hasUpgradeCopy && <p>{I18n.t("noRecoveryCopiesYet")}</p>}
     </div>
-    <p className={styles.help}>
-      Записи хранятся в этом профиле браузера. JSON-копия защищает от очистки
-      данных сайта. Незавершённый штрих в неё не входит; проверьте скачанный
-      файл в загрузках.
-    </p>
+    <p className={styles.help}>{I18n.t("notesStayInThisBrowserProfileA")}</p>
   </div>
 );

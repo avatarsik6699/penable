@@ -1,3 +1,5 @@
+import type { MessageTypes } from "~/shared/lib/messages";
+import { Messages } from "~/shared/lib/messages";
 import { FragmentCodec } from "../fragments";
 import { DocumentOverview } from "./modules/overview";
 import { DocumentCodec } from "../codec";
@@ -30,7 +32,7 @@ let pending: Extract<
 
 let strokes: StrokeMetadata[] = [];
 let repository: Promise<DocumentRepository> | null = null;
-let invalidated = "";
+let invalidated: MessageTypes.Value = "";
 
 function metadata(
   stroke: BoardItem,
@@ -94,7 +96,8 @@ async function finish(id: number) {
     let selection: SelectionResult | undefined;
 
     if (job.kind === "select") {
-      if (!job.region) throw new Error("Не задана область выделения.");
+      if (!job.region)
+        throw Messages.error(Messages.create("noSelectionRegionProvided"));
 
       const points = job.region.points;
 
@@ -144,7 +147,7 @@ async function finish(id: number) {
     }
 
     if (job.kind === "save") {
-      if (invalidated) throw new Error(invalidated);
+      if (invalidated) throw Messages.error(invalidated);
 
       repository ??= DocumentRepositoryAdapter.openRepository(
         (message) => {
@@ -234,7 +237,9 @@ async function finish(id: number) {
     host.postMessage({
       id,
       error:
-        error instanceof Error ? error.message : "Ошибка обработки документа.",
+        error instanceof Error
+          ? Messages.from(error)
+          : Messages.create("documentProcessingFailed"),
     });
   }
 }
@@ -249,7 +254,7 @@ host.onmessage = ({ data }) => {
         assetChunks.clear();
         host.postMessage({ id: data.id });
       } catch (error) {
-        host.postMessage({ id: data.id, error: String(error) });
+        host.postMessage({ id: data.id, error: Messages.from(error) });
       }
     })();
 
@@ -262,7 +267,7 @@ host.onmessage = ({ data }) => {
     if (boardId !== null && boardId !== target) {
       host.postMessage({
         id: data.id,
-        error: "Нельзя сменить доску фонового сохранения.",
+        error: Messages.create("cannotChangeTheBackgroundSaveBoard"),
       });
 
       return;
@@ -301,7 +306,7 @@ host.onmessage = ({ data }) => {
     ) {
       host.postMessage({
         id: data.id,
-        error: "Некорректная передача изображения.",
+        error: Messages.create("invalidImageTransfer"),
       });
 
       pending = null;

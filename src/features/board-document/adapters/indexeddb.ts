@@ -1,3 +1,5 @@
+import type { MessageTypes } from "~/shared/lib/messages";
+import { Messages } from "~/shared/lib/messages";
 import { DocumentCodec } from "../modules/codec";
 import type {
   BoardDocument,
@@ -8,7 +10,7 @@ const DATABASE_NAME = "penable";
 const STORE_NAME = "documents";
 
 function openRepository(
-  onInvalidated: (message: string) => void,
+  onInvalidated: (message: MessageTypes.Value) => void,
   factory: IDBFactory | undefined = globalThis.indexedDB,
   boardId = "main",
 ): Promise<DocumentRepository> {
@@ -18,10 +20,14 @@ function openRepository(
     boardId === "main" ? name : `${boardKey}:${name}`;
 
   if (!/^[a-zA-Z0-9_-]{1,160}$/.test(boardId))
-    return Promise.reject(new Error("Недопустимый идентификатор доски."));
+    return Promise.reject(
+      Messages.error(Messages.create("invalidBoardIdentifier")),
+    );
 
   if (!factory)
-    return Promise.reject(new Error("IndexedDB недоступен в этом браузере."));
+    return Promise.reject(
+      Messages.error(Messages.create("indexeddbIsUnavailableInThisBrowser")),
+    );
 
   return new Promise((resolve, reject) => {
     let settled = false;
@@ -31,15 +37,19 @@ function openRepository(
       settled = true;
 
       reject(
-        new Error(
-          "Открытие хранилища заблокировано другой страницей. Закройте её и повторите.",
+        Messages.error(
+          Messages.create("anotherPageIsBlockingStorageAccessClose"),
         ),
       );
     };
 
     opening.onerror = () => {
       settled = true;
-      reject(opening.error ?? new Error("Не удалось открыть IndexedDB."));
+
+      reject(
+        opening.error ??
+          Messages.error(Messages.create("couldNotOpenIndexeddb")),
+      );
     };
 
     opening.onupgradeneeded = () => {
@@ -66,7 +76,7 @@ function openRepository(
 
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.close();
-        reject(new Error("Неподдерживаемая структура хранилища."));
+        reject(Messages.error(Messages.create("unsupportedStorageStructure")));
 
         return;
       }
@@ -77,8 +87,10 @@ function openRepository(
           .objectStore(STORE_NAME);
 
         if (store.keyPath !== null || store.autoIncrement)
-          throw new Error(
-            "Неподдерживаемая структура documents: данные оставлены без изменений.",
+          throw Messages.error(
+            Messages.create(
+              "unsupportedDocumentsStructureExistingDataIsUnchanged",
+            ),
           );
       } catch (error) {
         db.close();
@@ -92,7 +104,7 @@ function openRepository(
       let schema3Preserved = false;
       const pending = new Set<Promise<unknown>>();
 
-      const invalidate = (message: string) => {
+      const invalidate = (message: MessageTypes.Value) => {
         if (closed) return;
 
         closed = true;
@@ -101,13 +113,11 @@ function openRepository(
       };
 
       db.onversionchange = () =>
-        invalidate(
-          "Версия хранилища меняется в другой вкладке. Запись остановлена; повторите подключение.",
-        );
+        invalidate(Messages.create("anotherTabIsChangingTheStorageVersion"));
 
       db.onclose = () =>
         invalidate(
-          "Соединение с хранилищем закрыто. Повторите подключение; записи в памяти доступны для экспорта.",
+          Messages.create("storageConnectionClosedReconnectNotesInMemory"),
         );
 
       function transaction<T>(
@@ -115,7 +125,9 @@ function openRepository(
         run: (store: IDBObjectStore, result: (value: T) => void) => void,
       ): Promise<T> {
         if (closed)
-          return Promise.reject(new Error("Соединение с хранилищем закрыто."));
+          return Promise.reject(
+            Messages.error(Messages.create("storageConnectionClosed")),
+          );
 
         let tx: IDBTransaction;
 
@@ -135,10 +147,16 @@ function openRepository(
           };
 
           tx.onabort = () =>
-            fail(failure ?? tx.error ?? new Error("Транзакция отменена."));
+            fail(
+              failure ??
+                tx.error ??
+                Messages.error(Messages.create("transactionCancelled")),
+            );
 
           tx.onerror = () => {
-            failure = tx.error ?? new Error("Ошибка транзакции IndexedDB.");
+            failure =
+              tx.error ??
+              Messages.error(Messages.create("indexeddbTransactionFailed"));
           };
 
           try {

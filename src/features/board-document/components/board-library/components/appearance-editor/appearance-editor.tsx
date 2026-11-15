@@ -1,3 +1,5 @@
+import { Messages } from "~/shared/lib/messages";
+import { I18n } from "~/shared/lib/i18n";
 import type React from "react";
 import { EditorIcon } from "~/shared/ui/editor-icon";
 import { Button } from "~/shared/ui/button";
@@ -14,12 +16,14 @@ export const AppearanceEditor: React.FC<AppearanceEditorTypes.Props> = (
   return (
     <section
       className={styles.editor}
-      aria-label={`Оформление доски: ${props.title}`}
+      aria-label={I18n.text(
+        Messages.create("boardAppearanceValue", { p0: props.title }),
+      )}
     >
-      <h2>Оформление доски: {props.title}</h2>
+      <h2>{I18n.t("boardAppearanceValue", { p0: props.title })}</h2>
       <div className={styles.sample}>
         <BoardCover appearance={editor.draft} />
-        <span>{props.title}</span>
+        <span>{I18n.text(props.title)}</span>
       </div>
       <form
         onSubmit={(event) => {
@@ -28,7 +32,7 @@ export const AppearanceEditor: React.FC<AppearanceEditorTypes.Props> = (
         }}
       >
         <fieldset disabled={props.disabled || editor.saving}>
-          <legend>Цвет обложки</legend>
+          <legend>{I18n.t("coverColor")}</legend>
           <div className={styles.colors}>
             {BoardCoverConfig.colors.map((color) => (
               <label key={color.id} className={styles.option}>
@@ -37,7 +41,7 @@ export const AppearanceEditor: React.FC<AppearanceEditorTypes.Props> = (
                   type="radio"
                   name="board-cover-color"
                   value={color.id}
-                  aria-label={color.label}
+                  aria-label={I18n.text(color.label)}
                   checked={editor.draft.color === color.id}
                   onChange={() =>
                     editor.setDraft({ ...editor.draft, color: color.id })
@@ -56,7 +60,7 @@ export const AppearanceEditor: React.FC<AppearanceEditorTypes.Props> = (
           </div>
         </fieldset>
         <fieldset disabled={props.disabled || editor.saving}>
-          <legend>Значок обложки</legend>
+          <legend>{I18n.t("coverIcon")}</legend>
           <div className={styles.icons}>
             {BoardCoverConfig.symbols.map((symbol) => (
               <label key={symbol.id} className={styles.option}>
@@ -64,7 +68,7 @@ export const AppearanceEditor: React.FC<AppearanceEditorTypes.Props> = (
                   type="radio"
                   name="board-cover-icon"
                   value={symbol.id}
-                  aria-label={symbol.label}
+                  aria-label={I18n.text(symbol.label)}
                   checked={editor.draft.icon === symbol.id}
                   onChange={() =>
                     editor.setDraft({ ...editor.draft, icon: symbol.id })
@@ -84,15 +88,15 @@ export const AppearanceEditor: React.FC<AppearanceEditorTypes.Props> = (
         </fieldset>
         {editor.error && (
           <p role="alert" className={styles.error}>
-            {editor.error}
+            {I18n.text(editor.error)}
           </p>
         )}
         <div className={styles.actions}>
           <Button type="submit" disabled={props.disabled || editor.saving}>
-            Сохранить оформление
+            {I18n.t("saveAppearance")}
           </Button>
           <Button disabled={editor.saving} onClick={props.onReturn}>
-            Отмена
+            {I18n.t("cancel")}
           </Button>
         </div>
       </form>

@@ -18,7 +18,7 @@ export class SurfaceDiagnostics {
     this.update({
       ...(event
         ? {
-            pointerType: event.pointerType || "не указан",
+            pointerType: event.pointerType || "unknown",
             pressure: Number.isFinite(event.pressure) ? event.pressure : null,
             coalesced: typeof event.getCoalescedEvents === "function",
           }

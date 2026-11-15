@@ -1,3 +1,4 @@
+import { I18n } from "~/shared/lib/i18n";
 import type React from "react";
 import { BoardTemplates } from "~/entities/board";
 import { Button } from "~/shared/ui/button";
@@ -8,7 +9,7 @@ import styles from "./template-picker.module.css";
 
 export const TemplatePicker: React.FC<TemplatePickerTypes.Props> = (props) => (
   <div className={styles.picker}>
-    <div className={styles.group} role="group" aria-label="Фигуры">
+    <div className={styles.group} role="group" aria-label={I18n.t("shapes")}>
       {BoardTemplates.kinds.slice(0, 5).map((kind, index) => (
         <ControlHint
           key={kind}
@@ -16,7 +17,7 @@ export const TemplatePicker: React.FC<TemplatePickerTypes.Props> = (props) => (
           align={index === 0 ? "start" : undefined}
         >
           <Button
-            aria-label={BoardTemplates.names[kind]}
+            aria-label={I18n.text(BoardTemplates.names[kind])}
             aria-pressed={props.value === kind}
             disabled={props.disabled}
             onClick={() => props.onChange(kind)}
@@ -27,11 +28,11 @@ export const TemplatePicker: React.FC<TemplatePickerTypes.Props> = (props) => (
       ))}
     </div>
     <span className={styles.divider} aria-hidden="true" />
-    <div className={styles.group} role="group" aria-label="Математика">
+    <div className={styles.group} role="group" aria-label={I18n.t("math")}>
       {BoardTemplates.kinds.slice(5).map((kind) => (
         <ControlHint key={kind} label={BoardTemplates.names[kind]} align="end">
           <Button
-            aria-label={BoardTemplates.names[kind]}
+            aria-label={I18n.text(BoardTemplates.names[kind])}
             aria-pressed={props.value === kind}
             disabled={props.disabled}
             onClick={() => props.onChange(kind)}
@@ -42,7 +43,7 @@ export const TemplatePicker: React.FC<TemplatePickerTypes.Props> = (props) => (
       ))}
     </div>
     <span className={styles.current} aria-live="polite">
-      {BoardTemplates.names[props.value]}
+      {I18n.text(BoardTemplates.names[props.value])}
     </span>
   </div>
 );

@@ -1,3 +1,4 @@
+import { Messages } from "~/shared/lib/messages";
 import type { SelectionClipboard } from "~/entities/board";
 import { DocumentCodec, MaskDecoder } from "../codec";
 
@@ -6,12 +7,12 @@ function parse(text: string): SelectionClipboard {
     new TextEncoder().encode(text).byteLength >
     DocumentCodec.DOCUMENT_LIMITS.bytes
   )
-    throw new Error("Фрагмент превышает 64 MiB.");
+    throw Messages.error(Messages.create("fragmentExceeds64Mib"));
 
   const value: unknown = JSON.parse(text);
 
   if (!value || typeof value !== "object" || Array.isArray(value))
-    throw new Error("Некорректный фрагмент Penable.");
+    throw Messages.error(Messages.create("invalidPenableFragment"));
 
   const root = value as Record<string, unknown>;
 
@@ -21,7 +22,7 @@ function parse(text: string): SelectionClipboard {
     root.format !== "penable-fragment" ||
     root.schemaVersion !== 1
   )
-    throw new Error("Неподдерживаемый формат фрагмента Penable.");
+    throw Messages.error(Messages.create("unsupportedPenableFragmentFormat"));
 
   const document = DocumentCodec.decodeDocument(root.document);
 
@@ -29,7 +30,7 @@ function parse(text: string): SelectionClipboard {
     (document.schemaVersion !== 4 && document.schemaVersion !== 5) ||
     !document.strokes.length
   )
-    throw new Error("Фрагмент Penable пуст или повреждён.");
+    throw Messages.error(Messages.create("thePenableFragmentIsEmptyOrCorrupt"));
 
   const region = MaskDecoder.decodeMask(root.region);
 

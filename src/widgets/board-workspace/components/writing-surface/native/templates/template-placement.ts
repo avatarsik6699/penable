@@ -1,3 +1,4 @@
+import { Messages } from "~/shared/lib/messages";
 import {
   BoardTemplates,
   BoardViewport,
@@ -8,7 +9,10 @@ import type { TemplatePlacementOptions } from "./template-placement.types";
 
 export class TemplatePlacement {
   private item: TemplateItem | null = null;
-  private client: { x: number; y: number } | null = null;
+  private client: {
+    x: number;
+    y: number;
+  } | null = null;
 
   constructor(private readonly options: TemplatePlacementOptions) {}
 
@@ -64,7 +68,7 @@ export class TemplatePlacement {
     };
 
     this.refresh();
-    this.options.notice("Нажмите на доску для вставки · Esc — отмена");
+    this.options.notice(Messages.create("clickTheBoardToPlaceEscTo"));
   }
 
   move(clientX: number, clientY: number) {
@@ -129,7 +133,7 @@ export class TemplatePlacement {
     const id = this.options.allocate();
 
     if (!Number.isSafeInteger(id) || id < 1) {
-      this.options.notice("Достигнут предел объектов доски.");
+      this.options.notice(Messages.create("boardItemLimitReached"));
 
       return true;
     }
@@ -138,7 +142,7 @@ export class TemplatePlacement {
       .insert({ ...item, id })
       .catch(() =>
         this.options.notice(
-          "Не удалось вставить заготовку. Попробуйте ещё раз.",
+          Messages.create("couldNotInsertTheTemplateTryAgain"),
         ),
       );
 

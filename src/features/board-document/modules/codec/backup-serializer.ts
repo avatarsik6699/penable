@@ -1,3 +1,5 @@
+import { Messages } from "~/shared/lib/messages";
+
 function serializeRawBackup(value: unknown): string {
   const seen = new Set<object>();
 
@@ -53,12 +55,12 @@ function serializeRawBackup(value: unknown): string {
   };
 
   try {
-    if (!compatible(value)) throw new Error("unsupported");
+    if (!compatible(value)) throw Messages.error("unsupported");
 
     return JSON.stringify(value);
   } catch {
-    throw new Error(
-      "Исходная запись не представима в JSON без потери данных. Она сохранена в IndexedDB без изменений; JSON-копия не создана.",
+    throw Messages.error(
+      Messages.create("theOriginalRecordCannotBeRepresentedAs"),
     );
   }
 }

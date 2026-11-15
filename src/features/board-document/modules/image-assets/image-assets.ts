@@ -1,19 +1,20 @@
+import { Messages } from "~/shared/lib/messages";
 import type { BoardItem, ImageAsset } from "~/entities/board";
 
 const LIMITS = {
   bytes: 8 * 1024 * 1024,
   side: 8192,
-  pixels: 16_000_000,
+  pixels: 16000000,
   boardBytes: 32 * 1024 * 1024,
-  boardPixels: 32_000_000,
+  boardPixels: 32000000,
   count: 100,
 };
 
 const ALPHABET =
   "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-function fail(message = "Некорректное изображение PNG/JPEG."): never {
-  throw new Error(message);
+function fail(message = Messages.create("invalidPngJpegImage")): never {
+  throw Messages.error(message);
 }
 
 function decodeBase64(text: string): Uint8Array {
@@ -23,7 +24,7 @@ function decodeBase64(text: string): Uint8Array {
     text.length > Math.ceil(LIMITS.bytes / 3) * 4 ||
     text.length % 4
   )
-    fail("Некорректные или слишком большие данные изображения.");
+    fail(Messages.create("invalidOrOversizedImageData"));
 
   const padding = text.endsWith("==") ? 2 : text.endsWith("=") ? 1 : 0;
 
@@ -38,12 +39,12 @@ function decodeBase64(text: string): Uint8Array {
       code === 47;
 
     if (!valid && !(code === 61 && i >= text.length - padding))
-      fail("Некорректные данные base64 изображения.");
+      fail(Messages.create("invalidImageBase64Data"));
   }
 
   const length = (text.length / 4) * 3 - padding;
 
-  if (length > LIMITS.bytes) fail("Изображение превышает 8 MiB.");
+  if (length > LIMITS.bytes) fail(Messages.create("imageExceeds8Mib"));
 
   const result = new Uint8Array(length);
   let index = 0;
@@ -110,7 +111,7 @@ function dimensions(width: number, height: number) {
     height > LIMITS.side ||
     width * height > LIMITS.pixels
   )
-    fail("Изображение превышает 8192 пикселя по стороне или 16 млн пикселей.");
+    fail(Messages.create("imageExceeds8192PixelsPerSideOr"));
 }
 
 function inspect(bytes: Uint8Array): {
@@ -119,7 +120,7 @@ function inspect(bytes: Uint8Array): {
   height: number;
 } {
   if (!bytes.length || bytes.length > LIMITS.bytes)
-    fail("Изображение превышает 8 MiB.");
+    fail(Messages.create("imageExceeds8Mib"));
 
   if (
     bytes.length >= 33 &&
@@ -235,7 +236,7 @@ function inspect(bytes: Uint8Array): {
 
 function validateAsset(asset: ImageAsset): void {
   if (!/^[a-zA-Z0-9_-]{1,160}$/.test(asset.id))
-    fail("Недопустимый идентификатор изображения.");
+    fail(Messages.create("invalidImageIdentifier"));
 
   const actual = inspect(decodeBase64(asset.base64));
 
@@ -244,7 +245,7 @@ function validateAsset(asset: ImageAsset): void {
     asset.width !== actual.width ||
     asset.height !== actual.height
   )
-    fail("Размер или тип изображения не совпадает с его заголовком.");
+    fail(Messages.create("imageSizeOrTypeDoesNotMatch"));
 }
 
 function unique(items: readonly BoardItem[]): ImageAsset[] {
@@ -262,7 +263,7 @@ function unique(items: readonly BoardItem[]): ImageAsset[] {
           previous.width !== item.asset.width ||
           previous.height !== item.asset.height)
       )
-        fail("Конфликт идентификаторов изображений.");
+        fail(Messages.create("conflictingImageIdentifiers"));
 
       identities.set(item.asset.id, item.asset);
       payloads.set(item.asset.base64, item.asset);
@@ -275,7 +276,7 @@ function validateBoard(items: readonly BoardItem[], full = true): void {
   const assets = unique(items);
 
   if (assets.length > LIMITS.count)
-    fail("На доске допускается не более 100 изображений.");
+    fail(Messages.create("aBoardCanContainUpTo100"));
 
   let bytes = 0,
     pixels = 0;
@@ -291,7 +292,7 @@ function validateBoard(items: readonly BoardItem[], full = true): void {
   }
 
   if (bytes > LIMITS.boardBytes || pixels > LIMITS.boardPixels)
-    fail("Изображения на доске превышают 32 MiB или 32 млн пикселей.");
+    fail(Messages.create("boardImagesExceed32MibOr32"));
 }
 
 function reconcile(

@@ -1,3 +1,6 @@
+import { I18n } from "~/shared/lib/i18n";
+import type { MessageTypes } from "~/shared/lib/messages";
+import { Messages } from "~/shared/lib/messages";
 import {
   BoardIds,
   BoardViewport,
@@ -13,17 +16,24 @@ export class ImageInput {
   private pending = false;
   status: {
     phase: "idle" | "choosing" | "processing" | "success" | "error";
-    message: string;
+    message: MessageTypes.Value;
   } = { phase: "idle", message: "" };
   private input: HTMLInputElement;
   private pendingClaim: ImageInputTypes.PendingClaim | null = null;
+
+  private stopLanguage = () => {};
 
   constructor(private readonly options: ImageInputTypes.Options) {
     this.input = document.createElement("input");
     this.input.type = "file";
     this.input.accept = "image/png,image/jpeg";
     this.input.hidden = true;
-    this.input.setAttribute("aria-label", "Файл изображения");
+    this.input.setAttribute("aria-label", I18n.t("imageFile"));
+
+    this.stopLanguage = I18n.bind(() =>
+      this.input.setAttribute("aria-label", I18n.t("imageFile")),
+    );
+
     document.body.append(this.input);
     this.input.addEventListener("change", this.file);
     options.canvas.addEventListener("dragover", this.drag);
@@ -48,7 +58,11 @@ export class ImageInput {
 
   readonly open = () => {
     if (this.options.allowed() && !this.pending) {
-      this.status = { phase: "choosing", message: "Выберите PNG или JPEG…" };
+      this.status = {
+        phase: "choosing",
+        message: Messages.create("choosePngOrJpeg"),
+      };
+
       this.options.changed();
       this.input.value = "";
       this.input.click();
@@ -105,14 +119,19 @@ export class ImageInput {
     const generation = ++this.generation;
 
     this.pending = true;
-    this.status = { phase: "processing", message: "Обработка изображения…" };
+
+    this.status = {
+      phase: "processing",
+      message: Messages.create("processingImage"),
+    };
+
     this.options.changed();
 
     let claim: ImageInputTypes.PendingClaim | null = null;
 
     try {
       if (file.size > ImageAssets.LIMITS.bytes)
-        throw new Error("Изображение превышает 8 MiB.");
+        throw Messages.error(Messages.create("imageExceeds8Mib"));
 
       const bytes = new Uint8Array(await file.arrayBuffer()),
         header = ImageAssets.inspect(bytes);
@@ -148,7 +167,7 @@ export class ImageInput {
       );
 
       if (reconciled.kind !== "image")
-        throw new Error("Некорректный тип изображения.");
+        throw Messages.error(Messages.create("invalidImageType"));
 
       const assetClaim = this.options.images.claim(reconciled.asset);
 
@@ -216,13 +235,11 @@ export class ImageInput {
           insertedSuccessfully === false
             ? {
                 phase: "error",
-                message:
-                  "Не удалось вставить изображение. Повторите выбор файла.",
+                message: Messages.create("couldNotInsertTheImageChooseThe"),
               }
             : {
                 phase: "success",
-                message:
-                  "Изображение вставлено. Перетащите его или измените размер за маркеры.",
+                message: Messages.create("imageInsertedDragItOrResizeWith"),
               };
 
         this.options.notice(this.status.message);
@@ -233,8 +250,8 @@ export class ImageInput {
           phase: "error",
           message:
             error instanceof Error
-              ? error.message
-              : "Не удалось вставить изображение.",
+              ? Messages.from(error)
+              : Messages.create("couldNotInsertTheImage"),
         };
 
         this.options.notice(this.status.message);
@@ -272,6 +289,7 @@ export class ImageInput {
   };
 
   dispose() {
+    this.stopLanguage();
     this.disposed = true;
     this.cancel();
     this.input.removeEventListener("change", this.file);

@@ -1,3 +1,5 @@
+import { Messages } from "~/shared/lib/messages";
+import { I18n } from "~/shared/lib/i18n";
 import type React from "react";
 import type { InkSettingsTypes } from "./ink-settings.types";
 import styles from "./ink-settings.module.css";
@@ -8,8 +10,8 @@ export const InkSettings: React.FC<InkSettingsTypes.Props> = (props) => (
     <button
       className={styles.preview}
       type="button"
-      aria-label="Выбрать цвет"
-      title="Цвет и параметры"
+      aria-label={I18n.t("chooseColor")}
+      title={I18n.t("colorAndSettings")}
       disabled={props.readOnly}
       onClick={props.onColor}
     >
@@ -22,7 +24,7 @@ export const InkSettings: React.FC<InkSettingsTypes.Props> = (props) => (
       />
     </button>
     <label className={styles.hidden} htmlFor="pen-width">
-      Толщина
+      {I18n.t("width")}
     </label>
     <RangeInput
       id="pen-width"
@@ -31,11 +33,13 @@ export const InkSettings: React.FC<InkSettingsTypes.Props> = (props) => (
       step="0.1"
       value={props.width}
       disabled={props.readOnly}
-      aria-valuetext={`${props.width.toFixed(1)} пикселя`}
+      aria-valuetext={I18n.text(
+        Messages.create("valuePixels", { p0: props.width.toFixed(1) }),
+      )}
       onChange={(event) => props.onWidthChange(Number(event.target.value))}
     />
     <output htmlFor="pen-width">
-      {props.width.toFixed(1)}
+      {I18n.text(props.width.toFixed(1))}
       <span>px</span>
     </output>
   </div>

@@ -1,3 +1,5 @@
+import { Messages } from "~/shared/lib/messages";
+import { I18n } from "~/shared/lib/i18n";
 import type React from "react";
 import { useBoardWorkspace } from "./hooks/use-board-workspace";
 import styles from "./board-workspace.module.css";
@@ -10,7 +12,7 @@ import { ViewportControls } from "./components/viewport-controls";
 import { HelpControls } from "./components/help-controls";
 import type { BoardWorkspaceTypes } from "./board-workspace.types";
 
-export const BoardWorkspace: React.FC<BoardWorkspaceTypes.Props> = () => {
+export const BoardWorkspace: React.FC<BoardWorkspaceTypes.Props> = (props) => {
   const workspace = useBoardWorkspace();
 
   const unavailable =
@@ -21,7 +23,7 @@ export const BoardWorkspace: React.FC<BoardWorkspaceTypes.Props> = () => {
   const readOnly = !workspace.ui.storage.writable || unavailable;
 
   return (
-    <main className={styles.app} aria-label="Личная доска">
+    <main className={styles.app} aria-label={I18n.t("personalBoard")}>
       <div className={styles.brand} aria-label="penable">
         penable
         <span className={styles.brandDot} />
@@ -87,6 +89,7 @@ export const BoardWorkspace: React.FC<BoardWorkspaceTypes.Props> = () => {
         onPenOpenChange={(open) => workspace.changePanel(open ? "pen" : null)}
         trailingControls={
           <StoragePanel
+            languageSettings={props.languageSettings}
             state={workspace.ui.storage}
             hasDocument={workspace.ui.hasBoard}
             busy={workspace.ui.history.busy}
@@ -180,21 +183,24 @@ export const BoardWorkspace: React.FC<BoardWorkspaceTypes.Props> = () => {
         onCancelActiveInput={workspace.model.cancelActiveInput}
       />
       <span className={styles.hidden} id="prototype-warning">
-        Пишите пером или мышью. Ластик удаляет штрихи целиком.
+        {I18n.t("writeWithAPenOrMouseThe")}
       </span>
       <div className={styles["board-stage"]}>
         {!workspace.ui.hasBoard ? (
           <div className={styles["load-state"]} role="status">
-            {workspace.ui.storage.phase === "loading"
-              ? "Загрузка доски…"
-              : "Доска не загружена. Повторите подключение или восстановите её из копии."}
+            {I18n.text(
+              workspace.ui.storage.phase === "loading"
+                ? Messages.create("loadingBoard")
+                : Messages.create("boardIsNotLoadedReconnectOrRestore"),
+            )}
           </div>
         ) : workspace.ui.unavailable ? (
           <div className={styles["capability-error"]} role="alert">
-            <h2>Не удалось открыть лист</h2>
+            <h2>{I18n.t("couldNotOpenTheBoard")}</h2>
             <p>
-              {workspace.ui.unavailable} Откройте страницу в актуальной версии
-              Safari, Chrome или Edge.
+              {I18n.t("openThisPageInACurrentSafari", {
+                p0: workspace.ui.unavailable,
+              })}
             </p>
           </div>
         ) : (

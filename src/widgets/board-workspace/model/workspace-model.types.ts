@@ -1,3 +1,4 @@
+import type { MessageTypes } from "~/shared/lib/messages";
 import type {
   BoardItem,
   Viewport,
@@ -9,13 +10,13 @@ import type {
 export type SelectionState = {
   insertion?: {
     phase: "idle" | "choosing" | "processing" | "success" | "error" | "placing";
-    message: string;
+    message: MessageTypes.Value;
   };
   images?: boolean;
   selected: boolean;
   clipboard: boolean;
   busy: boolean;
-  message: string;
+  message: MessageTypes.Value;
   png: boolean;
 };
 
@@ -100,14 +101,15 @@ export type WorkspaceState = Readonly<{
   generation: number;
   hasBoard: boolean;
   hasInk: boolean;
-  unavailable: string;
+  unavailable: MessageTypes.Value;
   dialogOpen: boolean;
   uiRevision: number;
-  navigationMessage: string;
+  navigationMessage: MessageTypes.Value;
   library: LibraryState;
 }>;
 
 export type WorkspaceDependencies = {
+  defaultBoardTitle?: string;
   diagnostics: InputDiagnostics;
   session: (options: {
     snapshot: () => BoardSnapshot;

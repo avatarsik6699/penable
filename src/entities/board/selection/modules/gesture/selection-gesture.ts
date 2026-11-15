@@ -1,3 +1,4 @@
+import { Messages } from "~/shared/lib/messages";
 import type { PointerInput, Viewport } from "../../../board.types";
 import { BoardRegions } from "../../../regions";
 import type {
@@ -102,8 +103,8 @@ export class SelectionGesture {
         if (contact.points.length >= BoardRegions.REGION_LIMITS.lasso)
           return {
             kind: "error",
-            error: new Error(
-              "Лассо: предел 2048 вершин. Попробуйте более короткую границу.",
+            error: Messages.error(
+              Messages.create("lassoLimit2048VerticesTryAShorter"),
             ),
           };
 

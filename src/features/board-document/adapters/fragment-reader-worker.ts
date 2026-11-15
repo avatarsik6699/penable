@@ -1,3 +1,4 @@
+import { Messages } from "~/shared/lib/messages";
 import { ImagePreflight } from "./image-preflight";
 import { DocumentCodec } from "../modules/codec";
 import { FragmentCodec } from "../modules/fragments";
@@ -15,7 +16,7 @@ host.onmessage = ({ data }) => {
   void (async () => {
     try {
       if (data.size > FragmentCodec.LIMIT)
-        throw new Error("Фрагмент превышает 64 MiB.");
+        throw Messages.error(Messages.create("fragmentExceeds64Mib"));
 
       const fragment = FragmentCodec.parse(await data.text()),
         assets = new Set<string>();
@@ -26,7 +27,7 @@ host.onmessage = ({ data }) => {
           new AbortController().signal,
         );
       } catch {
-        throw new Error("Не удалось декодировать изображение фрагмента.");
+        throw Messages.error(Messages.create("couldNotDecodeTheFragmentImage"));
       }
 
       for (const item of fragment.strokes) {
@@ -78,8 +79,8 @@ host.onmessage = ({ data }) => {
         type: "error",
         message:
           error instanceof Error
-            ? error.message
-            : "Некорректный фрагмент Penable.",
+            ? Messages.from(error)
+            : Messages.create("invalidPenableFragment"),
       });
     }
   })();

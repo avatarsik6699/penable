@@ -1,3 +1,4 @@
+import { Messages } from "~/shared/lib/messages";
 import { PNGDimensions } from "./png-dimensions";
 import { RasterJob } from "./raster-job";
 import { BoardPaths } from "./path-cache";
@@ -21,7 +22,7 @@ async function selectionPNG(
     ? BoardRegions.maskBounds(region)
     : BoardRegions.visibleBounds(strokes);
 
-  if (!bounds) throw new Error("Сначала выделите записи.");
+  if (!bounds) throw Messages.error(Messages.create("selectContentFirst"));
 
   const padding = region ? 0 : 4;
   const size = PNGDimensions.ofBounds(bounds, padding);
@@ -34,7 +35,7 @@ async function selectionPNG(
     const context = canvas.getContext("2d");
 
     if (!context)
-      throw new Error("Не удалось создать PNG: Canvas 2D недоступен.");
+      throw Messages.error(Messages.create("couldNotCreatePngCanvas2dIs"));
 
     context.setTransform(
       2,
@@ -55,7 +56,9 @@ async function selectionPNG(
     return await new Promise<Blob>((resolve, reject) =>
       canvas.toBlob(
         (blob) =>
-          blob ? resolve(blob) : reject(new Error("Не удалось создать PNG.")),
+          blob
+            ? resolve(blob)
+            : reject(Messages.error(Messages.create("couldNotCreatePng"))),
         "image/png",
       ),
     );

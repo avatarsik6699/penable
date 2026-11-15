@@ -1,3 +1,4 @@
+import { Messages } from "~/shared/lib/messages";
 import type { InkBounds } from "~/entities/board";
 
 function pngDimensions(
@@ -24,9 +25,7 @@ function pngDimensions(
     height > 8192 ||
     width * height > 16777216
   ) {
-    throw new Error(
-      "PNG превышает предел 8192 px по стороне или 16 777 216 пикселей. Выделите меньший фрагмент.",
-    );
+    throw Messages.error(Messages.create("pngExceeds8192PxPerSideOr"));
   }
 
   return { width, height };

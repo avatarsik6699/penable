@@ -1,3 +1,4 @@
+import { I18n } from "~/shared/lib/i18n";
 import type React from "react";
 import type { BoardCursorViewTypes } from "./board-cursor.types";
 import styles from "./board-cursor.module.css";
@@ -47,7 +48,7 @@ export const BoardCursorView: React.FC<BoardCursorViewTypes.Props> = (
       className={styles["canvas-focus-badge"]}
       hidden
     >
-      Полотно
+      {I18n.t("canvas")}
     </span>
   </>
 );

@@ -1,3 +1,5 @@
+import type { MessageTypes } from "~/shared/lib/messages";
+import { Messages } from "~/shared/lib/messages";
 import {
   Notebook,
   BookOpen,
@@ -18,15 +20,18 @@ import {
 } from "lucide-react";
 import type { BoardColor, BoardIcon } from "../../../../board-document.types";
 
-const colors: ReadonlyArray<{ id: BoardColor; label: string }> = [
-  { id: "blue", label: "Синий" },
-  { id: "teal", label: "Бирюзовый" },
-  { id: "green", label: "Зелёный" },
-  { id: "amber", label: "Янтарный" },
-  { id: "orange", label: "Оранжевый" },
-  { id: "red", label: "Красный" },
-  { id: "violet", label: "Фиолетовый" },
-  { id: "pink", label: "Розовый" },
+const colors: ReadonlyArray<{
+  id: BoardColor;
+  label: MessageTypes.Value;
+}> = [
+  { id: "blue", label: Messages.create("blue") },
+  { id: "teal", label: Messages.create("teal") },
+  { id: "green", label: Messages.create("green") },
+  { id: "amber", label: Messages.create("amber") },
+  { id: "orange", label: Messages.create("orange") },
+  { id: "red", label: Messages.create("red") },
+  { id: "violet", label: Messages.create("purple") },
+  { id: "pink", label: Messages.create("pink") },
 ];
 
 const icons = {
@@ -48,23 +53,26 @@ const icons = {
   pen: Pen,
 };
 
-const symbols: ReadonlyArray<{ id: BoardIcon; label: string }> = [
-  { id: "notebook", label: "Блокнот" },
-  { id: "book", label: "Книга" },
-  { id: "calculator", label: "Калькулятор" },
-  { id: "languages", label: "Языки" },
-  { id: "flask", label: "Колба" },
-  { id: "atom", label: "Атом" },
-  { id: "code", label: "Код" },
-  { id: "briefcase", label: "Портфель" },
-  { id: "lightbulb", label: "Лампочка" },
-  { id: "music", label: "Музыка" },
-  { id: "palette", label: "Палитра" },
-  { id: "globe", label: "Глобус" },
-  { id: "calendar", label: "Календарь" },
-  { id: "folder", label: "Папка" },
-  { id: "graduation", label: "Учёба" },
-  { id: "pen", label: "Перо" },
+const symbols: ReadonlyArray<{
+  id: BoardIcon;
+  label: MessageTypes.Value;
+}> = [
+  { id: "notebook", label: Messages.create("notebook") },
+  { id: "book", label: Messages.create("book") },
+  { id: "calculator", label: Messages.create("calculator") },
+  { id: "languages", label: Messages.create("languages") },
+  { id: "flask", label: Messages.create("flask") },
+  { id: "atom", label: Messages.create("atom") },
+  { id: "code", label: Messages.create("code") },
+  { id: "briefcase", label: Messages.create("briefcase") },
+  { id: "lightbulb", label: Messages.create("lightBulb") },
+  { id: "music", label: Messages.create("music") },
+  { id: "palette", label: Messages.create("palette") },
+  { id: "globe", label: Messages.create("globe") },
+  { id: "calendar", label: Messages.create("calendar") },
+  { id: "folder", label: Messages.create("folder") },
+  { id: "graduation", label: Messages.create("study") },
+  { id: "pen", label: Messages.create("pen") },
 ];
 
 export const BoardCoverConfig = { colors, icons, symbols };

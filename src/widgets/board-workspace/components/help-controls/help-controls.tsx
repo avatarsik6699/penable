@@ -1,3 +1,4 @@
+import { I18n } from "~/shared/lib/i18n";
 import type React from "react";
 import type { HelpControlsTypes } from "./help-controls.types";
 import styles from "./help-controls.module.css";
@@ -27,8 +28,8 @@ export const HelpControls: React.FC<HelpControlsTypes.Props> = (props) => {
             help.bindTrigger(node);
             diagnostics.bindTrigger(node);
           }}
-          aria-label="Помощь"
-          title="Помощь"
+          aria-label={I18n.t("help")}
+          title={I18n.t("help")}
           aria-haspopup="dialog"
           aria-expanded={props.open || props.diagnosticsOpen}
           aria-controls={
@@ -47,42 +48,37 @@ export const HelpControls: React.FC<HelpControlsTypes.Props> = (props) => {
           id="help-panel"
           className={styles.panel}
           role="dialog"
-          aria-label="Помощь"
+          aria-label={I18n.t("help")}
         >
           <div className={styles.heading}>
-            <h2>Работа с доской</h2>
-            <Button onClick={help.closeAndFocus} aria-label="Закрыть помощь">
+            <h2>{I18n.t("usingTheBoard")}</h2>
+            <Button
+              onClick={help.closeAndFocus}
+              aria-label={I18n.t("closeHelp")}
+            >
               <EditorIcon name="close" />
             </Button>
           </div>
           <dl>
             <div>
-              <dt>Письмо</dt>
-              <dd>
-                Перо или основная кнопка мыши. Для касаний включите «Рисовать
-                пальцем» в параметрах пера.
-              </dd>
+              <dt>{I18n.t("writing")}</dt>
+              <dd>{I18n.t("penOrPrimaryMouseButtonForTouch")}</dd>
             </div>
             <div>
-              <dt>Перемещение</dt>
-              <dd>
-                Один палец на экране, два пальца на тачпаде или пробел +
-                перетаскивание
-              </dd>
+              <dt>{I18n.t("pan")}</dt>
+              <dd>{I18n.t("oneFingerOnScreenTwoFingersOn")}</dd>
             </div>
             <div>
-              <dt>Масштаб</dt>
-              <dd>Два пальца на экране / Ctrl + колесо</dd>
+              <dt>{I18n.t("zoom")}</dt>
+              <dd>{I18n.t("twoFingersOnScreenCtrlWheel")}</dd>
             </div>
             <div>
-              <dt>Отмена / возврат</dt>
+              <dt>{I18n.t("undoRedo")}</dt>
               <dd>Ctrl+Z / Ctrl+Shift+Z</dd>
             </div>
             <div>
-              <dt>Выделение</dt>
-              <dd>
-                Обведите область и перетащите её. Ластик удаляет штрихи целиком.
-              </dd>
+              <dt>{I18n.t("selection")}</dt>
+              <dd>{I18n.t("drawARegionAndDragItThe")}</dd>
             </div>
           </dl>
           <Button
@@ -90,17 +86,17 @@ export const HelpControls: React.FC<HelpControlsTypes.Props> = (props) => {
             onClick={() => props.onDiagnosticsChange(true)}
           >
             <EditorIcon name="device" />
-            Диагностика
+            {I18n.t("diagnostics")}
           </Button>
           <a
             className={styles.feedbackLink}
             href="https://t.me/avatarsikkk"
             target="_blank"
             rel="noopener noreferrer"
-            title="Открыть Telegram в новой вкладке"
+            title={I18n.t("openTelegramInANewTab")}
           >
             <EditorIcon name="message" />
-            Обратная связь в Telegram
+            {I18n.t("telegramFeedback")}
           </a>
         </div>
       )}
@@ -112,19 +108,19 @@ export const HelpControls: React.FC<HelpControlsTypes.Props> = (props) => {
           id="diagnostics-panel"
           className={styles.panel}
           role="dialog"
-          aria-label="Диагностика ввода"
+          aria-label={I18n.t("inputDiagnostics")}
         >
           <div className={styles.heading}>
-            <h2>Диагностика</h2>
+            <h2>{I18n.t("diagnostics")}</h2>
             <Button
               onClick={diagnostics.closeAndFocus}
-              aria-label="Закрыть диагностику"
+              aria-label={I18n.t("closeDiagnostics")}
             >
               <EditorIcon name="close" />
             </Button>
           </div>
           <p className={styles.hint}>
-            Панель остаётся открытой во время письма.
+            {I18n.t("thisPanelStaysOpenWhileYouWrite")}
           </p>
           <PointerDiagnostics diagnostics={props.diagnostics} />
         </div>

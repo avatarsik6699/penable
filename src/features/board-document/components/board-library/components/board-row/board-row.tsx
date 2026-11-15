@@ -1,3 +1,6 @@
+import type { MessageTypes } from "~/shared/lib/messages";
+import { Messages } from "~/shared/lib/messages";
+import { I18n } from "~/shared/lib/i18n";
 import type React from "react";
 import { BoardCover } from "../board-cover";
 import { usePanelDismiss } from "~/shared/ui/panel-dismiss";
@@ -17,7 +20,7 @@ export const BoardRow: React.FC<BoardRowTypes.Props> = (props) => {
 
   const [editing, setEditing] = useState(false),
     [title, setTitle] = useState(props.title),
-    [error, setError] = useState("");
+    [error, setError] = useState<MessageTypes.Value>("");
 
   const save = async () => {
     try {
@@ -27,8 +30,8 @@ export const BoardRow: React.FC<BoardRowTypes.Props> = (props) => {
     } catch (error) {
       setError(
         error instanceof Error
-          ? error.message
-          : "Не удалось изменить название.",
+          ? Messages.from(error)
+          : Messages.create("couldNotRenameTheBoard"),
       );
     }
   };
@@ -45,39 +48,43 @@ export const BoardRow: React.FC<BoardRowTypes.Props> = (props) => {
         >
           <input
             autoFocus
-            aria-label="Название доски"
+            aria-label={I18n.t("boardName")}
             maxLength={80}
             value={title}
             onChange={(event) => setTitle(event.target.value)}
             disabled={props.disabled}
           />
           <Button type="submit" disabled={props.disabled || !title.trim()}>
-            Сохранить название
+            {I18n.t("saveName")}
           </Button>
           <Button disabled={props.disabled} onClick={() => setEditing(false)}>
-            Отмена
+            {I18n.t("cancel")}
           </Button>
         </form>
       ) : (
         <>
           <Button
             className={styles.title}
-            aria-label={`Открыть доску: ${props.title}`}
+            aria-label={I18n.text(
+              Messages.create("openBoardValue", { p0: props.title }),
+            )}
             aria-current={props.active ? "page" : undefined}
             disabled={props.disabled || props.active}
             onClick={props.onSwitch}
           >
             <BoardCover appearance={props.appearance} />
             <span className={styles.name}>
-              {props.title}
-              {props.active && <small>Открыта</small>}
+              {I18n.text(props.title)}
+              {props.active && <small>{I18n.t("open")}</small>}
             </span>
           </Button>
           <div className={styles.actions} ref={(node) => menu.bindRoot(node)}>
             <Button
               autoFocus={props.restoreFocus}
               ref={(node) => menu.bindTrigger(node)}
-              aria-label={`Действия доски: ${props.title}`}
+              aria-label={I18n.text(
+                Messages.create("boardActionsValue", { p0: props.title }),
+              )}
               aria-expanded={menuOpen}
               aria-haspopup="menu"
               disabled={props.disabled}
@@ -89,11 +96,17 @@ export const BoardRow: React.FC<BoardRowTypes.Props> = (props) => {
               <div
                 className={styles.menu}
                 role="menu"
-                aria-label={`Действия доски: ${props.title}`}
+                aria-label={I18n.text(
+                  Messages.create("boardActionsValue", { p0: props.title }),
+                )}
               >
                 <Button
                   role="menuitem"
-                  aria-label={`Оформление доски: ${props.title}`}
+                  aria-label={I18n.text(
+                    Messages.create("boardAppearanceValue", {
+                      p0: props.title,
+                    }),
+                  )}
                   onClick={() => {
                     if (props.disabled) return;
 
@@ -101,29 +114,33 @@ export const BoardRow: React.FC<BoardRowTypes.Props> = (props) => {
                     props.onAppearance();
                   }}
                 >
-                  Оформление
+                  {I18n.t("appearance")}
                 </Button>
                 <Button
                   role="menuitem"
-                  aria-label={`Переименовать доску: ${props.title}`}
+                  aria-label={I18n.text(
+                    Messages.create("renameBoardValue", { p0: props.title }),
+                  )}
                   onClick={() => {
                     setMenuOpen(false);
                     setTitle(props.title);
                     setEditing(true);
                   }}
                 >
-                  Переименовать
+                  {I18n.t("rename")}
                 </Button>
                 <Button
                   role="menuitem"
-                  aria-label={`Удалить доску: ${props.title}`}
+                  aria-label={I18n.text(
+                    Messages.create("deleteBoardValue", { p0: props.title }),
+                  )}
                   disabled={props.last}
                   onClick={() => {
                     setMenuOpen(false);
                     props.onDelete();
                   }}
                 >
-                  Удалить
+                  {I18n.t("delete")}
                 </Button>
               </div>
             )}
@@ -132,7 +149,7 @@ export const BoardRow: React.FC<BoardRowTypes.Props> = (props) => {
       )}
       {error && (
         <p className={styles.error} role="alert">
-          {error}
+          {I18n.text(error)}
         </p>
       )}
     </li>

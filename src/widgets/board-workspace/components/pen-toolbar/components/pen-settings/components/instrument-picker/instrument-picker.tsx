@@ -1,3 +1,4 @@
+import { I18n } from "~/shared/lib/i18n";
 import type React from "react";
 import { EditorIcon } from "~/shared/ui/editor-icon";
 import { ControlHint } from "~/shared/ui/control-hint";
@@ -11,7 +12,7 @@ export const InstrumentPicker: React.FC<InstrumentPickerTypes.Props> = (
   <div
     className={styles.picker}
     role="radiogroup"
-    aria-label="Инструмент письма"
+    aria-label={I18n.t("writingInstrument")}
   >
     {InstrumentPickerConfig.entries.map((entry) => (
       <ControlHint key={entry.value} label={entry.label}>
@@ -19,7 +20,7 @@ export const InstrumentPicker: React.FC<InstrumentPickerTypes.Props> = (
           <input
             type="radio"
             name="ink-instrument"
-            aria-label={entry.label}
+            aria-label={I18n.text(entry.label)}
             checked={props.value === entry.value}
             disabled={props.disabled}
             onChange={() => props.onChange(entry.value)}

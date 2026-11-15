@@ -1,3 +1,4 @@
+import { I18n } from "~/shared/lib/i18n";
 import type React from "react";
 import type { MinimapViewTypes } from "./minimap-view.types";
 import styles from "./minimap-view.module.css";
@@ -9,13 +10,13 @@ export const MinimapView: React.FC<MinimapViewTypes.Props> = (props) => (
     ref={(node) => props.bindRoot(node)}
     className={styles.panel}
     role="region"
-    aria-label="Миникарта доски"
+    aria-label={I18n.t("boardMinimap")}
     aria-busy="true"
     id="board-minimap-panel"
   >
     <div className={styles.heading}>
-      <h2>Миникарта</h2>
-      <Button aria-label="Закрыть миникарту" onClick={props.onClose}>
+      <h2>{I18n.t("minimap")}</h2>
+      <Button aria-label={I18n.t("closeMinimap")} onClick={props.onClose}>
         <EditorIcon name="close" />
       </Button>
     </div>
@@ -23,7 +24,7 @@ export const MinimapView: React.FC<MinimapViewTypes.Props> = (props) => (
       ref={(node) => props.bindMapArea(node)}
       className={styles.area}
       type="button"
-      aria-label="Перейти к участку доски"
+      aria-label={I18n.t("goToBoardArea")}
       aria-describedby="minimap-help"
     >
       <canvas
@@ -47,7 +48,7 @@ export const MinimapView: React.FC<MinimapViewTypes.Props> = (props) => (
       id="minimap-help"
       role="status"
     >
-      Обновление обзора…
+      {I18n.t("updatingOverview")}
     </p>
     <p
       ref={(node) => props.bindMapOutside(node)}
@@ -58,12 +59,12 @@ export const MinimapView: React.FC<MinimapViewTypes.Props> = (props) => (
       ref={(node) => props.bindMapFit(node)}
       className={styles.fit}
       disabled
-      aria-label="Показать все записи"
+      aria-label={I18n.t("fitAllContent")}
     >
-      Показать все записи
+      {I18n.t("fitAllContent")}
     </Button>
     <p className={styles.keyboard}>
-      Стрелки перемещают вид, Enter — к центру обзора.
+      {I18n.t("arrowKeysPanTheViewEnterCenters")}
     </p>
   </div>
 );

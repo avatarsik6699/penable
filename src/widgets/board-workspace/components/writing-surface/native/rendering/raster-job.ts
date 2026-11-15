@@ -1,6 +1,11 @@
+import type { MessageTypes } from "~/shared/lib/messages";
+import { Messages } from "~/shared/lib/messages";
+
 function render(blob: Blob, signal: AbortSignal): Promise<Blob> {
   if (signal.aborted)
-    return Promise.reject(new Error("Подготовка изображения отменена."));
+    return Promise.reject(
+      Messages.error(Messages.create("imagePreparationCancelled")),
+    );
 
   return new Promise((resolve, reject) => {
     const worker = new Worker(
@@ -15,7 +20,7 @@ function render(blob: Blob, signal: AbortSignal): Promise<Blob> {
 
     const abort = () => {
       finish();
-      reject(new Error("Подготовка изображения отменена."));
+      reject(Messages.error(Messages.create("imagePreparationCancelled")));
     };
 
     signal.addEventListener("abort", abort, { once: true });
@@ -23,17 +28,24 @@ function render(blob: Blob, signal: AbortSignal): Promise<Blob> {
     worker.onerror = (event) => {
       event.preventDefault();
       finish();
-      reject(new Error("Не удалось подготовить изображение."));
+      reject(Messages.error(Messages.create("couldNotPrepareTheImage")));
     };
 
     worker.onmessage = ({
       data,
-    }: MessageEvent<{ blob?: Blob; error?: string }>) => {
+    }: MessageEvent<{
+      blob?: Blob;
+      error?: MessageTypes.Value;
+    }>) => {
       finish();
 
       if (data.blob) resolve(data.blob);
       else
-        reject(new Error(data.error ?? "Не удалось подготовить изображение."));
+        reject(
+          Messages.error(
+            data.error ?? Messages.create("couldNotPrepareTheImage"),
+          ),
+        );
     };
 
     worker.postMessage({ blob });

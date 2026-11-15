@@ -3,7 +3,7 @@
 > Owner-approved product contract. The Change14 visual direction was accepted on 2026-11-13
 > for production transfer in Change15. The original Wacom One / Windows 11 handwriting check,
 > pen/mouse distinction and changing pressure were accepted; this is not blanket hardware
-> acceptance for later pen, touch or driver changes. Changes01–34 are shipped locally.
+> acceptance for later pen, touch or driver changes. Shipped changes are recorded in the archive.
 > The public site is https://avatarsik6699.github.io/penable/; local delivery does not establish
 > the currently deployed revision. Publication is a separate release.
 >
@@ -16,7 +16,7 @@
 
 | Field | Value |
 |-------|-------|
-| Version | 1.6 — current contracts, English documentation and approved localization intent |
+| Version | 1.7 — English documentation and English/Russian interface |
 | Date | 2026-11-15 |
 | Architect / owner | User |
 | Domain | Personal handwritten notes in the browser |
@@ -1085,6 +1085,29 @@ Physical Wacom acceptance remains an owner check. Full Gate/review precede immed
 release is separate.
 
 
+## 5.27 — Application language (Change36)
+
+The owner-approved 2026-11-15 repository plan adds complete English/Russian UI. Resolve language
+before first render: saved explicit en/ru, otherwise the first supported base language in ordered
+browser preferences, otherwise en. The existing gear View section offers Auto / English / Русский.
+Auto removes the explicit preference and follows browser changes. Preference is application-wide,
+profile/origin-local, separate from board JSON and usable in readonly. Denied preference storage
+must not block startup or an in-memory switch. Locale listeners are lifecycle-owned and disposed.
+
+Bundle both typed i18next/react-i18next resources with the offline shell; no remote translation
+backend/detector or account. Switching is immediate without editor remount, board write, scene
+conversion or history/selection loss. All controls, hints, aria names, dialogs, statuses, diagnostics,
+error paths and document metadata follow the active language. Static shell/manifest use English.
+Domain/Worker errors preserve stable code+parameters through transport/catches; translation occurs
+at presentation so an already-visible message changes language too. Workers/entities remain
+React/browser/i18next-free. Unknown native technical details may remain as supplied by the browser.
+
+Generated new board titles use the current language; existing titles/content are never renamed.
+Keep format5/catalog2/IDB1 unchanged. Test locale precedence/normalization, invalid/denied storage,
+Auto/manual/reload/offline, current error translation, readonly control access, narrow layout,
+keyboard focus and exact content/history preservation. Original behavioral E2E use explicit RU;
+locale-specific acceptance covers EN and RU. Hardware writing/OS installation remains separate.
+
 ## 6. Auth & Access Model
 
 No authentication. Access follows computer/browser-profile access. Historical M1 was tab memory;
@@ -1145,13 +1168,11 @@ Offline availability was added in §5.23; IndexedDB alone does not load applicat
 Original schedule estimates were preliminary, not commitments. Later §5 contracts record delivered
 work through Change34; local ship and public release are distinct.
 
-### Owner-approved upcoming work — planned
+### Repository presentation and language
 
-The 2026-11-15 repository plan authorizes English current documentation, ru/en localization and an
-English visual README. Interface language priority will be saved choice, first supported browser
-preference, then English; settings will provide Auto/English/Русский. Switching must be immediate
-without resetting content/history/view; language is an application preference, not document data.
-Both dictionaries must be bundled for offline use. Until Change36 ships, these are planned capabilities.
+The 2026-11-15 repository plan authorizes English documentation, the ru/en interface in §5.27 and
+an English visual README. Application language is separate from document data; both dictionaries
+are bundled for offline use. The visual README will demonstrate actual available behavior.
 
 Public future capability checklist, without delivery-date commitments:
 

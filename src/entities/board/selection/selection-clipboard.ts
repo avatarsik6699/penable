@@ -1,3 +1,4 @@
+import { Messages } from "~/shared/lib/messages";
 import type { BoardItem, ClipMask, Viewport } from "../board.types";
 import { BoardLimits } from "../scene-limits";
 import { BoardRegions } from "../regions";
@@ -10,13 +11,14 @@ function prepare(
   originals: readonly BoardItem[],
   region: ClipMask,
   viewport: Viewport,
-  size: { width: number; height: number },
+  size: {
+    width: number;
+    height: number;
+  },
   duplicate: boolean,
 ) {
   if (scene.length + originals.length > BoardLimits.SCENE_LIMITS.strokes)
-    throw new Error(
-      "Вставка превышает предел 20 000 фрагментов. Выделите меньше записей.",
-    );
+    throw Messages.error(Messages.create("pasteExceedsTheLimitOf20000"));
 
   const points = (strokes: readonly BoardItem[]) =>
     strokes.reduce(
@@ -29,9 +31,7 @@ function prepare(
     );
 
   if (points(scene) + points(originals) > BoardLimits.SCENE_LIMITS.points)
-    throw new Error(
-      "Вставка превышает предел 1 000 000 точек. Выделите меньше записей.",
-    );
+    throw Messages.error(Messages.create("pasteExceedsTheLimitOf1000"));
 
   const bounds =
     BoardRegions.maskBounds(region) ?? BoardRegions.visibleBounds(originals);

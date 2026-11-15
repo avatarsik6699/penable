@@ -1,3 +1,5 @@
+import type { MessageTypes } from "~/shared/lib/messages";
+import { Messages } from "~/shared/lib/messages";
 import { BoardCompositing } from "../compositing";
 import { SelectionTransform } from "./modules/transform";
 import { BoardTransforms } from "../transforms";
@@ -35,7 +37,7 @@ export class BoardSelection {
     report: (error) => this.report(error),
 
     pending: () => {
-      this.message = "Подготовка выделения… Esc — отмена.";
+      this.message = Messages.create("preparingSelectionEscToCancel");
     },
   });
   private parts: SelectedPart[] = [];
@@ -63,7 +65,7 @@ export class BoardSelection {
 
   private delta: Position = { ...SelectionConfig.ZERO };
   private nudging = false;
-  message = "";
+  message: MessageTypes.Value = "";
 
   constructor(private readonly options: SelectionOptions) {}
 
@@ -128,8 +130,8 @@ export class BoardSelection {
   private report(error: unknown) {
     this.message =
       error instanceof Error
-        ? error.message
-        : "Не удалось обработать выделение.";
+        ? Messages.from(error)
+        : Messages.create("couldNotProcessTheSelection");
 
     this.options.changed();
   }
@@ -485,13 +487,15 @@ export class BoardSelection {
 
       const reason =
         this.options.scene.strokes.length >= BoardLimits.SCENE_LIMITS.strokes
-          ? "На доске достигнут предел 20 000 фрагментов."
-          : "Действие превысит предел 20 000 фрагментов.";
+          ? Messages.create("theBoardHasReachedTheLimitOf")
+          : Messages.create("thisActionWouldExceedTheLimitOf");
 
       this.report(
-        new Error(
-          reason +
-            " Перенос части штриха создаёт дополнительные фрагменты. Выделите штрихи целиком или удалите ненужные записи.",
+        Messages.error(
+          Messages.concat(
+            reason,
+            Messages.create("movingPartOfAStrokeCreatesExtra"),
+          ),
         ),
       );
 
@@ -510,7 +514,9 @@ export class BoardSelection {
             (stroke, index) => stroke !== this.options.scene.strokes[index],
           )
         )
-          throw new Error("Доска изменилась. Повторите действие.");
+          throw Messages.error(
+            Messages.create("theBoardChangedTryTheActionAgain"),
+          );
 
         this.options.commit(candidate.strokes);
 
@@ -668,7 +674,7 @@ export class BoardSelection {
     if (!this.busy && this.hasSelection) {
       this.clipboard.strokes = SelectionUtils.copy(this.selected);
       this.clipboard.region = BoardRegions.cloneMask(this.outline);
-      this.message = "Фрагмент скопирован в этой вкладке.";
+      this.message = Messages.create("fragmentCopiedWithinThisTab");
       this.options.changed();
     }
   }

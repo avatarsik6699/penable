@@ -1,3 +1,4 @@
+import type { MessageTypes } from "~/shared/lib/messages";
 import type { TemplateConfig } from "~/entities/board";
 
 export namespace TemplateDraftTypes {
@@ -10,6 +11,9 @@ export namespace TemplateDraftTypes {
     preview: TemplateConfig;
     resolved: TemplateConfig | null;
     recommendation: number | null;
-    error: { field: Field; message: string } | null;
+    error: {
+      field: Field;
+      message: MessageTypes.Value;
+    } | null;
   };
 }

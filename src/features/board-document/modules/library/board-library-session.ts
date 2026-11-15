@@ -1,3 +1,5 @@
+import type { MessageTypes } from "~/shared/lib/messages";
+import { Messages } from "~/shared/lib/messages";
 import { DocumentCodec } from "../codec";
 import { DocumentErrors } from "../session";
 import type { DocumentSession } from "../session";
@@ -20,22 +22,26 @@ export class BoardLibrarySession {
   private lease: WriterLease | null = null;
   private repository: LibraryRepository | null = null;
   private active: DocumentSession | null = null;
-  private catalog = LibraryCatalog.initial();
+  private catalog: BoardCatalog;
   private startup: Promise<void> | null = null;
   private closing: Promise<void> | null = null;
   private disposed = false;
   private busy = false;
-  private fatal = "";
-  private message = "";
+  private fatal: MessageTypes.Value = "";
+  private message: MessageTypes.Value = "";
   private readonly validationAbort = new AbortController();
-  private raw: { exists: boolean; value: unknown } = {
+  private raw: {
+    exists: boolean;
+    value: unknown;
+  } = {
     exists: false,
     value: undefined,
   };
-
   private operation: Promise<unknown> = Promise.resolve();
 
-  constructor(private readonly options: LibraryOptions) {}
+  constructor(private readonly options: LibraryOptions) {
+    this.catalog = LibraryCatalog.initial(options.initialTitle);
+  }
 
   get canWrite() {
     return (
@@ -168,8 +174,8 @@ export class BoardLibrarySession {
         this.raw = selected.exists ? selected : records.catalog;
 
         if (!selected.exists)
-          throw new Error(
-            "Доска из каталога отсутствует в хранилище. Исходный каталог сохранён.",
+          throw Messages.error(
+            Messages.create("aCatalogBoardIsMissingFromStorage"),
           );
 
         const document = DocumentCodec.decodeDocument(selected.value);
@@ -180,8 +186,11 @@ export class BoardLibrarySession {
 
         if (
           this.lease.acquired &&
-          (records.catalog.value as { schemaVersion: number }).schemaVersion ===
-            1
+          (
+            records.catalog.value as {
+              schemaVersion: number;
+            }
+          ).schemaVersion === 1
         )
           await this.repository.migrate(this.catalog, records.catalog);
       } else {
@@ -220,7 +229,8 @@ export class BoardLibrarySession {
   }
 
   private async activate(id: string) {
-    if (!this.lease) throw new Error("Блокировка досок недоступна.");
+    if (!this.lease)
+      throw Messages.error(Messages.create("boardLockingIsUnavailable"));
 
     const session = this.options.session(
       id,
@@ -248,12 +258,14 @@ export class BoardLibrarySession {
     await session.start();
 
     if (!session.state.loaded)
-      throw new Error(session.state.message || "Доска не загрузилась.");
+      throw Messages.error(
+        session.state.message || Messages.create("theBoardDidNotLoad"),
+      );
   }
 
   private requireWritable() {
     if (!this.canWrite || !this.repository)
-      throw new Error("Изменение списка досок сейчас недоступно.");
+      throw Messages.error(Messages.create("theBoardListCannotBeChangedRight"));
   }
 
   private async run(action: () => Promise<void>) {
@@ -280,15 +292,16 @@ export class BoardLibrarySession {
     const record = await this.repository!.board(id);
 
     if (!record.exists)
-      throw new Error(
-        "Доска отсутствует в хранилище. Текущие записи сохранены.",
+      throw Messages.error(
+        Messages.create("boardIsMissingFromStorageCurrentNotes"),
       );
 
     const document = DocumentCodec.decodeDocument(record.value);
 
     await this.options.preflight?.(document, this.validationAbort.signal);
 
-    if (this.disposed) throw new Error("Переключение доски отменено.");
+    if (this.disposed)
+      throw Messages.error(Messages.create("boardSwitchCancelled"));
 
     return document;
   }
@@ -312,7 +325,7 @@ export class BoardLibrarySession {
     if (id === this.catalog.activeId) return;
 
     if (!this.catalog.boards.some((b) => b.id === id))
-      throw new Error("Доска не найдена.");
+      throw Messages.error(Messages.create("boardNotFound"));
 
     await this.run(() => this.transition({ ...this.catalog, activeId: id }));
   }
@@ -321,13 +334,15 @@ export class BoardLibrarySession {
     const title = LibraryCatalog.title(value);
 
     if (this.catalog.boards.length >= 100)
-      throw new Error("В библиотеке допускается не более 100 досок.");
+      throw Messages.error(Messages.create("theLibraryCanContainUpTo100"));
 
     const id = this.options.id();
 
     await this.run(async () => {
       if (this.catalog.boards.some((b) => b.id === id))
-        throw new Error("Не удалось создать уникальный идентификатор доски.");
+        throw Messages.error(
+          Messages.create("couldNotCreateAUniqueBoardIdentifier"),
+        );
 
       await this.active!.flushOrThrow();
 
@@ -369,7 +384,7 @@ export class BoardLibrarySession {
 
     await this.run(async () => {
       if (!this.catalog.boards.some((b) => b.id === id))
-        throw new Error("Доска не найдена.");
+        throw Messages.error(Messages.create("boardNotFound"));
 
       const catalog = {
         ...this.catalog,
@@ -385,13 +400,13 @@ export class BoardLibrarySession {
 
   async setBoardAppearance(id: string, appearance: BoardAppearance) {
     if (!LibraryAppearance.valid(appearance))
-      throw new Error("Недопустимое оформление доски.");
+      throw Messages.error(Messages.create("invalidBoardAppearance"));
 
     const captured = { color: appearance.color, icon: appearance.icon };
 
     await this.run(async () => {
       if (!this.catalog.boards.some((board) => board.id === id))
-        throw new Error("Доска не найдена.");
+        throw Messages.error(Messages.create("boardNotFound"));
 
       const catalog = {
         ...this.catalog,
@@ -407,10 +422,10 @@ export class BoardLibrarySession {
 
   async deleteBoard(id: string) {
     if (this.catalog.boards.length <= 1)
-      throw new Error("Последнюю доску удалить нельзя.");
+      throw Messages.error(Messages.create("theLastBoardCannotBeDeleted"));
 
     if (!this.catalog.boards.some((b) => b.id === id))
-      throw new Error("Доска не найдена.");
+      throw Messages.error(Messages.create("boardNotFound"));
 
     await this.run(async () => {
       const boards = this.catalog.boards.filter((b) => b.id !== id),
@@ -438,7 +453,7 @@ export class BoardLibrarySession {
   flushOrThrow() {
     return (
       this.active?.flushOrThrow() ??
-      Promise.reject(new Error("Доска не загружена."))
+      Promise.reject(Messages.error(Messages.create("boardIsNotLoaded")))
     );
   }
 
@@ -448,7 +463,9 @@ export class BoardLibrarySession {
 
   replace(document: BoardDocument, isBusy: () => boolean) {
     if (!this.canImport)
-      return Promise.reject(new Error("Замена доски недоступна."));
+      return Promise.reject(
+        Messages.error(Messages.create("boardReplacementIsUnavailable")),
+      );
 
     return this.active!.replace(document, isBusy);
   }

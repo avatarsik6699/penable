@@ -1,3 +1,5 @@
+import type { MessageTypes } from "~/shared/lib/messages";
+import { Messages } from "~/shared/lib/messages";
 import type { SessionOptions } from "./document-session.types";
 import { DocumentErrors, SessionUtils } from "./document-session.utils";
 import { SessionConfig } from "./document-session.config";
@@ -26,7 +28,7 @@ export class DocumentSession {
   private replacementAbort: AbortController | null = null;
   private writing = false;
   private phase: SavePhase = "loading";
-  private message = "";
+  private message: MessageTypes.Value = "";
   private rawMain: StoredRecord = { exists: false, value: undefined };
   private upgrade: StoredRecord = { exists: false, value: undefined };
   private schema5: StoredRecord = { exists: false, value: undefined };
@@ -124,7 +126,9 @@ export class DocumentSession {
     await this.flush();
 
     if (this.phase === "error" || this.hasUnsaved || this.paused)
-      throw new Error(this.message || "Не удалось сохранить текущую доску.");
+      throw Messages.error(
+        this.message || Messages.create("couldNotSaveTheCurrentBoard"),
+      );
   }
 
   get previousRecord(): StoredRecord {
@@ -153,11 +157,12 @@ export class DocumentSession {
         this.clearTimers();
         this.phase = "error";
 
-        this.message =
-          message +
-          (this.hasUnsaved
-            ? " Скачайте изменения из памяти и затем перезагрузите страницу."
-            : "");
+        this.message = Messages.concat(
+          message,
+          this.hasUnsaved
+            ? Messages.create("downloadChangesFromMemoryThenReloadThe")
+            : "",
+        );
 
         this.publish();
       });
@@ -325,9 +330,10 @@ export class DocumentSession {
         this.clearTimers();
         this.phase = "error";
 
-        this.message =
-          DocumentErrors.messageOf(error) +
-          " Изменения остаются в памяти; скачайте копию или повторите сохранение.";
+        this.message = Messages.concat(
+          DocumentErrors.messageOf(error),
+          Messages.create("changesRemainInMemoryDownloadACopy"),
+        );
       }
 
       this.publish();
@@ -350,8 +356,8 @@ export class DocumentSession {
   replace(candidate: BoardDocument, isBusy: () => boolean): Promise<void> {
     if (!this.canImport || isBusy())
       return Promise.reject(
-        new Error(
-          "Замена сейчас недоступна. Завершите письмо или перемещение.",
+        Messages.error(
+          Messages.create("replacementIsUnavailableRightNowFinishWriting"),
         ),
       );
 
@@ -394,8 +400,8 @@ export class DocumentSession {
         await preceding;
 
         if (this.disposed || this.fatal || !this.repository)
-          throw new Error(
-            "Подключение к хранилищу изменилось. Замена не выполнена.",
+          throw Messages.error(
+            Messages.create("storageConnectionChangedTheBoardWasNot"),
           );
 
         priorState = {
@@ -407,7 +413,9 @@ export class DocumentSession {
         await this.options.preflight?.(document, controller.signal);
 
         if (this.disposed || this.fatal || controller.signal.aborted)
-          throw new Error("Замена отменена. Текущая доска сохранена.");
+          throw Messages.error(
+            Messages.create("replacementCancelledTheCurrentBoardIsRetained"),
+          );
 
         const previous = this.loaded
           ? DocumentCodec.cloneDocument(
@@ -457,8 +465,10 @@ export class DocumentSession {
           this.paused = true;
           this.phase = "error";
 
-          this.message =
-            "Замена не выполнена. " + DocumentErrors.messageOf(error);
+          this.message = Messages.concat(
+            Messages.create("replacementFailed"),
+            DocumentErrors.messageOf(error),
+          );
         }
 
         throw error;

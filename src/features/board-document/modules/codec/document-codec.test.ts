@@ -1,3 +1,4 @@
+import { Messages } from "~/shared/lib/messages";
 import { BoardLimits } from "~/entities/board";
 import { describe, expect, it } from "vitest";
 import { DocumentCodec } from "./document-codec";
@@ -257,7 +258,11 @@ describe("versioned document codec", () => {
 
     const exported = DocumentCodec.serializeDocument(document);
 
-    expect(exported.warning).toContain("Обратный импорт");
+    expect(exported.warning).toEqual({
+      code: "thisCopyContainsAllCompletedContentBut",
+    });
+
+    expect(Messages.plain(exported.warning)).toContain("Обратный импорт");
 
     const raw = JSON.parse(exported.json) as { items: Stroke[] };
 

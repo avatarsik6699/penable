@@ -1,3 +1,4 @@
+import { Messages } from "~/shared/lib/messages";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   BoardConstants,
@@ -182,7 +183,11 @@ describe("unified system clipboard ownership", () => {
     await h.clipboard.copy(true);
     expect(h.scene.strokes).toEqual([ink]);
     expect(h.history.canUndo).toBe(false);
-    expect(h.selection.message).toContain("Исходные записи сохранены");
+
+    expect(Messages.plain(h.selection.message)).toContain(
+      "Исходные записи сохранены",
+    );
+
     h.clipboard.dispose();
 
     const readOnly = setup(false);
@@ -208,7 +213,11 @@ describe("unified system clipboard ownership", () => {
     await pending;
     expect(h.scene.strokes).toEqual([ink]);
     expect(h.history.canUndo).toBe(false);
-    expect(h.selection.message).toContain("выделение изменились");
+
+    expect(Messages.plain(h.selection.message)).toContain(
+      "выделение изменились",
+    );
+
     h.clipboard.dispose();
   });
 
@@ -221,7 +230,11 @@ describe("unified system clipboard ownership", () => {
     expect(h.write).toHaveBeenCalledOnce();
     expect(h.scene.strokes).toEqual([ink]);
     expect(h.history.canUndo).toBe(false);
-    expect(h.selection.message).toContain("Фрагмент скопирован");
+
+    expect(Messages.plain(h.selection.message)).toContain(
+      "Фрагмент скопирован",
+    );
+
     h.clipboard.dispose();
   });
 
@@ -289,7 +302,7 @@ describe("unified system clipboard ownership", () => {
     await h.clipboard.paste();
     expect(h.scene.strokes).toHaveLength(1);
     expect(h.insertImage).not.toHaveBeenCalled();
-    expect(h.selection.message).toContain("Некорректный");
+    expect(Messages.plain(h.selection.message)).toContain("Некорректный");
     h.clipboard.dispose();
   });
 
@@ -312,7 +325,7 @@ describe("unified system clipboard ownership", () => {
     h.read.mockRejectedValue(new DOMException("denied", "NotAllowedError"));
     await h.clipboard.paste(image);
     expect(h.insertImage).not.toHaveBeenCalled();
-    expect(h.selection.message).toContain("Нет доступа");
+    expect(Messages.plain(h.selection.message)).toContain("Нет доступа");
     vi.stubGlobal("navigator", { clipboard: {} });
     await h.clipboard.paste(image);
     expect(h.insertImage).toHaveBeenCalledOnce();
@@ -342,7 +355,11 @@ describe("unified system clipboard ownership", () => {
       expect(h.insertImage).not.toHaveBeenCalled();
       expect(h.scene.strokes).toEqual([ink]);
       expect(h.history.canUndo).toBe(false);
-      expect(h.selection.message).toContain("редактируемого фрагмента");
+
+      expect(Messages.plain(h.selection.message)).toContain(
+        "редактируемого фрагмента",
+      );
+
       h.clipboard.dispose();
     },
   );
@@ -468,7 +485,11 @@ describe("unified system clipboard ownership", () => {
     written.resolve();
     await copying;
     expect(h.read).not.toHaveBeenCalled();
-    expect(h.selection.message).toContain("ожидающая вставка отменены");
+
+    expect(Messages.plain(h.selection.message)).toContain(
+      "ожидающая вставка отменены",
+    );
+
     h.write.mockRejectedValue(new DOMException("denied", "NotAllowedError"));
 
     const failing = h.clipboard.copy(false);
@@ -476,7 +497,7 @@ describe("unified system clipboard ownership", () => {
     await h.clipboard.paste();
     await failing;
     expect(h.read).not.toHaveBeenCalled();
-    expect(h.selection.message).toContain("Вставка отменена");
+    expect(Messages.plain(h.selection.message)).toContain("Вставка отменена");
     expect(h.scene.strokes).toEqual([ink]);
     h.clipboard.dispose();
   });

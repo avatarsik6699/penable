@@ -1,3 +1,4 @@
+import { I18n } from "~/shared/lib/i18n";
 import type React from "react";
 import type { SurfaceLayersTypes } from "./surface-layers.types";
 import styles from "./surface-layers.module.css";
@@ -30,10 +31,10 @@ export const SurfaceLayers: React.FC<SurfaceLayersTypes.Props> = (props) => (
       data-layer="live"
       data-testid="board-live"
       tabIndex={0}
-      aria-label="Область письма и стирания пером или основной кнопкой мыши"
+      aria-label={I18n.t("writingAndErasingSurfaceForPenOr")}
       aria-describedby="prototype-warning writing-help"
     >
-      Для письма нужен браузер с поддержкой Canvas 2D.
+      {I18n.t("writingNeedsABrowserWithCanvas2d")}
     </canvas>
     <svg
       data-testid="board-selection"

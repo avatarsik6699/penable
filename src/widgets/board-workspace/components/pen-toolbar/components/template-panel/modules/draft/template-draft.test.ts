@@ -1,3 +1,4 @@
+import { Messages } from "~/shared/lib/messages";
 import { describe, expect, it } from "vitest";
 import { BoardTemplates } from "~/entities/board";
 import { TemplateDraft } from "./template-draft";
@@ -8,7 +9,6 @@ describe("template panel drafts", () => {
 
     state = TemplateDraft.field(state, "min", "-10000");
     state = TemplateDraft.field(state, "max", "10000");
-
     expect(state.error).toBeNull();
     expect(state.resolved?.step).toBeGreaterThan(1);
     expect(BoardTemplates.validate(state.resolved!, 2)).toBe("");
@@ -33,13 +33,17 @@ describe("template panel drafts", () => {
 
     expect(TemplateDraft.field(initial, "max", "-6").error?.field).toBe("max");
 
-    expect(TemplateDraft.field(initial, "min", "2").error?.message).toContain(
-      "ноль",
-    );
+    expect(
+      Messages.plain(
+        TemplateDraft.field(initial, "min", "2").error?.message ?? "",
+      ),
+    ).toContain("ноль");
 
-    expect(TemplateDraft.field(initial, "max", "-1").error?.message).toContain(
-      "ноль",
-    );
+    expect(
+      Messages.plain(
+        TemplateDraft.field(initial, "max", "-1").error?.message ?? "",
+      ),
+    ).toContain("ноль");
   });
 
   it("initializes manual mode from effective auto step and offers a valid actionable repair", () => {
@@ -52,20 +56,16 @@ describe("template panel drafts", () => {
     const step = state.resolved!.step;
 
     state = TemplateDraft.automatic(state, false);
-
     expect(state.fields.step).toBe(String(step));
 
     const preview = state.preview;
 
     state = TemplateDraft.field(state, "step", "0.001");
-
     expect(state.preview).toBe(preview);
     expect(state.error?.field).toBe("step");
     expect(state.resolved).toBeNull();
     expect(state.recommendation).not.toBeNull();
-
     state = TemplateDraft.applyRecommendation(state);
-
     expect(state.error).toBeNull();
     expect(state.automatic).toBe(false);
     expect(state.resolved!.step).toBe(state.recommendation);
@@ -78,10 +78,8 @@ describe("template panel drafts", () => {
     );
 
     state = TemplateDraft.field(state, "step", "1000");
-
     expect(state.resolved).toBeNull();
     expect(TemplateDraft.applyRecommendation(state).resolved).not.toBeNull();
-
     state = TemplateDraft.field(TemplateDraft.create("axes"), "min", "-0,5");
     expect(state.resolved?.min).toBe(-0.5);
   });

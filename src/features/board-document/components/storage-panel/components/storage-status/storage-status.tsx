@@ -1,3 +1,4 @@
+import { I18n } from "~/shared/lib/i18n";
 import type React from "react";
 import type { StorageStatusTypes } from "./storage-status.types";
 import styles from "./storage-status.module.css";
@@ -12,6 +13,6 @@ export const StorageStatus: React.FC<StorageStatusTypes.Props> = (props) => (
     role="status"
     aria-live="polite"
   >
-    {StorageStatusPresentation.label(props.state)}
+    {I18n.text(StorageStatusPresentation.label(props.state))}
   </span>
 );

@@ -1,14 +1,20 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { I18n } from "~/shared/lib/i18n";
 import { App } from "./app/app";
+import { LocalePreferences } from "./app/adapters/locale-platform";
 import "./app/styles.css";
 
-const root = document.getElementById("root");
+const locale = new LocalePreferences();
 
-if (!root) throw new Error("Не найден корневой элемент приложения");
+void I18n.initialize(locale.getSnapshot().language).then(() => {
+  const root = document.getElementById("root");
 
-createRoot(root).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);
+  if (!root) throw new Error("Application root element is missing");
+
+  createRoot(root).render(
+    <StrictMode>
+      <App locale={locale} />
+    </StrictMode>,
+  );
+});

@@ -1,3 +1,4 @@
+import { Messages } from "~/shared/lib/messages";
 import { DocumentJobConfig } from "./document-jobs.config";
 import type { RegionInput } from "~/entities/board";
 import type { BoardDocument } from "../../board-document.types";
@@ -25,7 +26,8 @@ export class JobTransport {
   constructor(private readonly options: JobOptions) {}
 
   private ensureWorker(): JobWorker {
-    if (this.closed) throw new Error("Обработка документа закрыта.");
+    if (this.closed)
+      throw Messages.error(Messages.create("documentProcessingIsClosed"));
 
     if (this.worker) return this.worker;
 
@@ -52,7 +54,7 @@ export class JobTransport {
       if (data.selection)
         data.selection.parts = task.parts ?? data.selection.parts;
 
-      if (data.error) task.reject(new Error(data.error));
+      if (data.error) task.reject(Messages.error(data.error));
       else task.resolve(data);
     };
 
@@ -60,14 +62,14 @@ export class JobTransport {
       event.preventDefault();
 
       this.reset(
-        new Error(
-          "Не удалось обработать документ в фоновом потоке. Данные в памяти сохранены.",
-        ),
+        Messages.error(Messages.create("couldNotProcessTheDocumentInThe")),
       );
     };
 
     worker.onmessageerror = () =>
-      this.reset(new Error("Не удалось передать данные фоновому потоку."));
+      this.reset(
+        Messages.error(Messages.create("couldNotSendDataToTheBackground")),
+      );
 
     this.worker = worker;
 
@@ -95,7 +97,9 @@ export class JobTransport {
     if (signal?.aborted) throw JobScheduling.abortError();
 
     if (this.pending)
-      throw new Error("Другая операция с документом ещё выполняется.");
+      throw Messages.error(
+        Messages.create("anotherDocumentOperationIsStillRunning"),
+      );
 
     const document = {
       ...input,

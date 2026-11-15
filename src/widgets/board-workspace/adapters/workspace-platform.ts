@@ -1,3 +1,4 @@
+import { I18n } from "~/shared/lib/i18n";
 import { BoardCoordinates } from "~/entities/board";
 import { DocumentDownloads, BoardLibraries } from "~/features/board-document";
 import { WorkspaceModel } from "../model/workspace-model";
@@ -5,6 +6,7 @@ import { WorkspaceModel } from "../model/workspace-model";
 function create(): WorkspaceModel {
   return new WorkspaceModel({
     session: BoardLibraries.create,
+    defaultBoardTitle: I18n.t("myBoard"),
     download: DocumentDownloads.download,
     diagnostics: {
       pointerType: null,

@@ -1,3 +1,5 @@
+import type { MessageTypes } from "~/shared/lib/messages";
+import { Messages } from "~/shared/lib/messages";
 import type {
   WorkspaceState,
   WorkspaceDependencies,
@@ -88,7 +90,9 @@ export class WorkspaceModel {
       navigationMessage: "",
       library: Object.freeze({
         activeId: "main",
-        boards: Object.freeze(LibraryCatalog.initial().boards),
+        boards: Object.freeze(
+          LibraryCatalog.initial(dependencies.defaultBoardTitle).boards,
+        ),
         busy: false,
         message: "",
       }),
@@ -127,7 +131,8 @@ export class WorkspaceModel {
   }
 
   readInitialBoard(): BoardSnapshot {
-    if (!this.initialBoard) throw new Error("Доска ещё не загружена.");
+    if (!this.initialBoard)
+      throw Messages.error(Messages.create("boardIsNotLoadedYet"));
 
     return this.initialBoard;
   }
@@ -179,7 +184,8 @@ export class WorkspaceModel {
   readonly diagnosticsChanged = (state: InputDiagnostics) =>
     this.patch({ diagnostics: Object.freeze({ ...state }) });
 
-  readonly unavailable = (unavailable: string) => this.patch({ unavailable });
+  readonly unavailable = (unavailable: MessageTypes.Value) =>
+    this.patch({ unavailable });
 
   readonly overlayChanged = () =>
     this.patch({ uiRevision: this.state.uiRevision + 1 });
@@ -299,7 +305,7 @@ export class WorkspaceModel {
       (this.state.dialogOpen && !allowModal) ||
       this.controls.current?.isBusy()
     )
-      throw new Error("Завершите действие на доске.");
+      throw Messages.error(Messages.create("finishTheBoardAction"));
 
     this.controls.current?.cancelInput();
     await action(this.session);
@@ -412,7 +418,7 @@ export class WorkspaceModel {
     this.documentChanged(false);
   };
 
-  readonly navigationNoticeChanged = (navigationMessage: string) =>
+  readonly navigationNoticeChanged = (navigationMessage: MessageTypes.Value) =>
     this.patch({ navigationMessage });
 
   readonly scenePresenceChanged = (hasInk: boolean) => this.patch({ hasInk });
@@ -435,7 +441,7 @@ export class WorkspaceModel {
 
   readonly beginImport = () => {
     if (!this.session?.canImport || this.controls.current?.isBusy())
-      return "Завершите письмо, стирание или перемещение перед импортом.";
+      return Messages.create("finishWritingErasingOrMovingContentBefore");
 
     this.controls.current?.cancelInput();
     this.patch({ dialogOpen: true });
@@ -446,7 +452,8 @@ export class WorkspaceModel {
   readonly endImport = () => this.patch({ dialogOpen: false });
 
   readonly confirmImport = async (candidate: BoardDocument) => {
-    if (!this.session) throw new Error("Хранилище ещё не открыто.");
+    if (!this.session)
+      throw Messages.error(Messages.create("storageIsNotOpenYet"));
 
     await this.session.replace(
       candidate,
@@ -463,25 +470,24 @@ export class WorkspaceModel {
       this.dependencies.download(result.json, "penable-board.json");
 
       return (
-        result.warning ||
-        "Копия передана браузеру для скачивания. Проверьте файл в загрузках."
+        result.warning || Messages.create("copySentToTheBrowserForDownload")
       );
     } catch (error) {
       return DocumentErrors.messageOf(error);
     }
   };
 
-  private backup(upgrade: boolean): string {
+  private backup(upgrade: boolean): MessageTypes.Value {
     try {
       const record = upgrade
         ? this.session?.upgradeRecord
         : this.session?.previousRecord;
 
       if (!record?.exists)
-        throw new Error(
+        throw Messages.error(
           upgrade
-            ? "Копии до обновления пока нет."
-            : "Копии до замены пока нет.",
+            ? Messages.create("noCopyBeforeUpdateYet")
+            : Messages.create("noCopyBeforeReplacementYet"),
         );
 
       this.dependencies.download(
@@ -490,8 +496,8 @@ export class WorkspaceModel {
       );
 
       return upgrade
-        ? "Копия до обновления передана браузеру. Проверьте файл в загрузках."
-        : "Копия до замены передана браузеру. Повреждённая исходная запись может не поддерживать обратный импорт.";
+        ? Messages.create("copyBeforeUpdateSentToTheBrowser")
+        : Messages.create("copyBeforeReplacementSentToTheBrowser");
     } catch (error) {
       return DocumentErrors.messageOf(error);
     }
@@ -505,14 +511,15 @@ export class WorkspaceModel {
     try {
       const record = this.session?.schema3Record;
 
-      if (!record?.exists) throw new Error("Копии до обновления пока нет.");
+      if (!record?.exists)
+        throw Messages.error(Messages.create("noCopyBeforeUpdateYet"));
 
       this.dependencies.download(
         DocumentCodec.serializeRawBackup(record.value),
         "penable-before-schema3.json",
       );
 
-      return "Копия до обновления передана браузеру. Проверьте файл в загрузках.";
+      return Messages.create("copyBeforeUpdateSentToTheBrowser");
     } catch (error) {
       return DocumentErrors.messageOf(error);
     }
@@ -521,16 +528,17 @@ export class WorkspaceModel {
   private exportRecord(
     record: import("~/features/board-document").StoredRecord | undefined,
     name: string,
-  ): string {
+  ): MessageTypes.Value {
     try {
-      if (!record?.exists) throw new Error("Исходной копии пока нет.");
+      if (!record?.exists)
+        throw Messages.error(Messages.create("noOriginalCopyYet"));
 
       this.dependencies.download(
         DocumentCodec.serializeRawBackup(record.value),
         name,
       );
 
-      return "Копия передана браузеру. Проверьте файл в загрузках.";
+      return Messages.create("copySentToTheBrowserCheckThe");
     } catch (error) {
       return DocumentErrors.messageOf(error);
     }

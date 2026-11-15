@@ -1,3 +1,5 @@
+import type { MessageTypes } from "~/shared/lib/messages";
+import { Messages } from "~/shared/lib/messages";
 import {
   BoardTemplates,
   BoardTemplateSteps,
@@ -28,7 +30,7 @@ function resolve(state: TemplateDraftTypes.State): TemplateDraftTypes.State {
 
   const fail = (
     field: TemplateDraftTypes.Field,
-    message: string,
+    message: MessageTypes.Value,
     recommendation: number | null = null,
   ): TemplateDraftTypes.State => ({
     ...state,
@@ -37,32 +39,38 @@ function resolve(state: TemplateDraftTypes.State): TemplateDraftTypes.State {
     recommendation,
   });
 
-  if (!Number.isFinite(min)) return fail("min", "Введите начало диапазона.");
+  if (!Number.isFinite(min))
+    return fail("min", Messages.create("enterTheRangeStart"));
 
   if (Math.abs(min) > 10000)
-    return fail("min", "Начало — от −10 000 до 10 000.");
+    return fail("min", Messages.create("startMustBeBetween10000And"));
 
-  if (!Number.isFinite(max)) return fail("max", "Введите конец диапазона.");
+  if (!Number.isFinite(max))
+    return fail("max", Messages.create("enterTheRangeEnd"));
 
   if (Math.abs(max) > 10000)
-    return fail("max", "Конец — от −10 000 до 10 000.");
+    return fail("max", Messages.create("endMustBeBetween10000And"));
 
   if (min >= max)
-    return fail("max", "Конец диапазона должен быть больше начала.");
+    return fail("max", Messages.create("rangeEndMustBeGreaterThanIts"));
 
-  if (min > 0) return fail("min", "Диапазон должен включать ноль.");
+  if (min > 0) return fail("min", Messages.create("theRangeMustIncludeZero"));
 
-  if (max < 0) return fail("max", "Диапазон должен включать ноль.");
+  if (max < 0) return fail("max", Messages.create("theRangeMustIncludeZero"));
 
   const config = { ...state.config, min, max };
   const recommendation = BoardTemplateSteps.recommend(config, 2);
   const step = state.automatic ? recommendation : parse(state.fields.step);
 
   if (step === null)
-    return fail("step", "Для этого диапазона не удалось подобрать деления.");
+    return fail("step", Messages.create("couldNotChooseTicksForThisRange"));
 
   if (!Number.isFinite(step) || step < 0.000001)
-    return fail("step", "Введите шаг не меньше 0,000001.", recommendation);
+    return fail(
+      "step",
+      Messages.create("enterAStepOfAtLeast0"),
+      recommendation,
+    );
 
   const resolved = { ...config, step };
   const error = BoardTemplates.validate(resolved, 2);

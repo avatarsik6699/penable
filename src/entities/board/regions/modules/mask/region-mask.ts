@@ -1,3 +1,4 @@
+import { Messages } from "~/shared/lib/messages";
 import { type ClipMask, type Position } from "../../../board.types";
 import { union, type MultiPolygon, type Pair } from "polygon-clipping";
 import { RegionConfig } from "../../regions.config";
@@ -15,7 +16,9 @@ function normalizeMask(mask: ClipMask): ClipMask {
   const normalized = union(mask);
 
   if (vertexCount(normalized) > RegionConfig.REGION_LIMITS.mask)
-    throw new Error("Слишком сложная граница: предел 8192 вершин на фрагмент.");
+    throw Messages.error(
+      Messages.create("tooManyBoundaryVerticesLimit8192Per"),
+    );
 
   return normalized;
 }
@@ -43,9 +46,7 @@ function rectangle(a: Position, b: Position): ClipMask {
 
 function lasso(points: readonly Position[]): ClipMask {
   if (points.length > RegionConfig.REGION_LIMITS.lasso)
-    throw new Error(
-      "Лассо: предел 2048 вершин. Попробуйте более короткую границу.",
-    );
+    throw Messages.error(Messages.create("lassoLimit2048VerticesTryAShorter"));
 
   if (points.length < 3) return [];
 
@@ -226,7 +227,9 @@ function contains(mask: ClipMask, point: Position): boolean {
 
 function checkedMask(mask: ClipMask): ClipMask {
   if (vertexCount(mask) > RegionConfig.REGION_LIMITS.mask)
-    throw new Error("Слишком сложная граница: предел 8192 вершин на фрагмент.");
+    throw Messages.error(
+      Messages.create("tooManyBoundaryVerticesLimit8192Per"),
+    );
 
   return mask;
 }

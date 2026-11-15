@@ -1,3 +1,6 @@
+import type { MessageTypes } from "~/shared/lib/messages";
+import { Messages } from "~/shared/lib/messages";
+import { I18n } from "~/shared/lib/i18n";
 import type React from "react";
 import { useState } from "react";
 import { useLibraryDelete } from "./hooks/use-library-delete";
@@ -13,7 +16,7 @@ export const LibraryPanel: React.FC<LibraryPanelTypes.Props> = (props) => {
   const [search, setSearch] = useState(""),
     [creating, setCreating] = useState(false),
     [title, setTitle] = useState(""),
-    [error, setError] = useState("");
+    [error, setError] = useState<MessageTypes.Value>("");
 
   const deletion = useLibraryDelete(props);
 
@@ -35,10 +38,10 @@ export const LibraryPanel: React.FC<LibraryPanelTypes.Props> = (props) => {
 
   const beginCreate = () => {
     let suffix = 1,
-      next = "Моя доска";
+      next = I18n.t("myBoard");
 
     while (props.state.boards.some((board) => board.title === next))
-      next = `Моя доска ${++suffix}`;
+      next = I18n.t("myBoardValue", { p0: ++suffix });
 
     setTitle(next);
     setCreating(true);
@@ -59,8 +62,8 @@ export const LibraryPanel: React.FC<LibraryPanelTypes.Props> = (props) => {
     } catch (error) {
       setError(
         error instanceof Error
-          ? error.message
-          : "Не удалось изменить библиотеку досок.",
+          ? Messages.from(error)
+          : Messages.create("couldNotUpdateTheBoardLibrary"),
       );
     }
   };
@@ -72,12 +75,16 @@ export const LibraryPanel: React.FC<LibraryPanelTypes.Props> = (props) => {
         ref={(node) => props.bindPanel(node)}
         id="board-library"
         role="complementary"
-        aria-label="Мои доски"
+        aria-label={I18n.t("myBoards")}
       >
         <div className={styles.heading}>
-          {appearanceBoard ? <span>Оформление</span> : <h2>Мои доски</h2>}
+          {appearanceBoard ? (
+            <span>{I18n.t("appearance")}</span>
+          ) : (
+            <h2>{I18n.t("myBoards")}</h2>
+          )}
           <Button
-            aria-label="Закрыть список досок"
+            aria-label={I18n.t("closeBoardList")}
             onClick={props.closeAndFocus}
           >
             <EditorIcon name="close" />
@@ -96,8 +103,8 @@ export const LibraryPanel: React.FC<LibraryPanelTypes.Props> = (props) => {
             <input
               className={styles.search}
               type="search"
-              aria-label="Поиск досок"
-              placeholder="Поиск по названию"
+              aria-label={I18n.t("searchBoards")}
+              placeholder={I18n.t("searchByName")}
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
@@ -107,7 +114,7 @@ export const LibraryPanel: React.FC<LibraryPanelTypes.Props> = (props) => {
               disabled={disabled || props.state.boards.length >= 100}
             >
               <EditorIcon name="plus" />
-              Новая доска
+              {I18n.t("newBoard")}
             </Button>
             {creating && (
               <form
@@ -118,10 +125,10 @@ export const LibraryPanel: React.FC<LibraryPanelTypes.Props> = (props) => {
                 }}
               >
                 <label>
-                  Новая доска
+                  {I18n.t("newBoard")}
                   <input
                     autoFocus
-                    aria-label="Название новой доски"
+                    aria-label={I18n.t("newBoardName")}
                     value={title}
                     maxLength={80}
                     disabled={disabled}
@@ -130,13 +137,13 @@ export const LibraryPanel: React.FC<LibraryPanelTypes.Props> = (props) => {
                 </label>
                 <div className={styles.createActions}>
                   <Button type="submit" disabled={disabled || !title.trim()}>
-                    Создать доску
+                    {I18n.t("createBoard")}
                   </Button>
                   <Button
                     onClick={() => setCreating(false)}
                     disabled={props.state.busy}
                   >
-                    Отмена
+                    {I18n.t("cancel")}
                   </Button>
                 </div>
               </form>
@@ -167,22 +174,24 @@ export const LibraryPanel: React.FC<LibraryPanelTypes.Props> = (props) => {
             </ul>
             {!boards.length && (
               <p className={styles.empty} role="status">
-                {props.state.boards.length
-                  ? "Доски не найдены"
-                  : "Загрузка досок…"}
+                {I18n.text(
+                  props.state.boards.length
+                    ? Messages.create("noBoardsFound")
+                    : Messages.create("loadingBoards"),
+                )}
               </p>
             )}
           </>
         )}
         {!appearanceBoard && (error || props.state.message) && (
           <p className={styles.error} role="alert">
-            {error || props.state.message}
+            {I18n.text(error || props.state.message)}
           </p>
         )}
       </div>
       {deletion.board && (
         <DeleteBoardDialog
-          title={deletion.board.title}
+          title={I18n.text(deletion.board.title)}
           busy={props.state.busy}
           error={error}
           onCancel={deletion.cancel}

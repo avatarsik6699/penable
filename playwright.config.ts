@@ -17,6 +17,7 @@ export default defineConfig({
   reporter: [["list"], ["json", { outputFile: ".artifacts/e2e/results.json" }]],
   use: {
     baseURL: "http://127.0.0.1:4185/penable/",
+    locale: "ru-RU",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     acceptDownloads: true,

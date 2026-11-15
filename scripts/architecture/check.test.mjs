@@ -651,3 +651,29 @@ test("local shadows retain ordinary bracket access, destructuring and rest", () 
   `,
   });
 });
+
+// Locale catalogs use readonly typed objects; scoped React hooks retain hook names.
+test("shared readonly catalogs and correctly scoped named hooks retain their public shape", () => {
+  accepts({
+    "src/shared/lib/locale/catalog.ts":
+      'export const Catalog = { label: "Language" } as const;',
+    "src/shared/lib/locale/hooks/use-language.ts":
+      'export function useLanguage() { return "en"; }',
+  });
+
+  rejects(
+    {
+      "src/shared/lib/locale/hooks/use-language.ts":
+        'export function readLanguage() { return "en"; }',
+    },
+    "helper-namespace",
+  );
+
+  rejects(
+    {
+      "src/shared/lib/locale/use-language.ts":
+        'export function useLanguage() { return "en"; }',
+    },
+    "hook-location",
+  );
+});

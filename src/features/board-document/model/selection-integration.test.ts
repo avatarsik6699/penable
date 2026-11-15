@@ -1,3 +1,4 @@
+import { Messages } from "~/shared/lib/messages";
 import { describe, expect, it, vi } from "vitest";
 import {
   BoardSelection,
@@ -355,7 +356,7 @@ describe("selection batch budgets", () => {
 
     h.selection.all();
     h.selection.insert(true);
-    expect(h.selection.message).toContain("20 000");
+    expect(Messages.plain(h.selection.message)).toContain("20 000");
     expect(h.scene.strokes).toHaveLength(10001);
     expect(h.commits()).toBe(0);
 
@@ -371,7 +372,7 @@ describe("selection batch budgets", () => {
 
     points.selection.all();
     points.selection.insert(true);
-    expect(points.selection.message).toContain("1 000 000");
+    expect(Messages.plain(points.selection.message)).toContain("1 000 000");
     expect(points.commits()).toBe(0);
     expect(points.selection.selected).toHaveLength(6);
   });
@@ -626,8 +627,15 @@ describe("actionable fragment-count preflight", () => {
     expect(validate).not.toHaveBeenCalled();
     expect(h.commits()).toBe(0);
     expect(h.selection.busy).toBe(false);
-    expect(h.selection.message).toContain("предел 20 000 фрагментов");
-    expect(h.selection.message).toContain("Выделите штрихи целиком");
+
+    expect(Messages.plain(h.selection.message)).toContain(
+      "предел 20 000 фрагментов",
+    );
+
+    expect(Messages.plain(h.selection.message)).toContain(
+      "Выделите штрихи целиком",
+    );
+
     expect(h.selection.selected).toEqual(selected);
     expect(h.selection.outline).toEqual(area);
     expect(h.scene.strokes).toEqual(originals);

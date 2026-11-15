@@ -1,3 +1,4 @@
+import { Messages } from "~/shared/lib/messages";
 import {
   type Stroke,
   BoardLimits,
@@ -19,11 +20,11 @@ function decodeStrokes(
   modern = false,
 ): Stroke[] {
   if (!Array.isArray(strokes) || strokes.length > limits.strokes)
-    CodecPrimitives.invalid("strokes: превышен предел");
+    CodecPrimitives.invalid(Messages.create("strokesLimitExceeded"));
 
   for (let index = 0; index < strokes.length; index++)
     if (!Object.hasOwn(strokes, index))
-      CodecPrimitives.invalid("strokes: пропущен элемент");
+      CodecPrimitives.invalid(Messages.create("strokesMissingItem"));
 
   let totalPoints = 0;
   const ids = new Set<number>();
@@ -41,7 +42,9 @@ function decodeStrokes(
     );
 
     if (!Number.isSafeInteger(id) || ids.has(id))
-      CodecPrimitives.invalid("stroke.id: повтор/небезопасное число");
+      CodecPrimitives.invalid(
+        Messages.create("strokeIdDuplicateOrUnsafeNumber"),
+      );
 
     ids.add(id);
 
@@ -59,16 +62,18 @@ function decodeStrokes(
       !rawPoints.length ||
       rawPoints.length > limits.pointsPerStroke
     )
-      CodecPrimitives.invalid("stroke.points: превышен предел/пусто");
+      CodecPrimitives.invalid(
+        Messages.create("strokePointsLimitExceededOrEmpty"),
+      );
 
     for (let index = 0; index < rawPoints.length; index++)
       if (!Object.hasOwn(rawPoints, index))
-        CodecPrimitives.invalid("stroke.points: пропущен элемент");
+        CodecPrimitives.invalid(Messages.create("strokePointsMissingItem"));
 
     totalPoints += rawPoints.length;
 
     if (totalPoints > limits.points)
-      CodecPrimitives.invalid("points: превышен общий предел");
+      CodecPrimitives.invalid(Messages.create("pointsTotalLimitExceeded"));
 
     const points: Point[] = rawPoints.map((entry: unknown) => {
       const point = CodecPrimitives.object(entry, "point");
@@ -135,7 +140,9 @@ function decodeStrokes(
       );
 
       if (Object.hasOwn(profile, "strength") === Object.hasOwn(profile, "mode"))
-        CodecPrimitives.invalid("stabilization: нужен strength или mode");
+        CodecPrimitives.invalid(
+          Messages.create("stabilizationStrengthOrModeRequired"),
+        );
 
       let stabilization: StabilizationProfile;
 
@@ -195,11 +202,15 @@ function decodeStrokes(
         totalVertices += BoardRegions.vertexCount(result.clip);
 
         if (totalVertices > BoardRegions.REGION_LIMITS.document)
-          CodecPrimitives.invalid("clip: превышен общий предел 100000 вершин");
+          CodecPrimitives.invalid(
+            Messages.create("clipTotalLimitOf100000VerticesExceeded"),
+          );
       }
 
       if ((result.clip || result.translation) && !result.source)
-        CodecPrimitives.invalid("stroke.source: требуется для фрагмента");
+        CodecPrimitives.invalid(
+          Messages.create("strokeSourceRequiredForAFragment"),
+        );
 
       if (result.source) {
         const signature = JSON.stringify({
@@ -214,7 +225,7 @@ function decodeStrokes(
 
         if (previous && previous !== signature)
           CodecPrimitives.invalid(
-            "stroke.source: несовместимая исходная геометрия",
+            Messages.create("strokeSourceIncompatibleSourceGeometry"),
           );
 
         sources.set(result.source, signature);

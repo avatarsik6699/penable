@@ -1,3 +1,4 @@
+import { Messages } from "~/shared/lib/messages";
 import type {
   BoardItem,
   SelectionClipboard,
@@ -10,9 +11,12 @@ import type { FragmentReaderTypes } from "./fragment-reader.types";
 export const FragmentReader = {
   read(blob: Blob, signal: AbortSignal): Promise<SelectionClipboard> {
     if (blob.size > FragmentCodec.LIMIT)
-      return Promise.reject(new Error("Фрагмент превышает 64 MiB."));
+      return Promise.reject(
+        Messages.error(Messages.create("fragmentExceeds64Mib")),
+      );
 
-    if (signal.aborted) return Promise.reject(new Error("Вставка отменена."));
+    if (signal.aborted)
+      return Promise.reject(Messages.error(Messages.create("pasteCancelled")));
 
     return new Promise((resolve, reject) => {
       const worker = new Worker(
@@ -31,7 +35,7 @@ export const FragmentReader = {
 
       const abort = () => {
         finish();
-        reject(new Error("Вставка отменена."));
+        reject(Messages.error(Messages.create("pasteCancelled")));
       };
 
       signal.addEventListener("abort", abort, { once: true });
@@ -39,7 +43,10 @@ export const FragmentReader = {
       worker.onerror = (event) => {
         event.preventDefault();
         finish();
-        reject(new Error("Не удалось прочитать фрагмент Penable."));
+
+        reject(
+          Messages.error(Messages.create("couldNotReadThePenableFragment")),
+        );
       };
 
       worker.onmessage = ({
@@ -49,7 +56,7 @@ export const FragmentReader = {
 
         if (data.type === "error") {
           finish();
-          reject(new Error(data.message));
+          reject(Messages.error(data.message));
         }
 
         if (data.type === "asset") {

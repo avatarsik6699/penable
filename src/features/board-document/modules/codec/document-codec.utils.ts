@@ -1,10 +1,15 @@
+import type { MessageTypes } from "~/shared/lib/messages";
+import { Messages } from "~/shared/lib/messages";
 import { CodecConfig } from "./document-codec.config";
 
-function invalid(field: string): never {
-  throw new Error(`Недопустимые данные: ${field}.`);
+function invalid(field: MessageTypes.Value): never {
+  throw Messages.error(Messages.create("invalidDataValue", { p0: field }));
 }
 
-function object(value: unknown, field: string): Record<string, unknown> {
+function object(
+  value: unknown,
+  field: MessageTypes.Value,
+): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value))
     return invalid(field);
 
@@ -30,7 +35,7 @@ function number(
   value: unknown,
   min: number,
   max: number,
-  field: string,
+  field: MessageTypes.Value,
 ): number {
   if (
     typeof value !== "number" ||
@@ -43,7 +48,7 @@ function number(
   return value;
 }
 
-function coordinate(value: unknown, field: string) {
+function coordinate(value: unknown, field: MessageTypes.Value) {
   return number(
     value,
     -CodecConfig.COORDINATE_LIMIT,

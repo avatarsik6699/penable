@@ -1,3 +1,5 @@
+import { Messages } from "~/shared/lib/messages";
+import { I18n } from "~/shared/lib/i18n";
 import type React from "react";
 import { useState } from "react";
 import { Button } from "~/shared/ui/button";
@@ -13,10 +15,10 @@ export const AppAvailability: React.FC<AppAvailabilityTypes.Props> = () => {
   const panel = usePanelDismiss({ open, onClose: () => setOpen(false) });
 
   const labels = {
-    preparing: "Подготовка к работе без интернета…",
-    ready: "Готово к работе без интернета",
-    unavailable: "Не удалось подготовить работу без интернета",
-    development: "Офлайн-режим доступен в опубликованной версии",
+    preparing: Messages.create("preparingOfflineAccess"),
+    ready: Messages.create("readyToWorkOffline"),
+    unavailable: Messages.create("couldNotPrepareOfflineAccess"),
+    development: Messages.create("offlineAccessIsAvailableInThePublished"),
   };
 
   return (
@@ -24,8 +26,8 @@ export const AppAvailability: React.FC<AppAvailabilityTypes.Props> = () => {
       <div className={styles.trigger} data-editor-chrome="">
         <Button
           ref={(node) => panel.bindTrigger(node)}
-          aria-label="Приложение и офлайн"
-          title="Приложение и офлайн"
+          aria-label={I18n.t("appAndOffline")}
+          title={I18n.t("appAndOffline")}
           aria-expanded={open}
           aria-haspopup="dialog"
           aria-controls="app-availability-panel"
@@ -40,56 +42,49 @@ export const AppAvailability: React.FC<AppAvailabilityTypes.Props> = () => {
           className={styles.panel}
           id="app-availability-panel"
           role="dialog"
-          aria-label="Приложение и офлайн"
+          aria-label={I18n.t("appAndOffline")}
           data-editor-chrome=""
         >
           <div className={styles.heading}>
-            <h2>Приложение и офлайн</h2>
+            <h2>{I18n.t("appAndOffline")}</h2>
             <Button
-              aria-label="Закрыть приложение и офлайн"
+              aria-label={I18n.t("closeAppAndOffline")}
               onClick={panel.closeAndFocus}
             >
               <EditorIcon name="close" />
             </Button>
           </div>
-          <p role="status">{labels[availability.snapshot.offline]}</p>
+          <p role="status">
+            {I18n.text(labels[availability.snapshot.offline])}
+          </p>
           {availability.snapshot.offline === "unavailable" && (
             <Button className={styles.action} onClick={availability.retry}>
-              Повторить подготовку
+              {I18n.t("retryPreparation")}
             </Button>
           )}
           {availability.snapshot.waiting && (
-            <p>
-              Обновление готово. Дождитесь сохранения, закройте все окна penable
-              и откройте приложение снова.
-            </p>
+            <p>{I18n.t("updateReadyWaitForYourNotesTo")}</p>
           )}
           {availability.snapshot.installable &&
             !availability.snapshot.installed && (
               <Button className={styles.action} onClick={availability.install}>
-                Установить penable
+                {I18n.t("installPenable")}
               </Button>
             )}
           {availability.snapshot.installed && (
-            <p>penable открыто как приложение.</p>
+            <p>{I18n.t("penableIsRunningAsAnApp")}</p>
           )}
           {availability.snapshot.installError && (
-            <p>
-              Не удалось открыть установку. Попробуйте установить penable через
-              меню браузера.
-            </p>
+            <p>{I18n.t("couldNotOpenInstallationTryInstallingPenable")}</p>
           )}
           <p className={styles.hint}>
-            В Chrome и Edge установка доступна через меню браузера. На iPad и
-            iPhone: «Поделиться» → «На экран “Домой”».
+            {I18n.t("inChromeAndEdgeInstallFromThe")}
           </p>
           <p className={styles.hint}>
-            Для первой загрузки нужен интернет. После подготовки можно писать и
-            открывать доски без сети, даже без установки.
+            {I18n.t("theFirstLoadNeedsInternetOncePrepared")}
           </p>
           <p className={styles.hint}>
-            Записи хранятся в этом браузере. Установка не создаёт резервную
-            копию: скачивайте JSON-копии важных досок.
+            {I18n.t("notesStayInThisBrowserInstallationDoes")}
           </p>
         </div>
       )}

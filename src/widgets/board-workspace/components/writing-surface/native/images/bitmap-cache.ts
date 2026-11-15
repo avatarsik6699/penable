@@ -1,3 +1,4 @@
+import { Messages } from "~/shared/lib/messages";
 import type { ImageAsset, BoardItem } from "~/entities/board";
 import type { BitmapCacheTypes } from "./bitmap-cache.types";
 import { ImageAssets } from "~/features/board-document/worker";
@@ -10,14 +11,16 @@ export class BitmapCache {
 
   ensure(asset: ImageAsset): Promise<ImageBitmap> {
     if (this.disposed)
-      return Promise.reject(new Error("Загрузка изображения отменена."));
+      return Promise.reject(
+        Messages.error(Messages.create("imageLoadingCancelled")),
+      );
 
     const known = this.entries.get(asset);
 
     if (known) return known.promise;
 
     if (asset.base64.length > Math.ceil(ImageAssets.LIMITS.bytes / 3) * 4)
-      throw new Error("Изображение превышает 8 MiB.");
+      throw Messages.error(Messages.create("imageExceeds8Mib"));
 
     // External assets pass the strict codec; file assets use our canonical encoder.
     // Re-decoding immutable bytes after undo uses the browser rather than a JS byte loop.
@@ -42,15 +45,15 @@ export class BitmapCache {
         if (this.disposed || this.entries.get(asset) !== entry) {
           bitmap.close();
 
-          throw new Error("Загрузка изображения отменена.");
+          throw Messages.error(Messages.create("imageLoadingCancelled"));
         }
 
         try {
           ImageAssets.dimensions(bitmap.width, bitmap.height);
 
           if (!(bitmap.width === asset.width && bitmap.height === asset.height))
-            throw new Error(
-              "Размер декодированного изображения не совпадает с заголовком.",
+            throw Messages.error(
+              Messages.create("decodedImageDimensionsDoNotMatchIts"),
             );
         } catch (error) {
           bitmap.close();

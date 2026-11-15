@@ -1,3 +1,4 @@
+import { I18n } from "~/shared/lib/i18n";
 import type React from "react";
 import { Button } from "~/shared/ui/button";
 import { EditorIcon } from "~/shared/ui/editor-icon";
@@ -26,7 +27,7 @@ export const PenToolbar: React.FC<PenToolbarTypes.Props> = (props) => {
       <header
         className={styles.dock}
         role="group"
-        aria-label="Инструменты доски"
+        aria-label={I18n.t("boardTools")}
         data-editor-chrome=""
         data-editor-dock=""
       >
@@ -34,8 +35,8 @@ export const PenToolbar: React.FC<PenToolbarTypes.Props> = (props) => {
         <div className={styles.primary}>
           <Button
             className={styles.imageInsert}
-            aria-label="Вставить изображение"
-            title="Вставить изображение"
+            aria-label={I18n.t("insertImage")}
+            title={I18n.t("insertImage")}
             disabled={props.readOnly}
             transientDisabled={props.historyState.busy}
             onClick={props.onInsertImage}
@@ -45,8 +46,8 @@ export const PenToolbar: React.FC<PenToolbarTypes.Props> = (props) => {
           <Button
             ref={(node) => templatesPanel.bindTrigger(node)}
             className={styles.imageInsert}
-            aria-label="Фигуры и заготовки"
-            title="Фигуры и заготовки"
+            aria-label={I18n.t("shapesAndTemplates")}
+            title={I18n.t("shapesAndTemplates")}
             aria-haspopup="dialog"
             aria-expanded={props.templatesOpen}
             disabled={props.readOnly}
@@ -85,7 +86,7 @@ export const PenToolbar: React.FC<PenToolbarTypes.Props> = (props) => {
               readOnly={props.readOnly}
             />
           ) : props.tool === "eraser" ? (
-            <span className={styles.eraser}>Штрих целиком</span>
+            <span className={styles.eraser}>{I18n.t("wholeStroke")}</span>
           ) : (
             props.selectionControls
           )}
@@ -95,13 +96,13 @@ export const PenToolbar: React.FC<PenToolbarTypes.Props> = (props) => {
             className={styles.insertionNotice}
             role={props.insertion.phase === "error" ? "alert" : "status"}
           >
-            <span>{props.insertion.message}</span>
+            <span>{I18n.text(props.insertion.message)}</span>
             {["error", "success", "placing"].includes(
               props.insertion.phase,
             ) && (
               <Button
                 className={styles.dismissNotice}
-                aria-label="Закрыть сообщение о вставке"
+                aria-label={I18n.t("dismissInsertionMessage")}
                 onClick={props.onDismissInsertion}
               >
                 <EditorIcon name="close" />
@@ -109,7 +110,7 @@ export const PenToolbar: React.FC<PenToolbarTypes.Props> = (props) => {
             )}
             {props.insertion.phase === "error" && (
               <Button onClick={props.onInsertImage} disabled={props.readOnly}>
-                Повторить
+                {I18n.t("retry")}
               </Button>
             )}
           </div>
@@ -118,7 +119,7 @@ export const PenToolbar: React.FC<PenToolbarTypes.Props> = (props) => {
           !props.selectionOpen &&
           props.selectionMessage !== props.insertion?.message && (
             <p className={styles.feedback} role="status">
-              {props.selectionMessage}
+              {I18n.text(props.selectionMessage)}
             </p>
           )}
         <div className={styles.trailing}>{props.trailingControls}</div>

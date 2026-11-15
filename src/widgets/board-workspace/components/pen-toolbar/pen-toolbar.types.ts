@@ -1,3 +1,4 @@
+import type { MessageTypes } from "~/shared/lib/messages";
 import type React from "react";
 import type { DrawingTool, HistoryState } from "~/entities/board";
 
@@ -35,7 +36,7 @@ export namespace PenToolbarTypes {
     selectionDisabled: boolean;
     penOpen: boolean;
     onPenOpenChange: (open: boolean) => void;
-    selectionMessage: string;
+    selectionMessage: MessageTypes.Value;
     selectionOpen: boolean;
     selectionControls: React.ReactNode;
     trailingControls: React.ReactNode;

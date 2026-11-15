@@ -1,3 +1,4 @@
+import { Messages } from "~/shared/lib/messages";
 import type { TemplateConfig } from "../../../board.types";
 import { TemplateGlyphs } from "../glyphs";
 import type { MathMeasure as MeasuredMath } from "./math-layout.types";
@@ -19,9 +20,7 @@ function measure(config: TemplateConfig): MeasuredMath {
   const count = last - first + 1;
 
   if (!Number.isFinite(count) || count < 2 || count > MAX_TICKS)
-    throw new Error(
-      "Нужно от 2 до 201 деления: увеличьте шаг или сократите диапазон.",
-    );
+    throw Messages.error(Messages.create("use2To201TicksIncreaseThe"));
 
   const ticks = Array.from(
     { length: count },
@@ -40,8 +39,8 @@ function measure(config: TemplateConfig): MeasuredMath {
   const height = config.kind === "axes" ? width : 120;
 
   if (!Number.isFinite(width) || width > MAX_SIDE || height > MAX_SIDE)
-    throw new Error(
-      "Заготовка больше 32 768 единиц: увеличьте шаг или сократите диапазон.",
+    throw Messages.error(
+      Messages.create("templateExceeds32768UnitsIncreaseThe"),
     );
 
   return { ticks, spacing, width, height, margin };

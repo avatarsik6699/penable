@@ -1,3 +1,4 @@
+import type { MessageTypes } from "~/shared/lib/messages";
 import type {
   BoardSelection,
   PenInput,
@@ -55,13 +56,15 @@ export namespace EditorCommandTypes {
     dismissInsertion: () => void;
     canvas: HTMLCanvasElement;
     scene: Scene;
-    state: { viewport: Viewport };
+    state: {
+      viewport: Viewport;
+    };
     selectionCommand: (command: SelectionCommand) => void;
     api: EditorHandle;
     publishSelection: () => void;
     applyHistory: (action: HistoryAction) => void;
     surface: ReturnType<typeof SurfaceBindings.bind>;
-    notice: (message: string) => void;
+    notice: (message: MessageTypes.Value) => void;
     lastWritingView: () => WritingView | null;
   };
 }

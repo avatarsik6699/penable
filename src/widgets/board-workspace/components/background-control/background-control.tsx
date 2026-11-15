@@ -1,3 +1,5 @@
+import { Messages } from "~/shared/lib/messages";
+import { I18n } from "~/shared/lib/i18n";
 import { RangeInput } from "~/shared/ui/range-input";
 import type React from "react";
 import type { BackgroundControlTypes } from "./background-control.types";
@@ -8,8 +10,12 @@ export const BackgroundControl: React.FC<BackgroundControlTypes.Props> = (
   props,
 ) => (
   <div className={styles.root}>
-    <h3>Фон доски</h3>
-    <div className={styles.options} role="group" aria-label="Фон доски">
+    <h3>{I18n.t("boardBackground")}</h3>
+    <div
+      className={styles.options}
+      role="group"
+      aria-label={I18n.t("boardBackground")}
+    >
       {(["blank", "dots", "grid"] as BackgroundMode[]).map((mode) => (
         <button
           type="button"
@@ -23,11 +29,13 @@ export const BackgroundControl: React.FC<BackgroundControlTypes.Props> = (
             className={[styles.preview, styles[mode]].join(" ")}
           />
           <span>
-            {mode === "blank"
-              ? "Без фона"
-              : mode === "dots"
-                ? "Точки"
-                : "Клетка"}
+            {I18n.text(
+              mode === "blank"
+                ? Messages.create("blank")
+                : mode === "dots"
+                  ? Messages.create("dots")
+                  : Messages.create("grid"),
+            )}
           </span>
         </button>
       ))}
@@ -35,12 +43,13 @@ export const BackgroundControl: React.FC<BackgroundControlTypes.Props> = (
     {props.background !== "blank" && (
       <div className={styles.settings}>
         <label htmlFor="background-contrast">
-          Контраст фона <output>{props.settings.contrast}%</output>
+          {I18n.t("backgroundContrast")}{" "}
+          <output>{props.settings.contrast}%</output>
         </label>
         <RangeInput
           id="background-contrast"
-          aria-label="Контраст фона"
-          aria-valuetext={`${props.settings.contrast}%`}
+          aria-label={I18n.t("backgroundContrast")}
+          aria-valuetext={I18n.text(`${props.settings.contrast}%`)}
           min="0"
           max="100"
           step="1"
@@ -54,12 +63,15 @@ export const BackgroundControl: React.FC<BackgroundControlTypes.Props> = (
           }
         />
         <label htmlFor="background-spacing">
-          Шаг фона <output>{props.settings.spacing}</output>
+          {I18n.t("backgroundSpacing")}{" "}
+          <output>{props.settings.spacing}</output>
         </label>
         <RangeInput
           id="background-spacing"
-          aria-label="Шаг фона"
-          aria-valuetext={`${props.settings.spacing} единиц доски`}
+          aria-label={I18n.t("backgroundSpacing")}
+          aria-valuetext={I18n.text(
+            Messages.create("valueBoardUnits", { p0: props.settings.spacing }),
+          )}
           min="12"
           max="64"
           step="2"
@@ -72,9 +84,7 @@ export const BackgroundControl: React.FC<BackgroundControlTypes.Props> = (
             })
           }
         />
-        <p>
-          При отдалении фон становится реже. Настройки сохраняются с доской.
-        </p>
+        <p>{I18n.t("theBackgroundBecomesCoarserWhenZoomedOut")}</p>
       </div>
     )}
   </div>

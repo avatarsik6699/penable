@@ -1,9 +1,11 @@
+import type { MessageTypes } from "~/shared/lib/messages";
+import { Messages } from "~/shared/lib/messages";
 import type { StorageState } from "../../board-document.types";
 
-function messageOf(error: unknown): string {
+function messageOf(error: unknown): MessageTypes.Value {
   return error instanceof Error
-    ? error.message
-    : "Неизвестная ошибка хранилища.";
+    ? Messages.from(error)
+    : Messages.create("unknownStorageError");
 }
 
 function isSchema1(value: unknown): boolean {

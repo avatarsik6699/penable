@@ -1,3 +1,5 @@
+import type { MessageTypes } from "~/shared/lib/messages";
+import { Messages } from "~/shared/lib/messages";
 import {
   BoardConstants,
   type TemplateConfig,
@@ -19,15 +21,15 @@ const kinds = [
   "circle",
 ] as const;
 
-const names: Record<TemplateKind, string> = {
-  line: "Отрезок",
-  arrow: "Стрелка",
-  rectangle: "Прямоугольник",
-  ellipse: "Эллипс",
-  triangle: "Треугольник",
-  "number-line": "Числовая прямая",
-  axes: "Оси XY",
-  circle: "Тригонометрическая окружность",
+const names: Record<TemplateKind, MessageTypes.Value> = {
+  line: Messages.create("line"),
+  arrow: Messages.create("arrow"),
+  rectangle: Messages.create("rectangle"),
+  ellipse: Messages.create("ellipse"),
+  triangle: Messages.create("triangle"),
+  "number-line": Messages.create("numberLine"),
+  axes: Messages.create("xyAxes"),
+  circle: Messages.create("trigonometricCircle"),
 };
 
 const cache = new WeakMap<TemplateConfig, TemplateLayout>();
@@ -52,41 +54,42 @@ function defaults(kind: TemplateKind = "rectangle"): TemplateConfig {
   };
 }
 
-function validate(value: TemplateConfig): string {
-  if (!kinds.some((kind) => kind === value.kind)) return "Выберите заготовку.";
+function validate(value: TemplateConfig): MessageTypes.Value {
+  if (!kinds.some((kind) => kind === value.kind))
+    return Messages.create("chooseATemplate");
 
   if (
     value.kind === "circle" &&
     (value.width !== value.height || value.width < 280)
   )
-    return "Окружность должна быть квадратной, размер — от 280.";
+    return Messages.create("theCircleMustBeSquareAndAt");
 
   if (
     ![value.width, value.height].every(
       (n) => Number.isFinite(n) && n >= 40 && n <= 2000,
     )
   )
-    return "Размер должен быть от 40 до 2000.";
+    return Messages.create("sizeMustBeBetween40And2000");
 
   if (
     !BoardWriting.isColor(value.color) ||
     (value.fill !== null && !BoardWriting.isColor(value.fill))
   )
-    return "Выберите цвет из палитры.";
+    return Messages.create("chooseAPaletteColor");
 
   if (
     !Number.isFinite(value.lineWidth) ||
     value.lineWidth < 0.5 ||
     value.lineWidth > 12
   )
-    return "Толщина должна быть от 0,5 до 12.";
+    return Messages.create("widthMustBeBetween05And");
 
   if (
     ![value.dashed, value.numbers, value.grid, value.labels, value.rays].every(
       (n) => typeof n === "boolean",
     )
   )
-    return "Некорректные параметры заготовки.";
+    return Messages.create("invalidTemplateSettings");
 
   if (
     ![value.min, value.max, value.step].every(Number.isFinite) ||
@@ -94,10 +97,10 @@ function validate(value: TemplateConfig): string {
     Math.abs(value.max) > 10000 ||
     value.step < 0.000001
   )
-    return "Задайте конечный диапазон и положительный шаг.";
+    return Messages.create("enterAFiniteRangeAndAPositive");
 
   if (value.min >= value.max || value.min > 0 || value.max < 0)
-    return "Диапазон должен возрастать и включать ноль.";
+    return Messages.create("theRangeMustIncreaseAndIncludeZero");
 
   if (value.kind === "number-line" || value.kind === "axes") {
     const count = Math.floor((value.max - value.min) / value.step) + 1;
@@ -119,7 +122,7 @@ function validate(value: TemplateConfig): string {
       (value.kind === "axes" &&
         (value.height - 56) / (count - 1) < (value.numbers ? 22 : 8))
     )
-      return "Слишком частые деления: увеличьте шаг или размер заготовки.";
+      return Messages.create("ticksAreTooDenseIncreaseTheStep");
   }
 
   return "";
@@ -132,7 +135,7 @@ function layout(config: TemplateConfig): TemplateLayout {
 
   const error = validate(config);
 
-  if (error) throw new Error(error);
+  if (error) throw Messages.error(error);
 
   const primitives: TemplatePrimitive[] = [];
   const { width: w, height: h } = config;

@@ -1,3 +1,5 @@
+import type { LocalePreferences } from "./adapters/locale-platform";
+
 export namespace AppTypes {
-  export type Props = Record<string, never>;
+  export type Props = { locale: LocalePreferences };
 }

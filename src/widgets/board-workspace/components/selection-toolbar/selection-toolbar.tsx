@@ -1,3 +1,4 @@
+import { I18n } from "~/shared/lib/i18n";
 import type React from "react";
 import { SelectionActions } from "./components/selection-actions";
 import { Button } from "~/shared/ui/button";
@@ -19,33 +20,33 @@ export const SelectionToolbar: React.FC<SelectionToolbarTypes.Props> = (
       className={styles.toolbar}
       data-board-selection-toolbar=""
       role="region"
-      aria-label="Действия выделения"
+      aria-label={I18n.t("selectionCommands")}
     >
       <div
         className={styles.controls}
         role="group"
-        aria-label="Способ выделения"
+        aria-label={I18n.t("selectionMethod")}
       >
         <Button
           aria-pressed={props.shape === "rectangle"}
           disabled={toolbar.busy}
           onClick={() => toolbar.changeShape("rectangle")}
         >
-          Рамка
+          {I18n.t("rectangle408")}
         </Button>
         <Button
           aria-pressed={props.shape === "lasso"}
           disabled={toolbar.busy}
           onClick={() => toolbar.changeShape("lasso")}
         >
-          Лассо
+          {I18n.t("lasso")}
         </Button>
         <Button
           ref={(node) => {
             toolbar.bindTrigger(node);
           }}
-          aria-label="Действия"
-          title="Действия выделения"
+          aria-label={I18n.t("actions")}
+          title={I18n.t("selectionCommands")}
           aria-haspopup="dialog"
           aria-expanded={props.open}
           aria-controls="selection-menu"

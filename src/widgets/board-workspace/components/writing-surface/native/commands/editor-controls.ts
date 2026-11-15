@@ -1,3 +1,4 @@
+import { Messages } from "~/shared/lib/messages";
 import { BoardViewport } from "~/entities/board";
 import type { SurfaceControls } from "../../../../model/workspace-model.types";
 import type { EditorCommandTypes } from "./editor-commands.types";
@@ -99,9 +100,7 @@ function create(options: EditorCommandTypes.ControlsOptions): SurfaceControls {
       const view = BoardViewport.zoomAt(navigation.viewport, 1, center());
 
       if (!BoardViewport.isValid(view)) {
-        options.notice(
-          "Этот участок слишком далеко для масштаба 100%. Выберите более близкую область.",
-        );
+        options.notice(Messages.create("thisAreaIsTooFarAwayFor"));
 
         return;
       }
@@ -132,9 +131,7 @@ function create(options: EditorCommandTypes.ControlsOptions): SurfaceControls {
       );
 
       if (!BoardViewport.isValid(destination)) {
-        options.notice(
-          "Место письма слишком далеко для перехода в этом окне. Выберите участок на миникарте.",
-        );
+        options.notice(Messages.create("theWritingPositionIsTooFarAway"));
 
         return;
       }

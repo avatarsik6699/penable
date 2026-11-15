@@ -206,3 +206,15 @@ install prompt and standalone media events. Views/hooks consume snapshots and ac
 Build-owned scripts/pwa emits manifest/icons and the complete versioned production shell. Cache
 Storage contains app assets only, never document data; SW does not claim clients or skip waiting.
 Updates cannot reload an active editor. Existing document sessions/leases retain all authority.
+
+## Interface language
+
+App initializes the bundled i18next/react-i18next resources and owns language preferences/metadata.
+Only app/adapters/locale-platform.ts accesses navigator, window/document and preference storage.
+Shared typed i18n is a UI service; the separate pure messages public entry carries code/parameters
+through entities, sessions and Worker transport without importing React/i18next/browser APIs.
+Translate at display, retaining descriptors so visible errors change language. User content and
+stored titles are never translated. Locale changes cannot remount editor/session/canvas or enter
+per-pointer rendering. App composes a languageSettings slot into the existing gear View section;
+readonly board authority does not disable this application preference. Both catalogs are offline
+assets. Tests fix ordinary legacy UI scenarios to ru-RU and add isolated EN/RU locale acceptance.

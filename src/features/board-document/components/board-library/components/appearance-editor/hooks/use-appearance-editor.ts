@@ -1,10 +1,12 @@
+import type { MessageTypes } from "~/shared/lib/messages";
+import { Messages } from "~/shared/lib/messages";
 import { useState, useRef, useEffect } from "react";
 import type { AppearanceEditorTypes } from "../appearance-editor.types";
 
 export function useAppearanceEditor(props: AppearanceEditorTypes.Props) {
   const [draft, setDraft] = useState(props.appearance);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<MessageTypes.Value>("");
   const pending = useRef(false);
   const mounted = useRef(true);
 
@@ -31,8 +33,8 @@ export function useAppearanceEditor(props: AppearanceEditorTypes.Props) {
       if (mounted.current)
         setError(
           failure instanceof Error
-            ? failure.message
-            : "Не удалось сохранить оформление.",
+            ? Messages.from(failure)
+            : Messages.create("couldNotSaveAppearance"),
         );
     } finally {
       pending.current = false;

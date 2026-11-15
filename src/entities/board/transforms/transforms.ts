@@ -1,3 +1,4 @@
+import { Messages } from "~/shared/lib/messages";
 import type {
   AffineMatrix,
   BoardItem,
@@ -41,7 +42,7 @@ function multiply(a: AffineMatrix, b: AffineMatrix): AffineMatrix {
 
 function inverse(m: AffineMatrix): AffineMatrix {
   if (!valid(m))
-    throw new Error("Недопустимое преобразование: вырожденная матрица.");
+    throw Messages.error(Messages.create("invalidTransformSingularMatrix"));
 
   const determinant = m[0] * m[3] - m[1] * m[2];
 
@@ -82,9 +83,7 @@ function apply(item: BoardItem, transform: AffineMatrix): BoardItem {
   const result = multiply(transform, matrix(item));
 
   if (!valid(result))
-    throw new Error(
-      "Преобразование слишком мало или выходит за пределы доски.",
-    );
+    throw Messages.error(Messages.create("transformIsTooSmallOrExceedsBoard"));
 
   if (
     item.kind !== "image" &&
@@ -112,7 +111,7 @@ function around(
     scaleX <= 0 ||
     scaleY <= 0
   )
-    throw new Error("Масштаб должен быть положительным числом.");
+    throw Messages.error(Messages.create("scaleMustBeAPositiveNumber"));
 
   const angle = (degrees * Math.PI) / 180,
     c = Math.cos(angle),
@@ -134,7 +133,12 @@ function around(
 }
 
 function bounds(
-  value: { left: number; right: number; top: number; bottom: number },
+  value: {
+    left: number;
+    right: number;
+    top: number;
+    bottom: number;
+  },
   m: AffineMatrix,
 ) {
   const corners = [

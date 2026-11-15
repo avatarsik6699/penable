@@ -1,13 +1,17 @@
+import type { MessageTypes } from "~/shared/lib/messages";
+import { Messages } from "~/shared/lib/messages";
 import { DocumentCodec } from "../modules/codec";
 import type { LibraryRepository } from "../board-document.types";
 import type { StoredRecord } from "../board-document.types";
 
 function open(
-  invalidated: (message: string) => void,
+  invalidated: (message: MessageTypes.Value) => void,
   factory: IDBFactory | undefined = globalThis.indexedDB,
 ): Promise<LibraryRepository> {
   if (!factory)
-    return Promise.reject(new Error("IndexedDB недоступен в этом браузере."));
+    return Promise.reject(
+      Messages.error(Messages.create("indexeddbIsUnavailableInThisBrowser")),
+    );
 
   return new Promise((resolve, reject) => {
     const request = factory.open("penable", 1);
@@ -15,11 +19,17 @@ function open(
 
     request.onblocked = () => {
       failed = true;
-      reject(new Error("Открытие хранилища заблокировано другой страницей."));
+
+      reject(
+        Messages.error(Messages.create("anotherPageIsBlockingStorageAccess")),
+      );
     };
 
     request.onerror = () =>
-      reject(request.error ?? new Error("Не удалось открыть каталог досок."));
+      reject(
+        request.error ??
+          Messages.error(Messages.create("couldNotOpenTheBoardCatalog")),
+      );
 
     request.onupgradeneeded = () => {
       if (failed) {
@@ -43,7 +53,7 @@ function open(
 
       if (!db.objectStoreNames.contains("documents")) {
         db.close();
-        reject(new Error("Неподдерживаемое хранилище досок."));
+        reject(Messages.error(Messages.create("unsupportedBoardStorage")));
 
         return;
       }
@@ -54,7 +64,10 @@ function open(
 
       if (definition.keyPath !== null || definition.autoIncrement) {
         db.close();
-        reject(new Error("Неподдерживаемая структура documents."));
+
+        reject(
+          Messages.error(Messages.create("unsupportedDocumentsStructure")),
+        );
 
         return;
       }
@@ -66,17 +79,17 @@ function open(
         if (!closed) {
           closed = true;
           db.close();
-          invalidated("Версия хранилища изменилась. Повторите подключение.");
+
+          invalidated(
+            Messages.create("storageVersionChangedReconnectToContinue"),
+          );
         }
       };
 
       db.onclose = () => {
         if (!closed) {
           closed = true;
-
-          invalidated(
-            "Хранилище досок закрыто. Изменения в памяти доступны для экспорта.",
-          );
+          invalidated(Messages.create("boardStorageClosedChangesInMemoryCan"));
         }
       };
 
@@ -84,7 +97,10 @@ function open(
         mode: IDBTransactionMode,
         run: (store: IDBObjectStore, result: (value: T) => void) => void,
       ): Promise<T> {
-        if (closed) return Promise.reject(new Error("Каталог досок закрыт."));
+        if (closed)
+          return Promise.reject(
+            Messages.error(Messages.create("boardCatalogClosed")),
+          );
 
         const tx = db.transaction("documents", mode);
 
@@ -96,7 +112,9 @@ function open(
 
           tx.onabort = () =>
             fail(
-              error ?? tx.error ?? new Error("Изменение каталога отменено."),
+              error ??
+                tx.error ??
+                Messages.error(Messages.create("catalogUpdateCancelled")),
             );
 
           tx.onerror = () => {

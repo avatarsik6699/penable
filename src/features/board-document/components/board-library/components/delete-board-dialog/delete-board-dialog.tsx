@@ -1,3 +1,4 @@
+import { I18n } from "~/shared/lib/i18n";
 import type React from "react";
 import { useEffect, useRef } from "react";
 import { Overlay } from "~/shared/lib/overlay";
@@ -21,33 +22,33 @@ export const DeleteBoardDialog: React.FC<DeleteBoardDialogTypes.Props> = (
       ref={dialog}
       className={styles.dialog}
       role="alertdialog"
-      aria-label="Удалить доску?"
+      aria-label={I18n.t("deleteBoard")}
       onCancel={(event) => {
         event.preventDefault();
 
         if (!props.busy) props.onCancel();
       }}
     >
-      <h2>Удалить доску?</h2>
+      <h2>{I18n.t("deleteBoard")}</h2>
       <p>
-        «{props.title}» и её локальные копии будут удалены. Скачайте нужные
-        записи перед удалением.
+        «{I18n.text(props.title)}
+        {I18n.t("andItsLocalRecoveryCopiesWillBe")}
       </p>
       {props.error && (
         <p className={styles.error} role="alert">
-          {props.error}
+          {I18n.text(props.error)}
         </p>
       )}
       <div className={styles.actions}>
         <Button autoFocus disabled={props.busy} onClick={props.onCancel}>
-          Отмена
+          {I18n.t("cancel")}
         </Button>
         <Button
           className={styles.destructive}
           disabled={props.busy}
           onClick={props.onConfirm}
         >
-          Удалить доску
+          {I18n.t("deleteBoard130")}
         </Button>
       </div>
     </dialog>

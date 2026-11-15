@@ -97,7 +97,7 @@ components:
 **Creative North Star: "The Writing-First Notebook"**
 
 The production editor follows the owner-approved Change14 visual direction implemented in Change15 and refined in Change16.
-White paper, compact Russian labels and one consistent Lucide SVG icon family keep writing central.
+White paper, compact English/Russian labels and one consistent Lucide SVG icon family keep writing central.
 Contextual panels expose settings, document actions and recovery without a permanent instruction row.
 This file describes the built visual system; [SPEC](docs/SPEC.md) owns product behavior and [FRONTEND](docs/FRONTEND.md) owns architecture.
 
@@ -225,3 +225,10 @@ uniform figure proportions. Mathematical previews continue to fill their assigne
 Installation/offline controls reuse the existing light surface, semantic tokens and visible
 keyboard focus. Keep them contextual and separate from per-sample writing/dock geometry.
 Offline readiness describes the cached app; local note status remains independently authoritative.
+
+## Language preference (Change36)
+
+The existing gear View section ends with a labelled native Language select (Auto, English,
+Русский) and a short profile-wide preference hint. It reuses the light field/focus tokens and
+40px minimum target. Both translations preserve dock/panel geometry; existing board titles
+are user content and retain their language. Preference remains available in readonly.

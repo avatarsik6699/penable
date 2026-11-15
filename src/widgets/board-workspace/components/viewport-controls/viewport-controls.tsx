@@ -1,3 +1,5 @@
+import { Messages } from "~/shared/lib/messages";
+import { I18n } from "~/shared/lib/i18n";
 import type React from "react";
 import type { ViewportControlsTypes } from "./viewport-controls.types";
 import styles from "./viewport-controls.module.css";
@@ -10,18 +12,18 @@ export const ViewportControls: React.FC<ViewportControlsTypes.Props> = (
   <div
     className={styles.navigation}
     role="group"
-    aria-label="Масштаб доски"
+    aria-label={I18n.t("boardZoom")}
     data-editor-chrome=""
   >
     {props.navigationMessage && (
       <p className={styles.notice} role="status">
-        {props.navigationMessage}
+        {I18n.text(props.navigationMessage)}
       </p>
     )}
     <Button
       onClick={props.onZoomOut}
-      aria-label="Уменьшить масштаб доски"
-      title="Уменьшить масштаб доски"
+      aria-label={I18n.t("zoomOutBoard")}
+      title={I18n.t("zoomOutBoard")}
       disabled={props.historyState.busy || props.diagnostics.zoom <= 0.25}
     >
       <EditorIcon name="minus" />
@@ -29,8 +31,12 @@ export const ViewportControls: React.FC<ViewportControlsTypes.Props> = (
     <Button
       className={styles.value}
       onClick={props.onResetView}
-      aria-label={`Масштаб ${Math.round(props.diagnostics.zoom * 100)} процентов. Установить 100%`}
-      title="Установить 100% вокруг центра экрана"
+      aria-label={I18n.text(
+        Messages.create("zoomValuePercentSetTo100", {
+          p0: Math.round(props.diagnostics.zoom * 100),
+        }),
+      )}
+      title={I18n.t("set100AroundTheScreenCenter")}
       disabled={props.historyState.busy}
     >
       {Math.round(props.diagnostics.zoom * 100)}
@@ -38,8 +44,8 @@ export const ViewportControls: React.FC<ViewportControlsTypes.Props> = (
     </Button>
     <Button
       onClick={props.onZoomIn}
-      aria-label="Увеличить масштаб доски"
-      title="Увеличить масштаб доски"
+      aria-label={I18n.t("zoomInBoard")}
+      title={I18n.t("zoomInBoard")}
       disabled={props.historyState.busy || props.diagnostics.zoom >= 8}
     >
       <EditorIcon name="plus" />
@@ -52,19 +58,19 @@ export const ViewportControls: React.FC<ViewportControlsTypes.Props> = (
         !props.canReturnWriting
       }
       onClick={props.onReturnWriting}
-      aria-label="К месту письма"
-      title={
+      aria-label={I18n.t("returnToWriting")}
+      title={I18n.text(
         props.canReturnWriting
-          ? "Вернуться к последнему рабочему виду"
-          : "Завершите штрих, чтобы запомнить место письма"
-      }
+          ? Messages.create("returnToTheLastWritingView")
+          : Messages.create("finishAStrokeToRememberYourWriting"),
+      )}
     >
       <EditorIcon name="writing-return" />
     </Button>
     <Button
       ref={(node) => props.bindMinimapTrigger(node)}
-      aria-label="Миникарта"
-      title="Миникарта"
+      aria-label={I18n.t("minimap")}
+      title={I18n.t("minimap")}
       aria-expanded={props.minimapOpen}
       aria-controls="board-minimap-panel"
       disabled={props.selectionDisabled}

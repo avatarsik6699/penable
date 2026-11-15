@@ -1,3 +1,4 @@
+import { I18n } from "~/shared/lib/i18n";
 import type React from "react";
 import { Button } from "~/shared/ui/button";
 import { EditorIcon } from "~/shared/ui/editor-icon";
@@ -26,17 +27,17 @@ export const TemplatePanel: React.FC<TemplatePanelTypes.Props> = (props) => {
       className={styles.panel}
       data-math={mathematical || config.kind === "circle" || undefined}
       role="dialog"
-      aria-label="Фигуры и заготовки"
+      aria-label={I18n.t("shapesAndTemplates")}
       ref={(node) => props.bindRoot(node)}
     >
       <div className={styles.heading}>
-        <h2>Фигуры и заготовки</h2>
+        <h2>{I18n.t("shapesAndTemplates")}</h2>
         <div className={styles.actions}>
           <HelpHint
-            label="О фигурах и заготовках"
-            text="Настройте заготовку, затем нажмите на доску для вставки. Изменяйте размер ручками выделения. Автошаг подбирает читаемые деления; диапазон должен включать ноль. Esc отменяет вставку."
+            label={I18n.t("aboutShapesAndTemplates")}
+            text={I18n.t("configureATemplateThenClickTheBoard")}
           />
-          <Button onClick={props.onClose} aria-label="Закрыть заготовки">
+          <Button onClick={props.onClose} aria-label={I18n.t("closeTemplates")}>
             <EditorIcon name="close" />
           </Button>
         </div>
@@ -53,15 +54,17 @@ export const TemplatePanel: React.FC<TemplatePanelTypes.Props> = (props) => {
         >
           <TemplatePreview config={draft.state.preview} />
           {draft.state.error && (
-            <span className={styles.stale}>Последний корректный вид</span>
+            <span className={styles.stale}>{I18n.t("lastValidPreview")}</span>
           )}
         </div>
         <div className={styles.settings}>
           <div className={styles.outline}>
             <div className={styles.caption}>
-              <label htmlFor="template-line-width">Толщина контура</label>
+              <label htmlFor="template-line-width">
+                {I18n.t("outlineWidth")}
+              </label>
               <output htmlFor="template-line-width">
-                {config.lineWidth.toFixed(1)}
+                {I18n.text(config.lineWidth.toFixed(1))}
                 <span>px</span>
               </output>
             </div>
@@ -85,7 +88,7 @@ export const TemplatePanel: React.FC<TemplatePanelTypes.Props> = (props) => {
           />
           {!mathematical && config.kind !== "circle" && (
             <fieldset disabled={props.disabled} className={styles.options}>
-              <legend>Оформление фигуры</legend>
+              <legend>{I18n.t("shapeStyle")}</legend>
               <label>
                 <input
                   type="checkbox"
@@ -94,7 +97,7 @@ export const TemplatePanel: React.FC<TemplatePanelTypes.Props> = (props) => {
                     draft.change({ dashed: event.target.checked })
                   }
                 />
-                Пунктир
+                {I18n.t("dashed")}
               </label>
               {closed && (
                 <label>
@@ -107,7 +110,7 @@ export const TemplatePanel: React.FC<TemplatePanelTypes.Props> = (props) => {
                       })
                     }
                   />
-                  Заливка
+                  {I18n.t("fill")}
                 </label>
               )}
             </fieldset>
@@ -115,7 +118,7 @@ export const TemplatePanel: React.FC<TemplatePanelTypes.Props> = (props) => {
           {config.fill && (
             <InkPalette
               color={config.fill}
-              label="Цвет заливки"
+              label={I18n.t("fillColor")}
               disabled={props.disabled}
               onChange={(fill) => draft.change({ fill })}
             />
@@ -133,7 +136,7 @@ export const TemplatePanel: React.FC<TemplatePanelTypes.Props> = (props) => {
           )}
           {config.kind === "circle" && (
             <fieldset disabled={props.disabled} className={styles.options}>
-              <legend>Оформление окружности</legend>
+              <legend>{I18n.t("circleStyle")}</legend>
               <label>
                 <input
                   type="checkbox"
@@ -142,7 +145,7 @@ export const TemplatePanel: React.FC<TemplatePanelTypes.Props> = (props) => {
                     draft.change({ labels: event.target.checked })
                   }
                 />
-                Углы
+                {I18n.t("angles")}
               </label>
               <label>
                 <input
@@ -152,7 +155,7 @@ export const TemplatePanel: React.FC<TemplatePanelTypes.Props> = (props) => {
                     draft.change({ numbers: event.target.checked })
                   }
                 />
-                Координаты
+                {I18n.t("coordinates")}
               </label>
               <label>
                 <input
@@ -162,7 +165,7 @@ export const TemplatePanel: React.FC<TemplatePanelTypes.Props> = (props) => {
                     draft.change({ rays: event.target.checked })
                   }
                 />
-                Вспомогательные лучи
+                {I18n.t("guideRays")}
               </label>
             </fieldset>
           )}
@@ -175,7 +178,7 @@ export const TemplatePanel: React.FC<TemplatePanelTypes.Props> = (props) => {
           if (draft.state.resolved) props.onPlace(draft.state.resolved);
         }}
       >
-        Разместить на доске
+        {I18n.t("placeOnBoard")}
       </Button>
     </div>
   );

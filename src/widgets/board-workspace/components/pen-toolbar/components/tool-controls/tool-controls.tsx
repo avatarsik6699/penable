@@ -1,3 +1,4 @@
+import { I18n } from "~/shared/lib/i18n";
 import type React from "react";
 import type { ToolControlsTypes } from "./tool-controls.types";
 import styles from "./tool-controls.module.css";
@@ -5,13 +6,13 @@ import { Button } from "~/shared/ui/button";
 import { EditorIcon } from "~/shared/ui/editor-icon";
 
 export const ToolControls: React.FC<ToolControlsTypes.Props> = (props) => (
-  <div className={styles.tools} role="group" aria-label="Инструмент">
+  <div className={styles.tools} role="group" aria-label={I18n.t("tool")}>
     <Button
       ref={(node) => {
         props.bindPenTrigger(node);
       }}
-      aria-label="Перо"
-      title="Перо · повторно — параметры"
+      aria-label={I18n.t("pen")}
+      title={I18n.t("penClickAgainForSettings")}
       aria-pressed={props.tool === "pen"}
       aria-haspopup="dialog"
       aria-expanded={props.penOpen}
@@ -30,8 +31,8 @@ export const ToolControls: React.FC<ToolControlsTypes.Props> = (props) => (
       </span>
     </Button>
     <Button
-      aria-label="Ластик"
-      title="Ластик: штрих целиком"
+      aria-label={I18n.t("eraser")}
+      title={I18n.t("eraserWholeStroke")}
       aria-pressed={props.tool === "eraser"}
       onClick={() => props.onToolChange("eraser")}
       disabled={props.readOnly}
@@ -40,8 +41,8 @@ export const ToolControls: React.FC<ToolControlsTypes.Props> = (props) => (
       <EditorIcon name="eraser" />
     </Button>
     <Button
-      aria-label="Выделение"
-      title="Выделение"
+      aria-label={I18n.t("selection")}
+      title={I18n.t("selection")}
       aria-pressed={props.tool === "selection"}
       onClick={() => props.onToolChange("selection")}
       disabled={props.selectionDisabled}

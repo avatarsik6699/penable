@@ -1,3 +1,4 @@
+import { Messages } from "~/shared/lib/messages";
 import {
   BoardConstants,
   type InkColor,
@@ -7,16 +8,16 @@ import {
 } from "../board.types";
 
 const palette = [
-  { color: BoardConstants.INK, label: "Тёмный" },
-  { color: "#667085", label: "Серый" },
-  { color: "#175cd3", label: "Синий" },
-  { color: "#0ba5ec", label: "Голубой" },
-  { color: "#0e9384", label: "Бирюзовый" },
-  { color: "#2e7d32", label: "Зелёный" },
-  { color: "#f4c430", label: "Жёлтый" },
-  { color: "#e87518", label: "Оранжевый" },
-  { color: "#d92d20", label: "Красный" },
-  { color: "#7f56d9", label: "Фиолетовый" },
+  { color: BoardConstants.INK, label: Messages.create("dark") },
+  { color: "#667085", label: Messages.create("gray") },
+  { color: "#175cd3", label: Messages.create("blue") },
+  { color: "#0ba5ec", label: Messages.create("lightBlue") },
+  { color: "#0e9384", label: Messages.create("teal") },
+  { color: "#2e7d32", label: Messages.create("green") },
+  { color: "#f4c430", label: Messages.create("yellow") },
+  { color: "#e87518", label: Messages.create("orange") },
+  { color: "#d92d20", label: Messages.create("red") },
+  { color: "#7f56d9", label: Messages.create("purple") },
 ] as const;
 
 const instruments = ["pen", "pressure", "highlighter"] as const;

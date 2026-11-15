@@ -10,10 +10,16 @@ selection, mathematical templates, navigation and browser-local storage.
 **Notes live in this browser profile. Download editable JSON copies to protect them against
 site-data clearing. There is no cloud backup or device synchronization.**
 
-This guide describes the locally shipped implementation through Change34. Public Pages updates
-use a separate release; local delivery alone does not establish which revision the public site runs.
-The current interface is Russian. Documentation uses English descriptions and includes Russian
-control labels where needed to find them; ru/en interface localization is the approved next stage.
+This guide describes the repository build. Public Pages updates use a separate release;
+local delivery alone does not establish which revision the public site runs.
+
+## Interface language
+
+On first launch, penable chooses the first supported language in your browser preferences,
+falling back to English. Board settings → View → Language offers Auto, English and Русский.
+A manual choice is saved for all boards in this browser profile; Auto follows the browser.
+Switching applies immediately and preserves notes, selection and undo history. Existing board
+names are never translated. Both languages are included in the prepared offline app.
 
 ## Open and install
 

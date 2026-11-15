@@ -1,3 +1,4 @@
+import { Messages } from "~/shared/lib/messages";
 import { describe, expect, it } from "vitest";
 import type {
   PointerInput,
@@ -158,11 +159,21 @@ describe("selection contact owner", () => {
     for (let index = 1; index < 2048; index++)
       expect(h.gesture.move(pointer(index))).toEqual({ kind: "draft" });
 
-    expect(h.gesture.move(pointer(2048))).toEqual({
-      kind: "error",
-      error: new Error(
-        "Лассо: предел 2048 вершин. Попробуйте более короткую границу.",
-      ),
+    const limited = h.gesture.move(pointer(2048));
+
+    expect(limited.kind).toBe("error");
+
+    if (limited.kind !== "error")
+      throw new Error("Expected a bounded-lasso error");
+
+    expect(limited.error).toBeInstanceOf(Error);
+
+    expect(limited.error.message).toBe(
+      "Лассо: предел 2048 вершин. Попробуйте более короткую границу.",
+    );
+
+    expect(Messages.from(limited.error)).toEqual({
+      code: "lassoLimit2048VerticesTryAShorter",
     });
 
     expect(h.gesture.pointerId).toBe(1);

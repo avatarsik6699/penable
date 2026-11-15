@@ -1,3 +1,4 @@
+import { Messages } from "~/shared/lib/messages";
 import { LibraryAppearance } from "./library-appearance";
 import type { BoardCatalog } from "./library.types";
 
@@ -5,14 +6,16 @@ function title(value: string): string {
   const result = value.trim();
 
   if (!result.length || result.length > 80)
-    throw new Error("Название доски должно содержать от 1 до 80 символов.");
+    throw Messages.error(Messages.create("boardNamesMustContain1To80"));
 
   return result;
 }
 
 function decode(value: unknown): BoardCatalog {
   if (!value || typeof value !== "object" || Array.isArray(value))
-    throw new Error("Повреждён каталог досок. Исходные данные сохранены.");
+    throw Messages.error(
+      Messages.create("theBoardCatalogIsCorruptOriginalData"),
+    );
 
   const raw = value as Record<string, unknown>;
 
@@ -24,10 +27,9 @@ function decode(value: unknown): BoardCatalog {
     raw.boards.length > 100 ||
     typeof raw.activeId !== "string"
   )
-    throw new Error("Неподдерживаемый или повреждённый каталог досок.");
+    throw Messages.error(Messages.create("unsupportedOrCorruptBoardCatalog"));
 
   const ids = new Set<string>();
-
   const used = new Set<string>();
 
   if (raw.schemaVersion === 2) {
@@ -43,7 +45,7 @@ function decode(value: unknown): BoardCatalog {
 
   const boards = Array.from(raw.boards, (entry) => {
     if (!entry || typeof entry !== "object" || Array.isArray(entry))
-      throw new Error("Повреждена запись каталога досок.");
+      throw Messages.error(Messages.create("corruptBoardCatalogEntry"));
 
     const board = entry as Record<string, unknown>;
 
@@ -54,7 +56,7 @@ function decode(value: unknown): BoardCatalog {
       typeof board.title !== "string" ||
       board.title !== title(board.title)
     )
-      throw new Error("Недопустимая запись каталога досок.");
+      throw Messages.error(Messages.create("invalidBoardCatalogEntry"));
 
     ids.add(board.id);
 
@@ -69,7 +71,7 @@ function decode(value: unknown): BoardCatalog {
   });
 
   if (!ids.has(raw.activeId))
-    throw new Error("Активная доска отсутствует в каталоге.");
+    throw Messages.error(Messages.create("theActiveBoardIsMissingFromThe"));
 
   return {
     format: "penable-library",
@@ -79,7 +81,7 @@ function decode(value: unknown): BoardCatalog {
   };
 }
 
-function initial(): BoardCatalog {
+function initial(defaultTitle = "My board"): BoardCatalog {
   return {
     format: "penable-library",
     schemaVersion: 2,
@@ -87,7 +89,7 @@ function initial(): BoardCatalog {
     boards: [
       {
         id: "main",
-        title: "Моя доска",
+        title: defaultTitle,
         appearance: LibraryAppearance.assign("main", new Set()),
       },
     ],

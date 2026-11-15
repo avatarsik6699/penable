@@ -1,3 +1,4 @@
+import { I18n } from "~/shared/lib/i18n";
 import { ImagePreflight } from "./image-preflight";
 import { BoardLibrarySession } from "../modules/library";
 import type { LibraryOptions } from "../modules/library";
@@ -15,6 +16,7 @@ function create(
 ): BoardLibrarySession {
   return new BoardLibrarySession({
     ...options,
+    initialTitle: I18n.t("myBoard"),
     preflight: ImagePreflight.validate,
     acquire: DocumentWriterLease.acquireWriterLease,
     open: LibraryRepositoryAdapter.open,

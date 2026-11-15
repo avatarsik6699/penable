@@ -1,3 +1,4 @@
+import { Messages } from "~/shared/lib/messages";
 import { afterEach, describe, it, expect, vi } from "vitest";
 import { ImageInput } from "./image-input";
 import { BitmapCache } from "./bitmap-cache";
@@ -55,7 +56,6 @@ function setup(
       viewport: () => ({ x: 0, y: 0, zoom: 1 }),
       allowed: () => true,
       insert,
-
       notice,
 
       changed: () => {},
@@ -145,7 +145,7 @@ describe("pending image insertion ownership", () => {
     await h.input.insertFile(h.file);
     expect(h.input.busy).toBe(false);
     expect(h.input.status.phase).toBe("error");
-    expect(h.input.status.message).toContain("Повторите");
+    expect(Messages.plain(h.input.status.message)).toContain("Повторите");
     expect(close).toHaveBeenCalledOnce();
     h.input.dismiss();
     expect(h.input.status.phase).toBe("idle");

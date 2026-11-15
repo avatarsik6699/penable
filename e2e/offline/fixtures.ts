@@ -91,6 +91,7 @@ export const test = base.extend<
 
     const context = await browser.newContext({
       baseURL: "http://127.0.0.1:4209/penable/",
+      locale: "ru-RU",
       acceptDownloads: true,
       serviceWorkers: "allow",
     });
@@ -127,6 +128,7 @@ export const test = base.extend<
 
     const context = await browser.newContext({
       baseURL: "http://127.0.0.1:4209/penable/",
+      locale: "ru-RU",
       acceptDownloads: true,
       serviceWorkers: "allow",
     });

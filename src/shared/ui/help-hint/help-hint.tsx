@@ -1,3 +1,4 @@
+import { I18n } from "~/shared/lib/i18n";
 import type React from "react";
 import { useId, useState } from "react";
 import { EditorIcon } from "~/shared/ui/editor-icon";
@@ -21,7 +22,7 @@ export const HelpHint: React.FC<HelpHintTypes.Props> = (props) => {
       <button
         type="button"
         className={styles.trigger}
-        aria-label={props.label}
+        aria-label={I18n.text(props.label)}
         aria-describedby={id}
         onFocus={() => setVisible(true)}
         onBlur={() => {
@@ -43,7 +44,7 @@ export const HelpHint: React.FC<HelpHintTypes.Props> = (props) => {
         <EditorIcon name="help" />
       </button>
       <span id={id} role="tooltip" className={styles.hint}>
-        {props.text}
+        {I18n.text(props.text)}
       </span>
     </span>
   );

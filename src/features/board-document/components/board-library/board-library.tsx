@@ -1,3 +1,5 @@
+import { Messages } from "~/shared/lib/messages";
+import { I18n } from "~/shared/lib/i18n";
 import type React from "react";
 import { usePanelDismiss } from "~/shared/ui/panel-dismiss";
 import { Button } from "~/shared/ui/button";
@@ -20,8 +22,8 @@ export const BoardLibrary: React.FC<BoardLibraryTypes.Props> = (props) => {
     <div className={styles.owner} ref={(node) => panel.bindRoot(node)}>
       <Button
         ref={(node) => panel.bindTrigger(node)}
-        aria-label="Доски"
-        title={active?.title ?? "Доски"}
+        aria-label={I18n.t("boards")}
+        title={I18n.text(active?.title ?? Messages.create("boards"))}
         aria-expanded={props.open}
         aria-controls="board-library"
         disabled={props.blocked || props.state.busy}
@@ -29,9 +31,9 @@ export const BoardLibrary: React.FC<BoardLibraryTypes.Props> = (props) => {
         onClick={() => props.onOpenChange(!props.open)}
         className={styles.trigger}
       >
-        <span className={styles.label}>Доски</span>
+        <span className={styles.label}>{I18n.t("boards")}</span>
         <span className={styles.current} data-testid="active-board-title">
-          {active?.title ?? "Моя доска"}
+          {I18n.text(active?.title ?? Messages.create("myBoard"))}
         </span>
         <EditorIcon name="chevron-down" />
       </Button>

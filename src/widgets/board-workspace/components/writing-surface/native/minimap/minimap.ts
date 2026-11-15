@@ -1,3 +1,6 @@
+import { I18n } from "~/shared/lib/i18n";
+import type { MessageTypes } from "~/shared/lib/messages";
+import { Messages } from "~/shared/lib/messages";
 import { DocumentJobs, type OverviewResult } from "~/features/board-document";
 import { MinimapPresentation } from "./minimap-presentation";
 import type { MinimapOptions } from "./minimap.types";
@@ -13,8 +16,24 @@ export class NativeMinimap {
   private result: OverviewResult | null = null;
   private area: HTMLButtonElement | null = null;
   private fit: HTMLButtonElement | null = null;
+  private statusMessage: MessageTypes.Value = "";
 
-  constructor(private readonly options: MinimapOptions) {}
+  private stopLanguage = () => {};
+
+  constructor(private readonly options: MinimapOptions) {
+    this.stopLanguage = I18n.bind(() => {
+      this.setStatus(this.statusMessage);
+      this.viewportChanged();
+    });
+  }
+
+  private setStatus(message: MessageTypes.Value) {
+    this.statusMessage = message;
+
+    const status = this.options.elements.mapStatus;
+
+    if (status) status.textContent = I18n.text(message);
+  }
 
   setOpen(open: boolean) {
     if (open === this.open) {
@@ -54,7 +73,7 @@ export class NativeMinimap {
 
     const status = this.options.elements.mapStatus;
 
-    if (status) status.textContent = "Обновление обзора…";
+    if (status) this.setStatus(Messages.create("updatingOverview"));
 
     this.viewportChanged();
 
@@ -94,9 +113,11 @@ export class NativeMinimap {
       const status = this.options.elements.mapStatus;
 
       if (status)
-        status.textContent = result.bounds
-          ? "Нажмите на участок для перехода."
-          : "На доске пока нет записей.";
+        this.setStatus(
+          result.bounds
+            ? Messages.create("clickAnAreaToGoThere")
+            : Messages.create("noNotesOnThisBoardYet"),
+        );
 
       this.options.elements.mapHost?.setAttribute("aria-busy", "false");
       this.viewportChanged();
@@ -114,14 +135,15 @@ export class NativeMinimap {
       const status = this.options.elements.mapStatus;
 
       if (status)
-        status.textContent =
-          "Не удалось подготовить обзор. Закройте и откройте миникарту для повтора.";
+        this.setStatus(Messages.create("couldNotPrepareTheOverviewCloseAnd"));
 
       this.viewportChanged();
     }
   }
 
   viewportChanged() {
+    this.setStatus(this.statusMessage);
+
     if (!this.open) return;
 
     MinimapPresentation.viewport(
@@ -137,9 +159,7 @@ export class NativeMinimap {
     if (!this.options.navigate(view)) {
       const status = this.options.elements.mapStatus;
 
-      if (status)
-        status.textContent =
-          "Этот участок слишком далеко для перехода. Текущий вид сохранён.";
+      if (status) this.setStatus(Messages.create("thisAreaIsTooFarAwayTo"));
     }
   }
 
@@ -262,6 +282,7 @@ export class NativeMinimap {
   }
 
   dispose() {
+    this.stopLanguage();
     this.open = false;
     this.release();
   }

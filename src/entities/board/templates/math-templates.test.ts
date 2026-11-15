@@ -1,3 +1,4 @@
+import { Messages } from "~/shared/lib/messages";
 import { describe, expect, it, vi } from "vitest";
 import { BoardTemplates } from "./templates";
 import { LegacyTemplates } from "./legacy-templates";
@@ -68,12 +69,17 @@ describe("version2 handwritten math layouts", () => {
     };
 
     expect(BoardTemplates.validate(base, 2)).toBe("");
-    expect(BoardTemplates.validate({ ...base, max: 201 }, 2)).toContain("201");
 
     expect(
-      BoardTemplates.validate(
-        { ...base, min: -10000, max: 10000, step: 1e-6 },
-        2,
+      Messages.plain(BoardTemplates.validate({ ...base, max: 201 }, 2)),
+    ).toContain("201");
+
+    expect(
+      Messages.plain(
+        BoardTemplates.validate(
+          { ...base, min: -10000, max: 10000, step: 1e-6 },
+          2,
+        ),
       ),
     ).toContain("201");
 

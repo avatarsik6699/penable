@@ -1,3 +1,5 @@
+import { I18n } from "~/shared/lib/i18n";
+import { Messages } from "~/shared/lib/messages";
 import type { OverviewResult } from "~/features/board-document";
 import type { Viewport } from "~/entities/board";
 import type { MinimapElements } from "./minimap.types";
@@ -8,7 +10,8 @@ function paint(canvas: HTMLCanvasElement, result: OverviewResult) {
 
   const context = canvas.getContext("2d");
 
-  if (!context) throw new Error("Canvas обзора недоступен.");
+  if (!context)
+    throw Messages.error(Messages.create("overviewCanvasIsUnavailable"));
 
   const image = context.createImageData(result.width, result.height);
 
@@ -26,7 +29,10 @@ function viewport(
   elements: MinimapElements,
   result: OverviewResult | null,
   view: Viewport,
-  size: { width: number; height: number },
+  size: {
+    width: number;
+    height: number;
+  },
   blocked: boolean,
 ) {
   const bounds = result?.bounds,
@@ -91,9 +97,11 @@ function viewport(
   if (elements.mapOutside) {
     elements.mapOutside.hidden = !outside && fitZoom >= 0.25;
 
-    elements.mapOutside.textContent = outside
-      ? "Текущий вид вне записей — выберите участок на миникарте."
-      : "Записи далеко друг от друга — выберите участок на миникарте.";
+    elements.mapOutside.textContent = I18n.t(
+      outside
+        ? "theCurrentViewIsOutsideYourNotes"
+        : "notesAreFarApartChooseAnArea",
+    );
   }
 
   if (elements.mapFit) elements.mapFit.disabled = fitZoom < 0.25 || blocked;

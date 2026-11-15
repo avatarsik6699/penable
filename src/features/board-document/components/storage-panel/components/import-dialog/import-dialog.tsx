@@ -1,3 +1,5 @@
+import { Messages } from "~/shared/lib/messages";
+import { I18n } from "~/shared/lib/i18n";
 import type React from "react";
 import type { ImportDialogTypes } from "./import-dialog.types";
 import styles from "./import-dialog.module.css";
@@ -16,12 +18,10 @@ export const ImportDialog: React.FC<ImportDialogTypes.Props> = (props) => (
       props.dialog.close();
     }}
   >
-    <h2 id="import-title">Импорт доски</h2>
-    <p>
-      Выберите JSON-копию. До подтверждения текущая доска останется прежней.
-    </p>
+    <h2 id="import-title">{I18n.t("importBoard")}</h2>
+    <p>{I18n.t("chooseAJsonBackupTheCurrentBoard")}</p>
     <label className={styles["import-file"]}>
-      JSON-копия
+      {I18n.t("jsonBackup")}
       <input
         type="file"
         accept=".json,application/json"
@@ -29,19 +29,18 @@ export const ImportDialog: React.FC<ImportDialogTypes.Props> = (props) => (
         onChange={props.dialog.fileChanged}
       />
     </label>
-    {props.dialog.reading && <p role="status">Проверка файла…</p>}
+    {props.dialog.reading && <p role="status">{I18n.t("checkingFile")}</p>}
     {props.dialog.candidate && (
       <p>
-        В копии: {DocumentCodec.documentStats(props.dialog.candidate).strokes}{" "}
-        штрихов, {DocumentCodec.documentStats(props.dialog.candidate).points}{" "}
-        точек. Текущая доска будет заменена. Сохранится одна предыдущая запись;
-        следующая замена перезапишет её. JSON-совместимую копию можно скачать,
-        остальные данные останутся в хранилище.
+        {I18n.t("backupSummary", {
+          strokes: DocumentCodec.documentStats(props.dialog.candidate).strokes,
+          points: DocumentCodec.documentStats(props.dialog.candidate).points,
+        })}
       </p>
     )}
     {props.dialog.error && (
       <p className={styles["storage-error"]} role="alert">
-        {props.dialog.error}
+        {I18n.text(props.dialog.error)}
       </p>
     )}
     <div className={styles["import-actions"]}>
@@ -50,7 +49,7 @@ export const ImportDialog: React.FC<ImportDialogTypes.Props> = (props) => (
         onClick={props.dialog.close}
         disabled={props.dialog.confirming || props.state.importing}
       >
-        Отмена
+        {I18n.t("cancel")}
       </Button>
       <Button
         type="button"
@@ -64,7 +63,11 @@ export const ImportDialog: React.FC<ImportDialogTypes.Props> = (props) => (
           props.state.importing
         }
       >
-        {props.dialog.confirming ? "Замена…" : "Заменить доску"}
+        {I18n.text(
+          props.dialog.confirming
+            ? Messages.create("replacing")
+            : Messages.create("replaceBoard"),
+        )}
       </Button>
     </div>
   </dialog>

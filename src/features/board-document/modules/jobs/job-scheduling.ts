@@ -1,5 +1,13 @@
+import { Messages } from "~/shared/lib/messages";
+
 function abortError() {
-  return new DOMException("Действие отменено.", "AbortError");
+  return Object.assign(
+    new DOMException(
+      Messages.plain(Messages.create("actionCancelled")),
+      "AbortError",
+    ),
+    { detail: Messages.create("actionCancelled") },
+  );
 }
 
 async function yieldTask(): Promise<void> {

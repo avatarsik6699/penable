@@ -1,3 +1,4 @@
+import type { MessageTypes } from "~/shared/lib/messages";
 import type {
   BoardDocument,
   BoardAppearance,
@@ -15,10 +16,14 @@ import type { SessionOptions, DocumentSession } from "../session";
 export type LibraryState = Readonly<{
   activeId: string;
   boards: ReadonlyArray<
-    Readonly<{ id: string; title: string; appearance: BoardAppearance }>
+    Readonly<{
+      id: string;
+      title: string;
+      appearance: BoardAppearance;
+    }>
   >;
   busy: boolean;
-  message: string;
+  message: MessageTypes.Value;
 }>;
 
 export type LibraryOptions = Pick<
@@ -26,9 +31,12 @@ export type LibraryOptions = Pick<
   "snapshot" | "onHydrate" | "onState"
 > & {
   onLibrary?: (state: LibraryState) => void;
+  initialTitle?: string;
   preflight?: (document: BoardDocument, signal: AbortSignal) => Promise<void>;
   acquire: () => Promise<WriterLease>;
-  open: (invalidated: (message: string) => void) => Promise<LibraryRepository>;
+  open: (
+    invalidated: (message: MessageTypes.Value) => void,
+  ) => Promise<LibraryRepository>;
   session: (
     id: string,
     lease: WriterLease,

@@ -1,3 +1,5 @@
+import type { MessageTypes } from "~/shared/lib/messages";
+import { Messages } from "~/shared/lib/messages";
 import {
   DocumentJobs,
   FragmentCodec,
@@ -77,7 +79,7 @@ export class BoardClipboard {
     void this.paste(file ?? undefined, ownAdvertised);
   };
 
-  private begin(message: string, writable = false) {
+  private begin(message: MessageTypes.Value, writable = false) {
     if (
       this.disposed ||
       this.pending ||
@@ -105,7 +107,7 @@ export class BoardClipboard {
     );
   }
 
-  private notice(message: string) {
+  private notice(message: MessageTypes.Value) {
     this.options.selection.message = message;
     this.options.changed();
   }
@@ -122,7 +124,10 @@ export class BoardClipboard {
 
     if (!capture) return;
 
-    const pending = this.begin("Подготовка системного буфера…", cut);
+    const pending = this.begin(
+      Messages.create("preparingSystemClipboard"),
+      cut,
+    );
 
     if (!pending) return;
 
@@ -132,12 +137,13 @@ export class BoardClipboard {
 
     try {
       if (typeof ClipboardItem === "undefined" || !navigator.clipboard?.write)
-        throw new Error(
-          "Запись редактируемого фрагмента недоступна. Исходные записи сохранены.",
+        throw Messages.error(
+          Messages.create(
+            "editableFragmentWritingIsUnavailableOriginalContent",
+          ),
         );
 
       const fragment = this.jobs.fragment(capture.fragment, pending.signal);
-
       const png = BoardPNG.fragmentPNG(fragment, pending.signal);
 
       void fragment.catch(() => {});
@@ -164,16 +170,18 @@ export class BoardClipboard {
 
         this.notice(
           removed
-            ? "Фрагмент вырезан в системный буфер."
-            : "Фрагмент скопирован, но доска или выделение изменились. Исходные записи сохранены.",
+            ? Messages.create("fragmentCutToTheSystemClipboard")
+            : Messages.create("fragmentCopiedButTheBoardOrSelection"),
         );
-      } else this.notice("Фрагмент скопирован в системный буфер.");
+      } else this.notice(Messages.create("fragmentCopiedToTheSystemClipboard"));
     } catch (error) {
       if (this.current(pending))
         this.notice(
           error instanceof Error
-            ? `Не удалось записать редактируемый фрагмент. ${error.message} Исходные записи сохранены.`
-            : "Не удалось записать фрагмент. Исходные записи сохранены.",
+            ? Messages.create("couldNotWriteTheEditableFragmentValue", {
+                p0: Messages.from(error),
+              })
+            : Messages.create("couldNotWriteTheFragmentOriginalContent"),
         );
     } finally {
       const queued = this.queuedPaste === pending;
@@ -194,7 +202,11 @@ export class BoardClipboard {
       )
         await this.paste();
       else if (queued && !this.disposed)
-        this.notice(`${this.options.selection.message} Вставка отменена.`);
+        this.notice(
+          Messages.create("valuePasteCancelled", {
+            p0: this.options.selection.message,
+          }),
+        );
     }
   }
 
@@ -206,12 +218,12 @@ export class BoardClipboard {
       this.options.writable()
     ) {
       this.queuedPaste = this.pending;
-      this.notice("Вставка после завершения копирования…");
+      this.notice(Messages.create("waitingForCopyingBeforePaste"));
 
       return;
     }
 
-    const pending = this.begin("Чтение системного буфера…", true);
+    const pending = this.begin(Messages.create("readingSystemClipboard"), true);
 
     if (!pending) return;
 
@@ -245,8 +257,10 @@ export class BoardClipboard {
         }
       } else {
         if (ownAdvertised)
-          throw new Error(
-            "Чтение редактируемого фрагмента недоступно. Разрешите системный буфер и повторите вставку.",
+          throw Messages.error(
+            Messages.create(
+              "editableFragmentReadingIsUnavailableAllowClipboard",
+            ),
           );
 
         blob = fallback;
@@ -255,10 +269,10 @@ export class BoardClipboard {
       if (!this.current(pending, true)) return;
 
       if (!blob)
-        throw new Error(
+        throw Messages.error(
           typeof navigator.clipboard?.read === "function"
-            ? "В буфере нет фрагмента Penable, PNG или JPEG."
-            : "Чтение буфера недоступно. Вставьте PNG или JPEG сочетанием Ctrl+V.",
+            ? Messages.create("theClipboardContainsNoPenableFragmentPng")
+            : Messages.create("clipboardReadingIsUnavailablePasteAPng"),
         );
 
       if (own) {
@@ -273,8 +287,8 @@ export class BoardClipboard {
         if (this.current(pending, true))
           this.notice(
             inserted
-              ? "Фрагмент вставлен."
-              : "Фрагмент не вставлен. Повторите действие.",
+              ? Messages.create("fragmentPasted")
+              : Messages.create("fragmentWasNotPastedTryTheAction"),
           );
       } else {
         await this.options.insertImage(blob);
@@ -283,10 +297,10 @@ export class BoardClipboard {
       if (this.current(pending))
         this.notice(
           error instanceof Error && error.name === "NotAllowedError"
-            ? "Нет доступа к системному буферу. Разрешите чтение и повторите вставку."
+            ? Messages.create("systemClipboardAccessDeniedAllowReadingAnd")
             : error instanceof Error
-              ? error.message
-              : "Не удалось прочитать системный буфер.",
+              ? Messages.from(error)
+              : Messages.create("couldNotReadTheSystemClipboard"),
         );
     } finally {
       this.finish(pending);
@@ -295,7 +309,7 @@ export class BoardClipboard {
 
   async download() {
     const capture = this.options.selection.capture(),
-      pending = capture && this.begin("Подготовка PNG…");
+      pending = capture && this.begin(Messages.create("preparingPng"));
 
     if (!capture || !pending) return;
 
@@ -305,12 +319,14 @@ export class BoardClipboard {
 
       if (this.current(pending)) {
         BoardPNG.downloadPNG(blob);
-        this.notice("PNG подготовлен для скачивания.");
+        this.notice(Messages.create("pngIsReadyToDownload"));
       }
     } catch (error) {
       if (this.current(pending))
         this.notice(
-          error instanceof Error ? error.message : "Не удалось создать PNG.",
+          error instanceof Error
+            ? Messages.from(error)
+            : Messages.create("couldNotCreatePng"),
         );
     } finally {
       this.finish(pending);
@@ -328,7 +344,6 @@ export class BoardClipboard {
 
     this.copying = null;
     this.queuedPaste = null;
-
     this.pending?.abort();
     this.pending = null;
     this.jobs.cancel();
@@ -336,8 +351,8 @@ export class BoardClipboard {
     if (pending && !this.disposed)
       this.notice(
         queued
-          ? "Копирование и ожидающая вставка отменены."
-          : "Операция с буфером отменена.",
+          ? Messages.create("copyingAndPendingPasteCancelled")
+          : Messages.create("clipboardOperationCancelled"),
       );
   }
 

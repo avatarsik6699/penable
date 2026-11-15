@@ -1,9 +1,11 @@
+import { Messages } from "~/shared/lib/messages";
+
 export const StorageStatusConfig = {
   labels: {
-    loading: "Загрузка",
-    dirty: "Есть изменения",
-    saving: "Сохранение",
-    saved: "Сохранено локально",
-    error: "Не удалось сохранить",
+    loading: Messages.create("loading"),
+    dirty: Messages.create("unsavedChanges"),
+    saving: Messages.create("saving"),
+    saved: Messages.create("savedLocally"),
+    error: Messages.create("couldNotSave"),
   },
 };

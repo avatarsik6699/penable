@@ -1,3 +1,4 @@
+import { I18n } from "~/shared/lib/i18n";
 import type React from "react";
 import type { BoardMenuTypes } from "./board-menu.types";
 import styles from "./board-menu.module.css";
@@ -14,18 +15,21 @@ export const BoardMenu: React.FC<BoardMenuTypes.Props> = (props) => {
       id="board-menu"
       className={styles.panel}
       role="dialog"
-      aria-label="Настройки доски"
+      aria-label={I18n.t("boardSettings")}
     >
       <div className={styles.heading}>
-        <h2>Настройки доски</h2>
-        <Button onClick={props.onClose} aria-label="Закрыть настройки доски">
+        <h2>{I18n.t("boardSettings")}</h2>
+        <Button
+          onClick={props.onClose}
+          aria-label={I18n.t("closeBoardSettings")}
+        >
           <EditorIcon name="close" />
         </Button>
       </div>
       <div
         className={styles.tabs}
         role="tablist"
-        aria-label="Раздел настроек"
+        aria-label={I18n.t("settingsSection")}
         onKeyDown={tabs.keyDown}
       >
         <Button
@@ -37,7 +41,7 @@ export const BoardMenu: React.FC<BoardMenuTypes.Props> = (props) => {
           tabIndex={props.tab === "board" ? 0 : -1}
           onClick={() => props.onTab("board")}
         >
-          Вид
+          {I18n.t("view")}
         </Button>
         <Button
           ref={(node) => tabs.bindSave(node)}
@@ -48,7 +52,7 @@ export const BoardMenu: React.FC<BoardMenuTypes.Props> = (props) => {
           tabIndex={props.tab === "save" ? 0 : -1}
           onClick={() => props.onTab("save")}
         >
-          Файлы и копии
+          {I18n.t("filesAndCopies")}
         </Button>
       </div>
       {props.tab === "board" ? (
@@ -58,6 +62,7 @@ export const BoardMenu: React.FC<BoardMenuTypes.Props> = (props) => {
           aria-labelledby="board-view-tab"
         >
           {props.backgroundControl}
+          {props.languageSettings}
         </div>
       ) : (
         <div

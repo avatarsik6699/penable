@@ -1,9 +1,10 @@
+import { Messages } from "~/shared/lib/messages";
 import { type ClipMask, BoardRegions } from "~/entities/board";
 import { CodecPrimitives } from "./document-codec.utils";
 
 function decodeMask(value: unknown): ClipMask {
   if (!Array.isArray(value) || !value.length)
-    CodecPrimitives.invalid("clip: пустая маска");
+    CodecPrimitives.invalid(Messages.create("clipEmptyMask"));
 
   let vertices = 0;
 
@@ -18,7 +19,9 @@ function decodeMask(value: unknown): ClipMask {
       vertices += ring.length;
 
       if (vertices > BoardRegions.REGION_LIMITS.mask)
-        CodecPrimitives.invalid("clip: превышен предел 8192 вершин");
+        CodecPrimitives.invalid(
+          Messages.create("clipLimitOf8192VerticesExceeded"),
+        );
 
       const points: [number, number][] = ring.map((pair: unknown) => {
         if (!Array.isArray(pair) || pair.length !== 2)
@@ -34,7 +37,7 @@ function decodeMask(value: unknown): ClipMask {
         points[0]![0] !== points.at(-1)![0] ||
         points[0]![1] !== points.at(-1)![1]
       )
-        CodecPrimitives.invalid("clip: незамкнутая граница");
+        CodecPrimitives.invalid(Messages.create("clipBoundaryIsNotClosed"));
 
       return points;
     });
@@ -45,7 +48,7 @@ function decodeMask(value: unknown): ClipMask {
   const normalized = BoardRegions.normalizeMask(mask);
 
   if (JSON.stringify(normalized) !== JSON.stringify(mask))
-    CodecPrimitives.invalid("clip: требуется нормализованная топология");
+    CodecPrimitives.invalid(Messages.create("clipNormalizedTopologyRequired"));
 
   return normalized;
 }

@@ -1,3 +1,4 @@
+import { I18n } from "~/shared/lib/i18n";
 import type React from "react";
 import { BoardTemplates } from "~/entities/board";
 import { Button } from "~/shared/ui/button";
@@ -18,33 +19,33 @@ export const TemplatePreview: React.FC<TemplatePreviewTypes.Props> = (
         <div
           className={styles.modes}
           role="group"
-          aria-label="Масштаб предпросмотра"
+          aria-label={I18n.t("previewZoom")}
         >
           <Button
             aria-pressed={camera.snapshot.mode === "close"}
             onClick={() => camera.choose("close")}
           >
-            Крупно
+            {I18n.t("detail")}
           </Button>
           <Button
             aria-pressed={camera.snapshot.mode === "whole"}
             onClick={() => camera.choose("whole")}
           >
-            Целиком
+            {I18n.t("fit")}
           </Button>
         </div>
       )}
       <div
         className={styles.viewport}
         role="region"
-        aria-label="Предпросмотр математической фигуры"
+        aria-label={I18n.t("mathematicalTemplatePreview")}
         tabIndex={0}
         ref={(node) => camera.bindRegion(node)}
       >
         <svg
           ref={(node) => camera.bindSvg(node)}
           viewBox={camera.snapshot.viewBox}
-          aria-label="Предварительный вид заготовки"
+          aria-label={I18n.t("templatePreview")}
           role="img"
         >
           <PreviewScene layout={BoardTemplates.layout(props.config, version)} />

@@ -429,7 +429,15 @@ export function checkShape(context, files, report) {
       }
 
       if (file.startsWith("src/shared/lib/")) {
-        if (ts.isFunctionDeclaration(node) && exported(node))
+        if (
+          ts.isFunctionDeclaration(node) &&
+          exported(node) &&
+          !(
+            node.name &&
+            /^use[A-Z]/.test(node.name.text) &&
+            file.endsWith(`/hooks/${hookFilename(node.name.text)}.ts`)
+          )
+        )
           report(
             file,
             node,
@@ -439,7 +447,8 @@ export function checkShape(context, files, report) {
 
         if (ts.isVariableStatement(node) && exported(node)) {
           for (const declaration of node.declarationList.declarations) {
-            const initializer = declaration.initializer;
+            const initializer =
+              declaration.initializer && unwrap(declaration.initializer);
 
             const object =
               initializer &&

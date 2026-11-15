@@ -25,8 +25,8 @@ from visual mock acceptance. Source/scene/data behavior stays under SPEC and FRO
 
 ## Brand commitments
 
-Name: penable. The current interface is Russian; owner-approved ru/en localization is planned in
-Change36, with browser detection and an explicit setting. Light paper and compact tools. Miro/Notability inform familiar
+Name: penable. The interface supports English and Russian, with browser-language detection and a persistent
+manual preference shared by all boards. Light paper and compact tools. Miro/Notability inform familiar
 editing ergonomics. Owner selected a floating horizontal dock for the editor world,
 inline width and click-to-open stabilization. The separate Change14 mock was approved on2026-11-13
 for transfer into the real editor in Change15; acceptance covers visual direction, not hardware behavior.

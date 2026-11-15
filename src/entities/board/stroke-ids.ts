@@ -1,3 +1,4 @@
+import { Messages } from "~/shared/lib/messages";
 import type { BoardItem } from "./board.types";
 import { BoardLimits } from "./scene-limits";
 
@@ -21,7 +22,7 @@ function createStrokeIdAllocator(strokes: readonly BoardItem[]): () => number {
       next = next < BoardLimits.MAX_STROKE_ID ? next + 1 : 1;
 
       if (next === start)
-        throw new Error("Нет свободного допустимого ID штриха.");
+        throw Messages.error(Messages.create("noValidStrokeIdIsAvailable"));
     }
 
     const id = next;

@@ -77,7 +77,7 @@ describe("editable clipboard native image preflight", () => {
     expect(messages).toEqual([
       {
         type: "error",
-        message: "Не удалось декодировать изображение фрагмента.",
+        message: { code: "couldNotDecodeTheFragmentImage" },
       },
     ]);
   });
@@ -98,7 +98,7 @@ describe("editable clipboard native image preflight", () => {
     expect(messages).toEqual([
       {
         type: "error",
-        message: "Не удалось декодировать изображение фрагмента.",
+        message: { code: "couldNotDecodeTheFragmentImage" },
       },
     ]);
   });

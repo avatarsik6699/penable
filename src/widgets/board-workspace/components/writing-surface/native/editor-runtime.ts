@@ -1,3 +1,4 @@
+import { Messages } from "~/shared/lib/messages";
 import { TemplatePlacement } from "./templates";
 import { BoardClipboard } from "./clipboard";
 import { BitmapCache, ImageInput } from "./images";
@@ -68,8 +69,8 @@ function create(
     if (!context || !completedContext || typeof PointerEvent === "undefined") {
       onUnavailable(
         !context || !completedContext
-          ? "В этом браузере недоступен Canvas 2D."
-          : "В этом браузере недоступны Pointer Events.",
+          ? Messages.create("canvas2dIsUnavailableInThisBrowser")
+          : Messages.create("pointerEventsAreUnavailableInThisBrowser"),
       );
 
       return;
@@ -95,8 +96,8 @@ function create(
             if (!disposed)
               readSettings().onNavigationNotice(
                 error instanceof Error
-                  ? error.message
-                  : "Не удалось загрузить изображение.",
+                  ? Messages.from(error)
+                  : Messages.create("couldNotLoadTheImage"),
               );
           });
         }
@@ -110,7 +111,6 @@ function create(
 
     const history = new StrokeHistory(scene.strokes, scene.strokes.length);
     const visualViewport = window.visualViewport;
-
     const images = new BitmapCache(() => renderer.sceneChanged());
 
     const renderer = new CanvasRenderer(
@@ -123,7 +123,7 @@ function create(
     );
 
     void images.ready(scene.strokes).catch((error) => {
-      if (!disposed) readSettings().onNavigationNotice(String(error));
+      if (!disposed) readSettings().onNavigationNotice(Messages.from(error));
     });
 
     const updateBackground = () =>
@@ -260,7 +260,7 @@ function create(
         insertion: templatePlacement.active
           ? {
               phase: "placing" as const,
-              message: "Нажмите на доску для вставки · Esc — отмена",
+              message: Messages.create("clickTheBoardToPlaceEscTo"),
             }
           : imageInput.status,
         selected: selection.hasSelection,
@@ -356,7 +356,9 @@ function create(
       draw: (item) => renderer.setTemplatePreview(item),
 
       notice: (message) => {
-        if (message !== "Нажмите на доску для вставки · Esc — отмена")
+        if (!(
+          Messages.is(message) && message.code === "clickTheBoardToPlaceEscTo"
+        ))
           readSettings().onNavigationNotice(message);
 
         publishSelection();
@@ -390,7 +392,6 @@ function create(
       clipboard: nativeClipboard,
       pendingInput: () => imageInput.busy || nativeClipboard.busy,
       touchBusy: () => touchActive(),
-
       images,
       selection,
       input,
