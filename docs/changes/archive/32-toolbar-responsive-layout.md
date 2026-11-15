@@ -6,7 +6,7 @@
 |---|---|
 | Change | 32 |
 | Slug | toolbar-responsive-layout |
-| Status | active |
+| Status | `shipped locally` |
 | Branch | feature/32-toolbar-responsive-layout |
 
 ## Goal
