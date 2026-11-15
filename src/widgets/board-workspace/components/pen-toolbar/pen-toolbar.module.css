@@ -1,13 +1,26 @@
+.frame {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  padding-inline: max(12px, env(safe-area-inset-left, 0px))
+    max(12px, env(safe-area-inset-right, 0px));
+  container: toolbar-space / inline-size;
+  pointer-events: none;
+}
 .dock {
   position: absolute;
   z-index: 4;
   top: 16px;
-  left: max(12px, calc((100% - 778px) / 2));
+  left: max(12px, env(safe-area-inset-left, 0px));
+  right: max(12px, env(safe-area-inset-right, 0px));
+  margin-inline: auto;
+  pointer-events: auto;
   width: 778px;
   height: 56px;
   padding: 8px;
   display: grid;
-  grid-template-columns: 128px 331px 190px 89px;
+  grid-template-columns: 128px 224px 99px 190px 89px;
+  grid-template-areas: "library primary history context trailing";
   grid-template-rows: 40px;
   align-items: center;
   gap: 8px;
@@ -16,15 +29,19 @@
   box-shadow: var(--chrome-shadow);
 }
 .library {
+  grid-area: library;
+  width: 128px;
   display: flex;
   min-width: 0;
 }
 .primary {
+  grid-area: primary;
   display: flex;
   align-items: center;
   gap: 8px;
   min-width: 0;
 }
+.history,
 .context,
 .trailing {
   display: flex;
@@ -37,12 +54,15 @@
 .trailing {
   justify-content: flex-end;
 }
-.divider {
-  flex-shrink: 0;
-  width: 1px;
-  height: 22px;
-  background: var(--divider);
-  margin: 0 3px;
+.history {
+  grid-area: history;
+  padding-left: 14px;
+}
+.context {
+  grid-area: context;
+}
+.trailing {
+  grid-area: trailing;
 }
 .eraser {
   width: 178px;
@@ -77,83 +97,6 @@
 }
 .insertionNotice button {
   align-self: flex-start;
-}
-@media (max-width: 899px) {
-  .dock {
-    top: 80px;
-    left: 12px;
-    width: calc(100% - 24px);
-    max-width: 778px;
-    height: 104px;
-    grid-template-columns: minmax(0, 1fr) 331px 89px;
-    grid-template-rows: 40px 40px;
-  }
-  .library {
-    grid-column: 1;
-    grid-row: 1;
-  }
-  .primary {
-    grid-column: 2;
-    grid-row: 1;
-  }
-  .trailing {
-    grid-column: 3;
-    grid-row: 1;
-  }
-  .context {
-    grid-column: 1/-1;
-    grid-row: 2;
-    justify-content: center;
-    border-left: 0;
-    padding-left: 0;
-  }
-  .insertionNotice {
-    left: auto;
-    right: 100px;
-  }
-}
-@media (min-width: 802px) and (max-width: 899px) {
-  .dock {
-    left: calc((100% - 778px) / 2);
-  }
-}
-@media (max-width: 650px) {
-  .dock {
-    height: 152px;
-    grid-template-columns: minmax(0, 1fr) 89px;
-    grid-template-rows: 40px 40px 40px;
-  }
-  .library {
-    grid-column: 1/-1;
-    grid-row: 1;
-  }
-  .primary {
-    grid-column: 1/-1;
-    grid-row: 2;
-    justify-content: center;
-    gap: 4px;
-  }
-  .context {
-    grid-column: 1;
-    grid-row: 3;
-    justify-content: center;
-  }
-  .trailing {
-    grid-column: 2;
-    grid-row: 3;
-  }
-  .divider {
-    margin: 0;
-  }
-  .eraser {
-    width: auto;
-    padding: 0 8px;
-    font-size: 12px;
-  }
-  .insertionNotice {
-    left: 8px;
-    right: auto;
-  }
 }
 
 .dismissNotice {
@@ -194,13 +137,13 @@
 @media (any-pointer: coarse) {
   .dock {
     top: max(12px, env(safe-area-inset-top, 0px));
-    height: 60px;
     width: 814px;
-    max-width: none;
-    left: max(12px, calc((100% - 814px) / 2));
-    grid-template-columns: 128px 359px 190px 97px;
+    height: 60px;
+
+    grid-template-columns: 128px 244px 107px 190px 97px;
     grid-template-rows: 44px;
   }
+  .history,
   .context,
   .trailing {
     height: 44px;
@@ -212,54 +155,146 @@
     min-height: 44px;
   }
 }
-@media (any-pointer: coarse) and (min-width: 900px) {
+@container toolbar-space (width < 778px) {
   .dock {
-    grid-template-columns: 128px 359px 190px 97px;
-    grid-template-rows: 44px;
-  }
-  .library,
-  .primary,
-  .context,
-  .trailing {
-    grid-column: auto;
-    grid-row: 1;
-  }
-  .context {
-    justify-content: flex-start;
-    border-left: 1px solid var(--divider);
-    padding-left: 8px;
-  }
-}
-@media (any-pointer: coarse) and (max-width: 899px) {
-  .dock {
-    left: max(12px, env(safe-area-inset-left, 0px));
-    width: calc(
-      100% - max(12px, env(safe-area-inset-left, 0px)) -
-        max(12px, env(safe-area-inset-right, 0px))
+    --compact-width: 383px;
+    top: max(12px, env(safe-area-inset-top, 0px));
+    width: min(
+      var(--compact-width),
+      calc(
+        100% - max(12px, env(safe-area-inset-left, 0px)) -
+          max(12px, env(safe-area-inset-right, 0px))
+      )
     );
-    height: 112px;
-    grid-template-columns: minmax(0, 1fr) 359px 97px;
-    grid-template-rows: 44px 44px;
-  }
-}
-@media (any-pointer: coarse) and (max-width: 650px) {
-  .dock {
-    height: 164px;
-    grid-template-columns: minmax(0, 1fr) 97px;
-    grid-template-rows: 44px 44px 44px;
+    height: 104px;
+    grid-template-columns: 84px 8px 36px 8px 134px 8px 89px;
+    grid-template-rows: 40px 40px;
+    grid-template-areas:
+      "library library library . primary primary primary"
+      "history . context context context . trailing";
+    column-gap: 0;
   }
   .primary {
-    overflow-x: auto;
-    justify-content: flex-start;
-    gap: 1px;
-    scrollbar-width: thin;
-    scrollbar-color: var(--divider) transparent;
+    justify-content: center;
   }
-  .primary > * {
-    flex-shrink: 0;
+  .history,
+  .context {
+    border-left: 0;
+    padding-left: 0;
   }
-  .primary > [role="group"] {
-    gap: 1px;
+  .context {
+    width: 178px;
+  }
+  .insertionNotice {
+    left: 8px;
+    right: auto;
+    max-width: calc(100% - 16px);
+  }
+}
+@media (any-pointer: coarse) {
+  @container toolbar-space (width < 814px) {
+    .dock {
+      --compact-width: 383px;
+      top: max(12px, env(safe-area-inset-top, 0px));
+      width: min(
+        var(--compact-width),
+        calc(
+          100% - max(12px, env(safe-area-inset-left, 0px)) -
+            max(12px, env(safe-area-inset-right, 0px))
+        )
+      );
+      height: 104px;
+      grid-template-columns: 84px 8px 36px 8px 134px 8px 89px;
+      grid-template-rows: 40px 40px;
+      grid-template-areas:
+        "library library library . primary primary primary"
+        "history . context context context . trailing";
+      column-gap: 0;
+    }
+    .primary {
+      justify-content: center;
+    }
+    .history,
+    .context {
+      border-left: 0;
+      padding-left: 0;
+    }
+    .context {
+      width: 178px;
+    }
+    .insertionNotice {
+      left: 8px;
+      right: auto;
+      max-width: calc(100% - 16px);
+    }
+  }
+}
+@media (any-pointer: coarse) {
+  @container toolbar-space (width < 814px) {
+    .dock {
+      --compact-width: 399px;
+      height: 112px;
+      grid-template-columns: 92px 8px 28px 8px 142px 8px 97px;
+      grid-template-rows: 44px 44px;
+    }
+  }
+}
+@container toolbar-space (width < 383px) {
+  .dock {
+    --compact-width: 286px;
+    height: 152px;
+    grid-template-columns: minmax(0, 1fr) 84px;
+    grid-template-rows: 40px 40px 40px;
+    grid-template-areas:
+      "library trailing"
+      "primary primary"
+      "context history";
+    column-gap: 8px;
+  }
+  .context {
+    width: 100%;
+  }
+  .eraser {
+    max-width: 100%;
+  }
+  .trailing {
+    border-left: 0;
+    padding-left: 0;
+  }
+}
+@media (any-pointer: coarse) {
+  @container toolbar-space (width < 399px) {
+    .dock {
+      --compact-width: 286px;
+      height: 152px;
+      grid-template-columns: minmax(0, 1fr) 84px;
+      grid-template-rows: 40px 40px 40px;
+      grid-template-areas:
+        "library trailing"
+        "primary primary"
+        "context history";
+      column-gap: 8px;
+    }
+    .context {
+      width: 100%;
+    }
+    .eraser {
+      max-width: 100%;
+    }
+    .trailing {
+      border-left: 0;
+      padding-left: 0;
+    }
+  }
+}
+@media (any-pointer: coarse) {
+  @container toolbar-space (width < 399px) {
+    .dock {
+      --compact-width: 294px;
+      height: 164px;
+      grid-template-columns: minmax(0, 1fr) 92px;
+      grid-template-rows: 44px 44px 44px;
+    }
   }
 }
 @media (max-width: 650px) {

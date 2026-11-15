@@ -126,13 +126,16 @@ The board fills the viewport; all chrome and panels are out of flow. Opening pan
 Desktop layouts at 1440×900 and 1280×720 place one dock top-center, static brand top-left,
 zoom/return/minimap bottom-right and Help bottom-left. Tools, history, contextual controls and
 save status/settings share that dock; no separate top-right status pill remains.
-At widths of 900px and above, the fine-pointer dock is fixed at 778×56px with 128px board and 190px context slots and centered 16px from the top.
-From 651px through 899px, fine-pointer layouts use two rows within a 104px dock, capped at778px and centered when it fits. At 650px
-and below, they use three rows in a 152px dock. Below1200px the decorative brand is hidden and
-the dock sits at the safe top edge with at least12px clearance. Coarse-pointer layouts use
-44px controls: an814×60px single row at900px and above, two rows/112px below900px, and three
-rows/164px at650px and below. Phone width respects both safe edges; the primary tool strip
-scrolls internally if needed at320px. The dock rectangle stays fixed across tools in each layout. The current-board chooser leads the dock; the current board name
+The dock uses the width available between safe side insets. Fine-pointer single row is778×56;
+coarse single row is814×60. When it no longer fits, the centered compact dock is383×104 fine
+or399×112 coarse: board chooser + editing tools above, history + context + storage below.
+Below those usable widths it becomes286×152 fine or294×164 coarse: chooser + storage,
+editing tools, then context + history. Its smallest width can contract to280px usable space;
+controls retain40px/44px targets. The board chooser is always128px; compact context reserves178px
+and retains a useful slider/color target rather than shrinking to104px. Decorative brand remains
+hidden below1200px. The full-viewport query frame accounts for safe-area padding without changing
+fixed sheets' viewport-sized containing block. Tool changes never change dock bounds.
+The current-board chooser leads the dock; the current board name
 truncates only when space requires it. Context and status/settings stay in their reserved areas.
 
 Panels constrain width to the viewport and scroll internally with contained overscroll, using the

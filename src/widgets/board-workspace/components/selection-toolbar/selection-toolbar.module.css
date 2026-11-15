@@ -33,3 +33,12 @@
     min-height: 44px;
   }
 }
+
+@container toolbar-space (width < 294px) {
+  .controls button {
+    padding-inline: 4px;
+  }
+  .controls button:last-child {
+    padding: 0;
+  }
+}

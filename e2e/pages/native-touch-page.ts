@@ -93,10 +93,67 @@ export class NativeTouchPage {
     });
 
     const dock = this.page.locator("[data-editor-dock]");
+    const initialViewport = this.page.viewportSize()!;
 
     await expect
       .poll(async () => (await dock.boundingBox())!.y)
       .toBeGreaterThanOrEqual(30);
+
+    const isCoarse = await this.page.evaluate(
+      () => matchMedia("(any-pointer: coarse)").matches,
+    );
+
+    expect(isCoarse).toBe(true);
+
+    for (const width of [320, 423, 838]) {
+      await this.page.setViewportSize({ ...initialViewport, width });
+
+      const expectedSize =
+        width === 320
+          ? { width: 280, height: 164 }
+          : width === 423
+            ? { width: 294, height: 164 }
+            : { width: 399, height: 112 };
+
+      await expect
+        .poll(async () => (await dock.boundingBox())!.width)
+        .toBe(expectedSize.width);
+
+      const boundaryDock = (await dock.boundingBox())!;
+
+      expect(boundaryDock.height).toBe(expectedSize.height);
+      expect(boundaryDock.x).toBeGreaterThanOrEqual(20);
+
+      expect(boundaryDock.x + boundaryDock.width).toBeLessThanOrEqual(
+        width - 20 + 1,
+      );
+
+      if (width === 320) {
+        await this.page
+          .getByRole("button", { name: "Выделение", exact: true })
+          .tap();
+
+        for (const name of ["Рамка", "Лассо", "Действия"]) {
+          const control = (await this.page
+            .getByRole("button", { name, exact: true })
+            .boundingBox())!;
+
+          expect(control.width).toBeGreaterThanOrEqual(44);
+          expect(control.height).toBeGreaterThanOrEqual(44);
+          expect(control.x).toBeGreaterThanOrEqual(boundaryDock.x);
+
+          expect(control.x + control.width).toBeLessThanOrEqual(
+            boundaryDock.x + boundaryDock.width,
+          );
+        }
+
+        await this.page
+          .getByRole("button", { name: "Перо", exact: true })
+          .tap();
+      }
+    }
+
+    await this.page.setViewportSize(initialViewport);
 
     const box = (await dock.boundingBox())!;
     const viewport = this.page.viewportSize()!;

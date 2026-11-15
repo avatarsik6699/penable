@@ -1,5 +1,6 @@
 import { expect, type Page } from "@playwright/test";
 import type { BoardPage } from "./board-page";
+import { BoardLibraryPage } from "./board-library-page";
 
 export class EditorChromePage {
   constructor(
@@ -229,20 +230,36 @@ export class EditorChromePage {
   }
 
   async expectInvariantDockGeometry() {
+    const library = new BoardLibraryPage(this.page, this.board);
+
+    await library.create(
+      "Математика — длинное название конспекта для проверки панели",
+    );
+
     for (const viewport of [
+      { width: 320, height: 720 },
+      { width: 390, height: 844 },
+      { width: 406, height: 720 },
+      { width: 407, height: 720 },
+      { width: 422, height: 720 },
+      { width: 423, height: 720 },
+      { width: 600, height: 844 },
+      { width: 650, height: 844 },
+      { width: 651, height: 844 },
+      { width: 768, height: 720 },
+      { width: 801, height: 720 },
+      { width: 802, height: 720 },
+      { width: 830, height: 720 },
+      { width: 837, height: 720 },
+      { width: 838, height: 720 },
+      { width: 899, height: 720 },
+      { width: 900, height: 720 },
+      { width: 1000, height: 720 },
       { width: 1440, height: 900 },
       { width: 1280, height: 720 },
       { width: 1254, height: 900 },
       { width: 1200, height: 720 },
       { width: 1199, height: 720 },
-      { width: 1000, height: 720 },
-      { width: 900, height: 720 },
-      { width: 899, height: 720 },
-      { width: 802, height: 720 },
-      { width: 768, height: 720 },
-      { width: 651, height: 844 },
-      { width: 650, height: 844 },
-      { width: 390, height: 844 },
       { width: 390, height: 568 },
     ]) {
       await this.page.setViewportSize(viewport);
@@ -279,28 +296,131 @@ export class EditorChromePage {
 
       expect(expectedDock.width).toBeLessThanOrEqual(viewport.width - 24);
 
-      if (viewport.width >= 900) {
+      const denseWidth = viewport.width < 407 ? 286 : 383;
+
+      const expectedSize =
+        viewport.width >= 802
+          ? { width: 778, height: 56 }
+          : { width: denseWidth, height: viewport.width < 407 ? 152 : 104 };
+
+      expect(expectedDock.width).toBe(expectedSize.width);
+      expect(expectedDock.height).toBe(expectedSize.height);
+      expect(expectedDock.x).toBeGreaterThanOrEqual(-1);
+
+      expect(expectedDock.x + expectedDock.width).toBeLessThanOrEqual(
+        viewport.width + 1,
+      );
+
+      expect(
+        Math.abs(expectedDock.x - (viewport.width - expectedDock.width) / 2),
+      ).toBeLessThanOrEqual(1);
+
+      expect(expectedButtons[0]!.width).toBe(128);
+      expect(expectedButtons.every((button) => button !== null)).toBe(true);
+
+      const slider = this.page.getByRole("slider", {
+        name: "Толщина",
+        exact: true,
+      });
+
+      const expectedSlider = (await slider.boundingBox())!;
+
+      const colorPreview = this.page.getByRole("button", {
+        name: "Выбрать цвет",
+        exact: true,
+      });
+
+      const preview = await colorPreview.boundingBox();
+
+      const contextWidth = await colorPreview.evaluate(
+        (button) => button.parentElement?.getBoundingClientRect().width ?? 0,
+      );
+
+      expect(contextWidth).toBe(178);
+
+      const contextBoxes = [preview, expectedSlider];
+      const controlBoxes = [...expectedButtons, ...contextBoxes];
+
+      for (const box of controlBoxes) {
+        expect(box).not.toBeNull();
+        expect(box!.x).toBeGreaterThanOrEqual(expectedDock.x - 1);
+        expect(box!.y).toBeGreaterThanOrEqual(expectedDock.y - 1);
+
+        expect(box!.x + box!.width).toBeLessThanOrEqual(
+          expectedDock.x + expectedDock.width + 1,
+        );
+
+        expect(box!.y + box!.height).toBeLessThanOrEqual(
+          expectedDock.y + expectedDock.height + 1,
+        );
+      }
+
+      for (let first = 0; first < controlBoxes.length; first += 1) {
+        for (
+          let second = first + 1;
+          second < controlBoxes.length;
+          second += 1
+        ) {
+          const a = controlBoxes[first]!;
+          const b = controlBoxes[second]!;
+
+          const overlapWidth =
+            Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x);
+
+          const overlapHeight =
+            Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y);
+
+          expect(overlapWidth <= 0.5 || overlapHeight <= 0.5).toBe(true);
+        }
+      }
+
+      const sameRow = (
+        boxes: ({
+          x: number;
+          y: number;
+          width: number;
+          height: number;
+        } | null)[],
+      ) => {
+        const centers = boxes.map((box) => box!.y + box!.height / 2);
+
+        expect(Math.max(...centers) - Math.min(...centers)).toBeLessThanOrEqual(
+          2,
+        );
+      };
+
+      const board = expectedButtons[0]!;
+      const primary = expectedButtons.slice(1, 6);
+      const history = expectedButtons.slice(6, 8);
+      const trailing = expectedButtons.slice(8);
+
+      if (viewport.width >= 802) {
+        sameRow([...expectedButtons, ...contextBoxes]);
+      } else if (viewport.width >= 407) {
+        sameRow([board, ...primary]);
+        sameRow([...history, ...contextBoxes, ...trailing]);
+        expect(board.y).toBeLessThan(history[0]!.y);
+      } else {
+        sameRow([board, ...trailing]);
+        sameRow(primary);
+        sameRow([...contextBoxes, ...history]);
+        expect(board.y).toBeLessThan(primary[0]!.y);
+        expect(primary[0]!.y).toBeLessThan(preview!.y);
+      }
+
+      expect(
+        await this.page.evaluate(
+          () => document.documentElement.scrollWidth > innerWidth,
+        ),
+      ).toBe(false);
+
+      if (viewport.width >= 802) {
         expect(expectedDock.width).toBe(778);
-        expect(expectedButtons[0]!.width).toBe(128);
         expect(expectedDock.height).toBe(56);
-
-        const width = (await this.page
-          .getByRole("slider", { name: "Толщина", exact: true })
-          .boundingBox())!;
-
-        expect(width.y).toBeGreaterThanOrEqual(expectedDock.y);
-        expect(width.y + width.height).toBeLessThanOrEqual(expectedDock.y + 56);
 
         for (const button of expectedButtons) {
           expect(button!.y).toBe(expectedButtons[0]!.y);
         }
-      } else if (viewport.width > 650) {
-        expect(expectedDock.width).toBeLessThanOrEqual(778);
-        expect(expectedDock.height).toBe(104);
-
-        expect(
-          Math.abs(expectedDock.x - (viewport.width - expectedDock.width) / 2),
-        ).toBeLessThanOrEqual(1);
       }
 
       for (const tool of tools.slice(1)) {
@@ -313,6 +433,27 @@ export class EditorChromePage {
         await expect(target).toHaveAttribute("aria-pressed", "true");
 
         const actualDock = (await dock.boundingBox())!;
+
+        const context =
+          tool === "Ластик"
+            ? this.page.getByText("Штрих целиком", { exact: true })
+            : this.page.getByRole("region", {
+                name: "Действия выделения",
+                exact: true,
+              });
+
+        const contextBox = (await context.boundingBox())!;
+
+        expect(contextBox.x).toBeGreaterThanOrEqual(actualDock.x);
+        expect(contextBox.y).toBeGreaterThanOrEqual(actualDock.y);
+
+        expect(contextBox.x + contextBox.width).toBeLessThanOrEqual(
+          actualDock.x + actualDock.width,
+        );
+
+        expect(contextBox.y + contextBox.height).toBeLessThanOrEqual(
+          actualDock.y + actualDock.height,
+        );
 
         for (const key of ["x", "y", "width", "height"] as const)
           expect(

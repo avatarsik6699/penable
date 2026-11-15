@@ -1191,3 +1191,28 @@ At<=650px retain existing three-row152px fine-pointer behavior. Brand remains hi
 the safe top offset and touch814×60/112/164 layouts remain. Keep controls/content, fixed slots,
 tool-switch geometry invariance and drawing surface unchanged. Test both sides of900/650px and
 intermediate1000/1199px, desktop, phone and coarse input; retain keyboard/target accessibility.
+
+## 5.25 — Dense compact toolbar composition (Change33)
+
+Owner-requested2026-11-15 after two annotated screenshots reject remaining whitespace in Change32.
+Supersedes earlier dock breakpoints/composition. Fine pointer: single778×56 at viewport
+width>=802; otherwise two dense rows383×104 at>=407, three rows286×152 below407. Coarse pointer:
+single814×60 at>=838, dense two rows399×112 at>=423, three rows294×164 below423.
+These viewport examples assume12px side clearance; choose actual modes via a full-viewport
+query frame whose content width excludes both safe insets (single778/814, medium383/399). Clamp
+the smallest dock to usable width down to280px without reducing targets; context may narrow
+and selection label padding reduces in that case. Bound all modes
+to safe viewport edges, preserve top safe inset and hide decorative brand below1200 as before.
+
+Medium rows: [board chooser, five editing controls] / [history, context, save/settings]. Small rows:
+[board chooser, save/settings] / [five editing controls] / [context, history]. Board chooser stays
+128px, including long-name ellipsis; never expands into a full-width blank header. Context reserves
+178px in compact modes (narrowing only below294px usable width) and preserves pen/eraser/selection geometry; thickness fills that width
+instead of the prior104px phone rule. History becomes a separate layout item; keep native tab order,
+no duplicated controls, no new interactions or state. Fine40/coarse44px minimum targets remain.
+Compact columns/rows stay fixed across selected tools and panel opening; never resize the canvas.
+
+Acceptance checks actual useful group bounds/density, not only tool-switch invariance. Cover320,
+390,406/407,422/423,600,650,768,801/802,830,837/838,899/900,1000,1440; fine/coarse, all tools,
+long names, native keyboard/focus and fresh console; retain existing browser regressions. Local
+ship follows Full Gate and independent review; publication remains separate.
