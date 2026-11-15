@@ -6,7 +6,7 @@
 |---|---|
 | Change | 34 |
 | Slug | calm-writing-feedback |
-| Status | active |
+| Status | shipped locally |
 | Branch | feature/34-calm-writing-feedback |
 
 ## Goal
