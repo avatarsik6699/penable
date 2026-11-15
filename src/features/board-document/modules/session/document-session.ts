@@ -20,6 +20,7 @@ export class DocumentSession {
   private startup: Promise<void> | null = null;
   private disposal: Promise<void> | null = null;
   private disposed = false;
+  private readonly loadingAbort = new AbortController();
   private fatal = false;
   private paused = false;
   private loaded = false;
@@ -204,8 +205,15 @@ export class DocumentSession {
       this.rawLoaded = true;
 
       const document = records.main.exists
-        ? DocumentCodec.decodeDocument(records.main.value)
+        ? this.options.decode
+          ? await this.options.decode(
+              records.main.value,
+              this.loadingAbort.signal,
+            )
+          : DocumentCodec.decodeDocument(records.main.value)
         : DocumentCodec.emptyDocument();
+
+      if (this.disposed || this.fatal) return;
 
       this.loaded = true;
       this.options.onHydrate(DocumentSnapshots.toSnapshot(document));
@@ -361,24 +369,27 @@ export class DocumentSession {
         ),
       );
 
-    let document: BoardDocument;
+    const controller = new AbortController();
+    let prepared: Promise<BoardDocument>;
 
     try {
-      document = {
-        ...DocumentCodec.decodeDocument(
-          candidate.schemaVersion === 4 || candidate.schemaVersion === 5
-            ? DocumentCodec.encodeDocument(candidate)
-            : candidate,
-        ),
-        schemaVersion: 5,
-      };
+      prepared = this.options.prepare
+        ? this.options.prepare(candidate, controller.signal)
+        : Promise.resolve({
+            ...DocumentCodec.decodeDocument(
+              candidate.schemaVersion === 4 || candidate.schemaVersion === 5
+                ? DocumentCodec.encodeDocument(candidate)
+                : candidate,
+            ),
+            schemaVersion: 5,
+          });
     } catch (error) {
       return Promise.reject(error);
     }
 
+    // A preceding write may still be draining when asynchronous validation fails.
+    void prepared.catch(() => {});
     this.importing = true;
-
-    const controller = new AbortController();
 
     this.replacementAbort = controller;
     this.clearTimers();
@@ -409,6 +420,13 @@ export class DocumentSession {
           paused: this.paused,
           message: this.message,
         };
+
+        const document = { ...(await prepared), schemaVersion: 5 as const };
+
+        if (this.disposed || this.fatal || controller.signal.aborted)
+          throw Messages.error(
+            Messages.create("replacementCancelledTheCurrentBoardIsRetained"),
+          );
 
         await this.options.preflight?.(document, controller.signal);
 
@@ -500,6 +518,7 @@ export class DocumentSession {
     if (this.disposal) return this.disposal;
 
     this.disposed = true;
+    this.loadingAbort.abort();
     this.replacementAbort?.abort();
     this.clearTimers();
 

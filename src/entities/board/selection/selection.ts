@@ -100,6 +100,10 @@ export class BoardSelection {
     return this.parts.length > 0;
   }
 
+  get hasImages(): boolean {
+    return this.parts.some((part) => part.selected.kind === "image");
+  }
+
   get outline(): ClipMask {
     if (this.transformGesture.region) return this.transformGesture.region;
 

@@ -178,7 +178,7 @@ export class BoardLibrarySession {
             Messages.create("aCatalogBoardIsMissingFromStorage"),
           );
 
-        const document = DocumentCodec.decodeDocument(selected.value);
+        const document = await this.decode(selected.value);
 
         await this.options.preflight?.(document, this.validationAbort.signal);
 
@@ -195,8 +195,10 @@ export class BoardLibrarySession {
           await this.repository.migrate(this.catalog, records.catalog);
       } else {
         const document = records.main.exists
-          ? DocumentCodec.decodeDocument(records.main.value)
+          ? await this.decode(records.main.value)
           : DocumentCodec.emptyDocument();
+
+        if (this.disposed) return;
 
         if (this.lease.acquired)
           await this.repository.bootstrap(
@@ -209,6 +211,8 @@ export class BoardLibrarySession {
       await this.activate(this.catalog.activeId);
       this.publish();
     } catch (error) {
+      if (this.disposed) return;
+
       this.fatal = DocumentErrors.messageOf(error);
 
       this.options.onState({
@@ -229,6 +233,8 @@ export class BoardLibrarySession {
   }
 
   private async activate(id: string) {
+    if (this.disposed) return;
+
     if (!this.lease)
       throw Messages.error(Messages.create("boardLockingIsUnavailable"));
 
@@ -288,6 +294,12 @@ export class BoardLibrarySession {
     }
   }
 
+  private decode(value: unknown) {
+    return this.options.decode
+      ? this.options.decode(value, this.validationAbort.signal)
+      : Promise.resolve(DocumentCodec.decodeDocument(value));
+  }
+
   private async load(id: string) {
     const record = await this.repository!.board(id);
 
@@ -296,7 +308,7 @@ export class BoardLibrarySession {
         Messages.create("boardIsMissingFromStorageCurrentNotes"),
       );
 
-    const document = DocumentCodec.decodeDocument(record.value);
+    const document = await this.decode(record.value);
 
     await this.options.preflight?.(document, this.validationAbort.signal);
 
@@ -476,10 +488,15 @@ export class BoardLibrarySession {
     this.disposed = true;
     this.validationAbort.abort();
 
+    const activeDisposal = this.active?.dispose();
+
     this.closing = (async () => {
-      await this.startup?.catch(() => {});
-      await this.operation.catch(() => {});
-      await this.active?.dispose();
+      await Promise.all([
+        this.startup?.catch(() => {}),
+        this.operation.catch(() => {}),
+        activeDisposal,
+      ]);
+
       await this.repository?.close();
       await this.lease?.release();
     })();

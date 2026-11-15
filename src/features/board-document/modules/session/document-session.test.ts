@@ -28,6 +28,10 @@ function setup(
   writer = true,
   persistence?: DocumentPersistence,
   preflight?: import("./document-session.types").SessionOptions["preflight"],
+  processing: Pick<
+    import("./document-session.types").SessionOptions,
+    "decode" | "prepare"
+  > = {},
 ) {
   if (
     main.exists &&
@@ -89,6 +93,7 @@ function setup(
     onState,
     persistence,
     preflight,
+    ...processing,
     acquire: async () => lease,
 
     open: async (callback) => {
@@ -760,4 +765,92 @@ it("resumes pending dirty-note saving after rejecting a local import without mar
   expect(h.repository.write).toHaveBeenCalledOnce();
   expect(h.session.state.phase).toBe("saved");
   await h.session.dispose();
+});
+
+describe("asynchronous document processing ownership", () => {
+  it("waits for strict startup decoding before hydration and aborts it on disposal", async () => {
+    const decoded =
+      deferred<import("../../board-document.types").BoardDocument>();
+
+    let signal: AbortSignal | undefined;
+
+    const h = setup(undefined, true, undefined, undefined, {
+      decode: (_value, current) => {
+        signal = current;
+
+        return decoded.promise;
+      },
+    });
+
+    const starting = h.session.start();
+
+    await vi.waitFor(() => expect(signal).toBeDefined());
+    expect(h.onHydrate).not.toHaveBeenCalled();
+
+    const disposing = h.session.dispose();
+
+    expect(signal!.aborted).toBe(true);
+    decoded.resolve(DocumentCodec.emptyDocument());
+    await starting;
+    await disposing;
+    expect(h.onHydrate).not.toHaveBeenCalled();
+    expect(h.lease.release).toHaveBeenCalledOnce();
+  });
+
+  it("retains the current board and writer when asynchronous candidate validation fails", async () => {
+    const preparation =
+      deferred<import("../../board-document.types").BoardDocument>();
+
+    const h = setup(undefined, true, undefined, undefined, {
+      prepare: () => preparation.promise,
+    });
+
+    await h.session.start();
+
+    const hydrationCount = h.onHydrate.mock.calls.length;
+
+    const replacing = h.session.replace(
+      DocumentCodec.emptyDocument(),
+      () => false,
+    );
+
+    expect(h.session.canWrite).toBe(false);
+    preparation.reject(new Error("invalid candidate"));
+    await expect(replacing).rejects.toThrow("invalid candidate");
+    expect(h.repository.replace).not.toHaveBeenCalled();
+    expect(h.onHydrate).toHaveBeenCalledTimes(hydrationCount);
+    expect(h.session.canWrite).toBe(true);
+    await h.session.dispose();
+  });
+
+  it("aborts pending candidate processing before releasing the writer", async () => {
+    const preparation =
+      deferred<import("../../board-document.types").BoardDocument>();
+
+    let signal: AbortSignal | undefined;
+
+    const h = setup(undefined, true, undefined, undefined, {
+      prepare: (_value, current) => {
+        signal = current;
+
+        return preparation.promise;
+      },
+    });
+
+    await h.session.start();
+
+    const replacing = h.session.replace(
+      DocumentCodec.emptyDocument(),
+      () => false,
+    );
+
+    const disposing = h.session.dispose();
+
+    expect(signal!.aborted).toBe(true);
+    preparation.resolve(DocumentCodec.emptyDocument());
+    await expect(replacing).rejects.toThrow();
+    await disposing;
+    expect(h.repository.replace).not.toHaveBeenCalled();
+    expect(h.lease.release).toHaveBeenCalledOnce();
+  });
 });

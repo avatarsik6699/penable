@@ -40,7 +40,16 @@ async function microtasks() {
   for (let index = 0; index < 20; index++) await Promise.resolve();
 }
 
-function harness(persistence?: DocumentPersistence) {
+function harness(
+  persistence?: DocumentPersistence,
+  exportDocument: WorkspaceDependencies["exportDocument"] = async (
+    document,
+  ) => {
+    const result = DocumentCodec.serializeDocument(document);
+
+    return { contents: result.json, warning: result.warning };
+  },
+) {
   const sessions: DocumentSession[] = [],
     releases: ReturnType<typeof vi.fn>[] = [];
 
@@ -64,9 +73,12 @@ function harness(persistence?: DocumentPersistence) {
 
   let invalidate: (message: string) => void = () => {};
 
+  const download = vi.fn();
+
   const model = new WorkspaceModel({
     diagnostics,
-    download: vi.fn(),
+    download,
+    exportDocument,
 
     session: (options) => {
       const session = new DocumentSession({
@@ -89,6 +101,7 @@ function harness(persistence?: DocumentPersistence) {
 
   return {
     model,
+    download,
     sessions,
     releases,
     repository,
@@ -112,6 +125,53 @@ function controls(strokes: Stroke[] = []): SurfaceControls {
     redo: vi.fn(),
   };
 }
+
+describe("asynchronous recovery export ownership", () => {
+  it("keeps downloads available after writer authority is lost", async () => {
+    const h = harness(),
+      stop = h.model.start();
+
+    await microtasks();
+    h.invalidate();
+    expect(h.model.canWrite()).toBe(false);
+
+    expect(await h.model.exportCurrent()).toEqual({
+      code: "copySentToTheBrowserForDownload",
+    });
+
+    expect(h.download).toHaveBeenCalledOnce();
+    expect(h.download.mock.calls[0]![1]).toBe("penable-board.json");
+    stop();
+  });
+
+  it("aborts owned export on disposal and never downloads a late result", async () => {
+    let signal: AbortSignal | undefined;
+    let complete!: (value: { contents: string; warning: string }) => void;
+
+    const pending = new Promise<{ contents: string; warning: string }>(
+      (resolve) => {
+        complete = resolve;
+      },
+    );
+
+    const h = harness(undefined, (_document, current) => {
+        signal = current;
+
+        return pending;
+      }),
+      stop = h.model.start();
+
+    await microtasks();
+
+    const exporting = h.model.exportCurrent();
+
+    stop();
+    expect(signal?.aborted).toBe(true);
+    complete({ contents: "late", warning: "" });
+    await exporting;
+    expect(h.download).not.toHaveBeenCalled();
+  });
+});
 
 describe("tab and editor ownership", () => {
   it("caches an immutable coarse projection without observing or cloning raw points", async () => {

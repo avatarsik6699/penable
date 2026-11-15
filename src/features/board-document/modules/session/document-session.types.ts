@@ -9,6 +9,14 @@ import type {
 
 export type SessionOptions = {
   snapshot: () => BoardSnapshot;
+  decode?: (
+    value: unknown,
+    signal: AbortSignal,
+  ) => Promise<import("../../board-document.types").BoardDocument>;
+  prepare?: (
+    value: import("../../board-document.types").BoardDocument,
+    signal: AbortSignal,
+  ) => Promise<import("../../board-document.types").BoardDocument>;
   preflight?: (
     document: import("../../board-document.types").BoardDocument,
     signal: AbortSignal,

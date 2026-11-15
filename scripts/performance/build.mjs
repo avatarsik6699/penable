@@ -23,6 +23,7 @@ await mkdir(out, { recursive: true });
 
 await build({
   configFile: false,
+  base: "./",
   logLevel: "warn",
   define: { "process.env.NODE_ENV": JSON.stringify("production") },
   resolve: {
@@ -31,6 +32,11 @@ await build({
       "@drawing": resolve(source, "drawing"),
       "@board": resolve(source, "entities/board/index.ts"),
       "@workspace": resolve(source, "widgets/board-workspace/index.ts"),
+      "@document": resolve(source, "features/board-document/index.ts"),
+      "@application": resolve(
+        "scripts/performance",
+        legacy ? "application-unavailable.js" : "application.js",
+      ),
       "@engine": resolve(
         "scripts/performance",
         legacy ? "legacy-entry.js" : "layered-entry.js",

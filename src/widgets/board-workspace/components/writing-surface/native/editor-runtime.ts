@@ -266,7 +266,7 @@ function create(
             }
           : imageInput.status,
         selected: selection.hasSelection,
-        images: selection.selected.some((item) => item.kind === "image"),
+        images: selection.hasImages,
         clipboard: true,
         busy: selection.busy || selectionCommands.busy || imageInput.busy,
         message: selection.message,

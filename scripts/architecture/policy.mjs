@@ -3,7 +3,24 @@ export const platformOwners = {
   "src/app/adapters/locale-platform.ts": ["dom", "storage"],
   "src/features/app-availability/adapters/app-platform.ts": ["dom"],
   "src/features/board-document/modules/jobs/document-jobs.ts": ["files"],
+  "src/features/board-document/modules/jobs/document-reader.ts": [
+    "files",
+    "worker",
+    "url",
+    "messaging",
+  ],
+  "src/features/board-document/modules/jobs/document-reader-worker.ts": [
+    "files",
+    "worker-scope",
+    "messaging",
+  ],
   "src/features/board-document/modules/jobs/jobs-protocol.ts": ["files"],
+  "src/features/board-document/modules/jobs/source-upload.types.ts": [
+    "messaging",
+  ],
+  "src/features/board-document/modules/jobs/document-reader.types.ts": [
+    "files",
+  ],
   "src/features/board-document/adapters/fragment-reader.ts": [
     "worker",
     "url",

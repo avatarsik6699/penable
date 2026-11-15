@@ -13,7 +13,7 @@ import type {
 } from "~/entities/board";
 
 export type DocumentJobKind =
-  "select" | "validate" | "save" | "overview" | "fragment";
+  "select" | "validate" | "save" | "overview" | "fragment" | "export";
 
 export type FragmentMetadata =
   Omit<Stroke, "points"> | Omit<ImageItem, "asset"> | TemplateItem;
@@ -84,6 +84,7 @@ export type JobResponse = {
   selection?: SelectionResult;
   overview?: OverviewResult;
   fragment?: Blob;
+  exported?: { blob: Blob; warning: MessageTypes.Value };
   chunk?: SelectionResult["parts"];
 };
 

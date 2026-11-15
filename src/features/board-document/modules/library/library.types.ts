@@ -32,6 +32,7 @@ export type LibraryOptions = Pick<
 > & {
   onLibrary?: (state: LibraryState) => void;
   initialTitle?: string;
+  decode?: SessionOptions["decode"];
   preflight?: (document: BoardDocument, signal: AbortSignal) => Promise<void>;
   acquire: () => Promise<WriterLease>;
   open: (

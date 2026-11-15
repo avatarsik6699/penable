@@ -189,7 +189,10 @@ export class JobTransport {
         id,
         current,
         checkpoint,
-        kind === "save" || kind === "validate" || kind === "fragment",
+        kind === "save" ||
+          kind === "validate" ||
+          kind === "fragment" ||
+          kind === "export",
       );
 
       current();

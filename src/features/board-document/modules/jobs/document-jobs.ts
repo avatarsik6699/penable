@@ -155,6 +155,23 @@ export class DocumentJobs implements DocumentPersistence {
     return result.fragment;
   }
 
+  async export(document: BoardDocument, signal: AbortSignal) {
+    if (this.closing)
+      throw Messages.error(Messages.create("documentProcessingIsClosing"));
+
+    const result = await this.transport.execute(
+      "export",
+      document,
+      undefined,
+      signal,
+    );
+
+    if (!result.exported)
+      throw Messages.error(Messages.create("documentProcessingFailed"));
+
+    return result.exported;
+  }
+
   cancel() {
     this.transport.cancel();
   }

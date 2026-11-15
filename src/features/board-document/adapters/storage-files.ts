@@ -1,6 +1,6 @@
 import type { ChangeEvent } from "react";
 
-export type DocumentFile = Pick<File, "size" | "text">;
+export type DocumentFile = Blob;
 
 function fromInput(
   event: ChangeEvent<HTMLInputElement>,

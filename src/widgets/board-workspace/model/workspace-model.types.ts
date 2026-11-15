@@ -119,5 +119,15 @@ export type WorkspaceDependencies = {
     onState: (state: StorageState) => void;
     onLibrary?: (state: LibraryState) => void;
   }) => DocumentSession | BoardLibrarySession;
-  download: (json: string, name: string) => void;
+  download: (
+    json: import("~/features/board-document").DownloadContents,
+    name: string,
+  ) => void;
+  exportDocument: (
+    document: import("~/features/board-document").BoardDocument,
+    signal: AbortSignal,
+  ) => Promise<{
+    contents: import("~/features/board-document").DownloadContents;
+    warning: MessageTypes.Value;
+  }>;
 };

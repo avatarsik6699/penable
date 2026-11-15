@@ -12,8 +12,11 @@ import {
 
 import { mathBench } from "./math-templates.js";
 import { EraserBenchmark } from "./eraser.js";
+import { ApplicationBenchmark } from "@application";
 
 let scheduling = "raf";
+
+window.applicationBench = ApplicationBenchmark;
 
 const nextFrame = () =>
   scheduling === "raf"

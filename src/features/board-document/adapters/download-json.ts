@@ -1,6 +1,10 @@
-function download(json: string, name: string) {
+export type DownloadContents = string | Blob;
+
+function download(json: DownloadContents, name: string) {
   const url = URL.createObjectURL(
-    new Blob([json], { type: "application/json" }),
+    typeof json === "string"
+      ? new Blob([json], { type: "application/json" })
+      : json,
   );
 
   const link = document.createElement("a");

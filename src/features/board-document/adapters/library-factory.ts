@@ -3,7 +3,7 @@ import { ImagePreflight } from "./image-preflight";
 import { BoardLibrarySession } from "../modules/library";
 import type { LibraryOptions } from "../modules/library";
 import { DocumentSession } from "../modules/session";
-import { DocumentJobs } from "../modules/jobs";
+import { DocumentJobs, DocumentReader } from "../modules/jobs";
 import { DocumentWriterLease } from "./writer-lock";
 import { DocumentRepositoryAdapter } from "./indexeddb";
 import { LibraryRepositoryAdapter } from "./library-indexeddb";
@@ -18,6 +18,7 @@ function create(
     ...options,
     initialTitle: I18n.t("myBoard"),
     preflight: ImagePreflight.validate,
+    decode: DocumentReader.decode,
     acquire: DocumentWriterLease.acquireWriterLease,
     open: LibraryRepositoryAdapter.open,
     id: () => `board-${crypto.randomUUID()}`,
@@ -25,6 +26,8 @@ function create(
       new DocumentSession({
         ...callbacks,
         preflight: ImagePreflight.validate,
+        decode: DocumentReader.decode,
+        prepare: DocumentReader.prepare,
         acquire: async () => lease,
         open: (invalidated) =>
           DocumentRepositoryAdapter.openRepository(invalidated, undefined, id),

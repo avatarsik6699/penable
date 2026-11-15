@@ -39,6 +39,7 @@ import {
 export class WorkspaceModel {
   readonly controls = { current: null as SurfaceControls | null };
   readonly clipboard: SelectionClipboard = { strokes: [] };
+  private exportOperation: AbortController | null = null;
   private initialBoard: BoardSnapshot | null = null;
   private session: DocumentSession | BoardLibrarySession | null = null;
   private listeners = new Set<() => void>();
@@ -268,6 +269,7 @@ export class WorkspaceModel {
     if (!lifetime?.active) return;
 
     lifetime.active = false;
+    this.exportOperation?.abort();
 
     this.priorDisposal = Promise.allSettled([
       lifetime.starting,
@@ -461,19 +463,30 @@ export class WorkspaceModel {
     );
   };
 
-  readonly exportCurrent = () => {
+  readonly exportCurrent = async () => {
+    this.exportOperation?.abort();
+
+    const operation = new AbortController();
+
+    this.exportOperation = operation;
+
     try {
-      const result = DocumentCodec.serializeDocument(
+      const result = await this.dependencies.exportDocument(
         DocumentSnapshots.fromSnapshot(this.readBoardSnapshot()),
+        operation.signal,
       );
 
-      this.dependencies.download(result.json, "penable-board.json");
+      if (operation.signal.aborted) return Messages.create("actionCancelled");
+
+      this.dependencies.download(result.contents, "penable-board.json");
 
       return (
         result.warning || Messages.create("copySentToTheBrowserForDownload")
       );
     } catch (error) {
       return DocumentErrors.messageOf(error);
+    } finally {
+      if (this.exportOperation === operation) this.exportOperation = null;
     }
   };
 

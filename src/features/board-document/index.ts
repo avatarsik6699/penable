@@ -1,4 +1,5 @@
 export { DocumentDownloads } from "./adapters/download-json";
+export type { DownloadContents } from "./adapters/download-json";
 export { DocumentRepositoryAdapter } from "./adapters/indexeddb";
 export { DocumentProtocol } from "./modules/jobs";
 export type {
@@ -9,7 +10,7 @@ export type {
   JobRequest,
   JobResponse,
 } from "./modules/jobs";
-export { DocumentJobs, DocumentWorkload } from "./modules/jobs";
+export { DocumentJobs, DocumentWorkload, DocumentReader } from "./modules/jobs";
 export type { JobWorker } from "./modules/jobs";
 export { DocumentBindings } from "./adapters/session-bindings";
 export { DocumentSessions } from "./adapters/session-factory";
@@ -48,3 +49,5 @@ export { BoardLibrary } from "./components/board-library";
 
 export { FragmentCodec } from "./modules/fragments";
 export { FragmentReader } from "./adapters/fragment-reader";
+
+export { DocumentExports } from "./adapters/document-exports";

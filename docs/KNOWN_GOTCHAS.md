@@ -152,3 +152,15 @@ near1ms. Before optimizing eraser input, compare plain/pressure/transformed/clip
 actual preview redraw and history, and separate hit-test time from paint time. Gesture-local
 conservative world bounds must reject distant items before masks/clipping/inverses; exact pressure
 segments also need bounds before edge tests. Do not remove coalesced samples or relax hit accuracy.
+
+## Playwriter has a separate per-CDP-request deadline
+
+A long `page.evaluate` can fail near30seconds with “Execution context was destroyed” even when
+its CLI execution budget is45seconds. The installed relay independently times out forwarded CDP
+requests after30000ms; the installed Playwright fork rewrites generic protocol errors into that
+context error. Confirm `forwardCDPCommand` timeout in the relay log before inferring a tab crash.
+
+For long owned benchmarks, start the promise inside the page without returning/awaiting it, store
+its result/error and `performance.timeOrigin`, then use short read-only polls. Require unchanged
+origin, successful completion and data integrity before acceptance. Never navigate or start another
+mutating scenario while it is pending. Keep physical RAF cadence and CPU-only scheduling distinct.

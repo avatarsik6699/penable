@@ -7,6 +7,7 @@ import {
   type DocumentFile,
 } from "../../../adapters/storage-files";
 import { DocumentCodec } from "../../../modules/codec";
+import { DocumentReader } from "../../../modules/jobs";
 import { DocumentErrors } from "../../../modules/session";
 import type { BoardDocument } from "../../../board-document.types";
 import type { StoragePanelTypes } from "../storage-panel.types";
@@ -26,6 +27,7 @@ export function useImportDialog(
   const dialogRef = useRef<OverlayElements.Dialog>(null);
   const lifetime = useRef({ mounted: false, readGeneration: 0 });
   const wasOpen = useRef(false);
+  const reader = useRef<AbortController | null>(null);
 
   useEffect(
     function importReturnFocusFx() {
@@ -44,6 +46,7 @@ export function useImportDialog(
     return () => {
       current.mounted = false;
       current.readGeneration++;
+      reader.current?.abort();
     };
   }, []);
 
@@ -60,6 +63,7 @@ export function useImportDialog(
     if (confirming || props.state.importing) return;
 
     lifetime.current.readGeneration++;
+    reader.current?.abort();
     setOpen(false);
     setCandidate(null);
     setReading(false);
@@ -85,6 +89,12 @@ export function useImportDialog(
   const readFile = async (file: DocumentFile) => {
     const generation = ++lifetime.current.readGeneration;
 
+    reader.current?.abort();
+
+    const operation = new AbortController();
+
+    reader.current = operation;
+
     setCandidate(null);
     setError("");
 
@@ -98,7 +108,7 @@ export function useImportDialog(
     setReading(true);
 
     try {
-      const document = DocumentCodec.parseDocumentJSON(await file.text());
+      const document = await DocumentReader.read(file, operation.signal);
 
       if (
         lifetime.current.mounted &&

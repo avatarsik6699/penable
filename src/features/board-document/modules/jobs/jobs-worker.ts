@@ -84,14 +84,19 @@ async function finish(id: number) {
       return { ...stroke, points: geometries.get(geometry)! };
     });
 
-    const document = DocumentCodec.decodeDocument(
-      DocumentCodec.encodeDocument(
-        { ...job.root, strokes: items },
-        job.kind === "select" || job.kind === "overview",
-      ),
-      undefined,
-      job.kind === "select" || job.kind === "overview",
-    );
+    const captured = { ...job.root, strokes: items };
+
+    const document =
+      job.kind === "export"
+        ? captured
+        : DocumentCodec.decodeDocument(
+            DocumentCodec.encodeDocument(
+              { ...job.root, strokes: items },
+              job.kind === "select" || job.kind === "overview",
+            ),
+            undefined,
+            job.kind === "select" || job.kind === "overview",
+          );
 
     let selection: SelectionResult | undefined;
 
@@ -210,8 +215,19 @@ async function finish(id: number) {
     pending = null;
     strokes = [];
 
+    const exported =
+      job.kind === "export" ? DocumentCodec.serializeDocument(captured) : null;
+
     host.postMessage({
       id,
+      ...(exported
+        ? {
+            exported: {
+              blob: new Blob([exported.json], { type: "application/json" }),
+              warning: exported.warning,
+            },
+          }
+        : {}),
       ...(selection ? { selection } : {}),
       ...(job.kind === "fragment"
         ? {

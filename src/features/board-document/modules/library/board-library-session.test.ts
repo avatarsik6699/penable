@@ -26,6 +26,7 @@ function setup(
     catalog?: unknown;
     legacy?: boolean;
     missingCatalog?: boolean;
+    decode?: import("../session").SessionOptions["decode"];
   } = {},
 ) {
   const original = {
@@ -163,6 +164,7 @@ function setup(
 
       return new DocumentSession({
         ...callbacks,
+        decode: options.decode,
         acquire: async () => lease,
         open: async () => documentRepository,
       });
@@ -526,4 +528,42 @@ describe("cover migration and durable appearance changes", () => {
     expect(h.catalog.boards).toHaveLength(2);
     await h.session.dispose();
   });
+});
+
+it("aborts the active session decode before waiting for library startup and drains before releasing the lease", async () => {
+  const decoded = deferred();
+  let signal: AbortSignal | undefined;
+
+  const h = setup({
+    decode: async (value, current) => {
+      signal = current;
+      await decoded.promise;
+
+      return DocumentCodec.decodeDocument(value);
+    },
+  });
+
+  const starting = h.session.start();
+
+  await vi.waitFor(() => expect(signal).toBeDefined());
+  expect(h.events).not.toContain("hydrate");
+
+  const disposing = h.session.dispose();
+
+  expect(signal!.aborted).toBe(true);
+  expect(h.release).not.toHaveBeenCalled();
+  decoded.resolve();
+  await starting;
+  await disposing;
+  expect(h.events).not.toContain("hydrate");
+
+  expect(h.events.indexOf("close:main")).toBeLessThan(
+    h.events.indexOf("catalog-close"),
+  );
+
+  expect(h.events.indexOf("catalog-close")).toBeLessThan(
+    h.events.indexOf("lease-release"),
+  );
+
+  expect(h.release).toHaveBeenCalledOnce();
 });

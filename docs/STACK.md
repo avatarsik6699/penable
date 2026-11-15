@@ -587,3 +587,16 @@ Output is960×600,10fps,8–12seconds and<=3MiB per GIF, with static alternative
 and mouse paths are demonstration data; timing is explanatory, not measured physical pen latency.
 Use npm run format:tooling for authored JS/package changes; no new package/runtime dependency.
 Standard Full Gate/local ship applies; application code and Change36 runtime acceptance remain.
+
+## Change40 — Application performance audit
+
+[Measured results and remaining limits](performance/40-audit.md) cover engine CPU/frame batches,
+file I/O, actual module Workers/IndexedDB, editor resources and application roundtrips. Existing
+`bench:build` now includes `applicationBench` only in the separate benchmark artifact, alongside
+`penBench`; its relative asset base supports baseline/candidate subdirectories. Production Pages
+has no measurement globals. Historical drawing-only sources retain engine-only benchmarking.
+
+Run `scripts/performance/audit.js` through one owned Playwriter session with state.label,
+state.pair and state.suite. Native timing stays local; CI runs the ordinary unit/E2E suite,
+including bounded transfer, exact100k-point import/export/reload and export-worker cleanup.
+Keep default/full/release gates unchanged. Hardware/GPU acceptance remains separate.

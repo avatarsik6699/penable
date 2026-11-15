@@ -1,6 +1,10 @@
 import { I18n } from "~/shared/lib/i18n";
 import { BoardCoordinates } from "~/entities/board";
-import { DocumentDownloads, BoardLibraries } from "~/features/board-document";
+import {
+  DocumentDownloads,
+  DocumentExports,
+  BoardLibraries,
+} from "~/features/board-document";
 import { WorkspaceModel } from "../model/workspace-model";
 
 function create(): WorkspaceModel {
@@ -8,6 +12,7 @@ function create(): WorkspaceModel {
     session: BoardLibraries.create,
     defaultBoardTitle: I18n.t("myBoard"),
     download: DocumentDownloads.download,
+    exportDocument: DocumentExports.serialize,
     diagnostics: {
       pointerType: null,
       inputEvent: null,

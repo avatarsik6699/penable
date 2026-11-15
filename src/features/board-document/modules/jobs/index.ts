@@ -12,3 +12,5 @@ export type {
 } from "./jobs-protocol";
 
 export type { OverviewResult } from "./modules/overview";
+
+export { DocumentReader } from "./document-reader";

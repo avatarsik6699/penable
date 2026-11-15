@@ -6,7 +6,7 @@ import {
   type ImageAsset,
 } from "~/entities/board";
 import type { BoardDocument } from "../../board-document.types";
-import type { JobWorker } from "./document-jobs.types";
+import type { JobUpload } from "./source-upload.types";
 import type { StrokeMetadata } from "./jobs-protocol";
 
 export class SourceUpload {
@@ -36,7 +36,7 @@ export class SourceUpload {
 
   async send(
     document: BoardDocument,
-    worker: JobWorker,
+    worker: JobUpload,
     id: number,
     current: () => void,
     checkpoint: () => Promise<void>,
@@ -49,11 +49,14 @@ export class SourceUpload {
 
     const sendMetadata = () => {
       if (metadata.length) {
-        worker.postMessage({
-          type: "strokes",
-          id,
-          values: metadata.splice(0),
-        });
+        worker.postMessage(
+          {
+            type: "strokes",
+            id,
+            values: metadata.splice(0),
+          },
+          [],
+        );
 
         vertices = 0;
       }
@@ -67,14 +70,17 @@ export class SourceUpload {
 
         if (uploadAssets && !this.knownAssets.has(stroke.asset)) {
           for (let offset = 0; offset < base64.length; offset += 65536) {
-            worker.postMessage({
-              type: "asset",
-              id,
-              asset,
-              offset,
-              length: base64.length,
-              value: base64.slice(offset, offset + 65536),
-            });
+            worker.postMessage(
+              {
+                type: "asset",
+                id,
+                asset,
+                offset,
+                length: base64.length,
+                value: base64.slice(offset, offset + 65536),
+              },
+              [],
+            );
 
             await checkpoint();
           }

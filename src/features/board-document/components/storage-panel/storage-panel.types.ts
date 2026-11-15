@@ -10,7 +10,7 @@ export namespace StoragePanelTypes {
     state: StorageState;
     hasDocument: boolean;
     busy: boolean;
-    onExport: () => MessageTypes.Value;
+    onExport: () => Promise<MessageTypes.Value>;
     onUpgrade: () => MessageTypes.Value;
     onPrevious: () => MessageTypes.Value;
     onSchema3: () => MessageTypes.Value;
