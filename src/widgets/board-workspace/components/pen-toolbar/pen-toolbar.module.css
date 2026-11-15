@@ -78,12 +78,12 @@
 .insertionNotice button {
   align-self: flex-start;
 }
-@media (max-width: 1199px) {
+@media (max-width: 899px) {
   .dock {
     top: 80px;
     left: 12px;
     width: calc(100% - 24px);
-    max-width: 960px;
+    max-width: 778px;
     height: 104px;
     grid-template-columns: minmax(0, 1fr) 331px 89px;
     grid-template-rows: 40px 40px;
@@ -112,9 +112,9 @@
     right: 100px;
   }
 }
-@media (min-width: 984px) and (max-width: 1199px) {
+@media (min-width: 802px) and (max-width: 899px) {
   .dock {
-    left: calc((100% - 960px) / 2);
+    left: calc((100% - 778px) / 2);
   }
 }
 @media (max-width: 650px) {
@@ -196,6 +196,7 @@
     top: max(12px, env(safe-area-inset-top, 0px));
     height: 60px;
     width: 814px;
+    max-width: none;
     left: max(12px, calc((100% - 814px) / 2));
     grid-template-columns: 128px 359px 190px 97px;
     grid-template-rows: 44px;

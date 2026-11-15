@@ -1181,3 +1181,13 @@ old version and notes; scoped cleanup ignores unrelated caches. Chromium automat
 native Chrome desktop/phone visual/console evidence and Full Gate/review precede local ship.
 OS-level installation and physical iPad home-screen behavior remain manual acceptance. Release
 and public-site deployment require separate instruction.
+
+## 5.24 — Compact intermediate toolbar (Change32)
+
+Owner-requested2026-11-15 from installed-app screenshot. Supersedes fine-pointer dock breakpoints
+in prior sections: use the existing778×56 single row at widths>=900px. At651–899px use two rows,
+104px high, cap width at778px and center when it fits; otherwise retain12px safe side clearance.
+At<=650px retain existing three-row152px fine-pointer behavior. Brand remains hidden below1200px;
+the safe top offset and touch814×60/112/164 layouts remain. Keep controls/content, fixed slots,
+tool-switch geometry invariance and drawing surface unchanged. Test both sides of900/650px and
+intermediate1000/1199px, desktop, phone and coarse input; retain keyboard/target accessibility.

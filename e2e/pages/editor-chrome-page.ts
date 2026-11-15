@@ -232,8 +232,15 @@ export class EditorChromePage {
     for (const viewport of [
       { width: 1440, height: 900 },
       { width: 1280, height: 720 },
+      { width: 1254, height: 900 },
+      { width: 1200, height: 720 },
+      { width: 1199, height: 720 },
       { width: 1000, height: 720 },
+      { width: 900, height: 720 },
+      { width: 899, height: 720 },
+      { width: 802, height: 720 },
       { width: 768, height: 720 },
+      { width: 651, height: 844 },
       { width: 650, height: 844 },
       { width: 390, height: 844 },
       { width: 390, height: 568 },
@@ -272,9 +279,28 @@ export class EditorChromePage {
 
       expect(expectedDock.width).toBeLessThanOrEqual(viewport.width - 24);
 
-      if (viewport.width >= 1200) {
+      if (viewport.width >= 900) {
         expect(expectedDock.width).toBe(778);
         expect(expectedButtons[0]!.width).toBe(128);
+        expect(expectedDock.height).toBe(56);
+
+        const width = (await this.page
+          .getByRole("slider", { name: "Толщина", exact: true })
+          .boundingBox())!;
+
+        expect(width.y).toBeGreaterThanOrEqual(expectedDock.y);
+        expect(width.y + width.height).toBeLessThanOrEqual(expectedDock.y + 56);
+
+        for (const button of expectedButtons) {
+          expect(button!.y).toBe(expectedButtons[0]!.y);
+        }
+      } else if (viewport.width > 650) {
+        expect(expectedDock.width).toBeLessThanOrEqual(778);
+        expect(expectedDock.height).toBe(104);
+
+        expect(
+          Math.abs(expectedDock.x - (viewport.width - expectedDock.width) / 2),
+        ).toBeLessThanOrEqual(1);
       }
 
       for (const tool of tools.slice(1)) {

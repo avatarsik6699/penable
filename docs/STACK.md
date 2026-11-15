@@ -1,7 +1,7 @@
 # Stack Guide
 
 > Source of truth for technologies, commands and required tools.
-> Status: CONFIGURED; changes01–31 shipped locally; Pages publication follows the origin/main workflow for the current release.
+> Status: CONFIGURED; changes01–32 shipped locally; Pages publication follows the origin/main workflow for the current release.
 > SPEC approved 2026-11-12. Desktop acceptance: Wacom One, Windows 11. Touch target: current phone/tablet browsers and iPad/Pencil; physical acceptance remains separate.
 
 ## Stack
@@ -525,3 +525,11 @@ and per-test contexts. E2E4185 remains the ordinary suite server. Offline suite 
 registration, cache, network-disabled reload/save/lazy operations, safe waiting updates and
 failed updates. Existing engine/raster evidence applies because ink code is unchanged.
 OS install dialogs and physical iPad home-screen behavior remain separate manual acceptance.
+
+## Change32 — Compact responsive toolbar
+
+SPEC5.24 refines only fine-pointer breakpoints:778×56 single row from900px, centered/capped778px
+two rows at651–899px, existing phone and coarse target sizes retained. Existing Full Gate applies;
+Pages4210 is the task-owned native preview, automated suite4185. Expanded existing dock invariance
+regression checks width/height/alignment at900/899 and650/651 plus intermediate/desktop widths.
+Production change is CSS only; existing native ink/raster/performance evidence remains applicable.

@@ -126,8 +126,8 @@ The board fills the viewport; all chrome and panels are out of flow. Opening pan
 Desktop layouts at 1440×900 and 1280×720 place one dock top-center, static brand top-left,
 zoom/return/minimap bottom-right and Help bottom-left. Tools, history, contextual controls and
 save status/settings share that dock; no separate top-right status pill remains.
-At widths of 1200px and above, the dock is fixed at 778×56px with 128px board and 190px context slots and centered 16px from the top.
-From 651px through 1199px, fine-pointer layouts use two rows within a 104px dock. At 650px
+At widths of 900px and above, the fine-pointer dock is fixed at 778×56px with 128px board and 190px context slots and centered 16px from the top.
+From 651px through 899px, fine-pointer layouts use two rows within a 104px dock, capped at778px and centered when it fits. At 650px
 and below, they use three rows in a 152px dock. Below1200px the decorative brand is hidden and
 the dock sits at the safe top edge with at least12px clearance. Coarse-pointer layouts use
 44px controls: an814×60px single row at900px and above, two rows/112px below900px, and three
