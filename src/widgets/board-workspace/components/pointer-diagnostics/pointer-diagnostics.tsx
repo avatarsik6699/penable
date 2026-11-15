@@ -37,6 +37,14 @@ export const PointerDiagnostics: React.FC<PointerDiagnosticsTypes.Props> = (
             </dd>
           </div>
           <div>
+            <dt>{I18n.t("nativeInputEvent")}</dt>
+            <dd>{props.diagnostics.inputEvent ?? "—"}</dd>
+          </div>
+          <div>
+            <dt>{I18n.t("lastPenContact")}</dt>
+            <dd>{props.diagnostics.lastPenContact ?? "—"}</dd>
+          </div>
+          <div>
             <dt>DPR</dt>
             <dd>{props.diagnostics.dpr}</dd>
           </div>

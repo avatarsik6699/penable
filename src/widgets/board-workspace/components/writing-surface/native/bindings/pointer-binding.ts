@@ -148,6 +148,25 @@ function create(
       return;
     }
 
+    // A pen-tip transition can arrive as pointermove (e.g. chorded buttons).
+    // button=-1 means held motion, and must never resurrect cancelled input.
+    if (
+      event.target === canvas &&
+      interaction.focused &&
+      !interaction.spaceDown &&
+      !options.templatePlacement?.active &&
+      event.pointerType === "pen" &&
+      event.isPrimary &&
+      event.button === 0 &&
+      event.buttons === 1 &&
+      drawingPointerId() === null &&
+      navigation.pointerId === null
+    ) {
+      down(event);
+
+      return;
+    }
+
     if (
       event.pointerType !== "pen" ||
       (event.buttons & 1) !== 0 ||

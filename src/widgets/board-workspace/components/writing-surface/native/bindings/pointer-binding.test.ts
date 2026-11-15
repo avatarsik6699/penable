@@ -25,6 +25,7 @@ function pointer(
 }
 
 function harness() {
+  const guards = { writable: true, blocked: false };
   let owner: number | null = null;
 
   const input = {
@@ -77,8 +78,8 @@ function harness() {
       cancel: vi.fn(),
     },
     getTool: () => "pen",
-    canWrite: () => true,
-    interactionsBlocked: () => false,
+    canWrite: () => guards.writable,
+    interactionsBlocked: () => guards.blocked,
     drawingPointerId: () => owner,
     activeInput: () => input,
     observeInput: vi.fn(),
@@ -112,15 +113,26 @@ function harness() {
     typeof EdgePan.create
   >;
 
+  const interaction = { spaceDown: false, focused: true, keyboardEntry: false };
+
   const binding = PointerBinding.create(
     options,
-    { spaceDown: false, focused: true, keyboardEntry: false },
+    interaction,
     cursor,
     edge,
     touch,
   );
 
-  return { binding, cursor, input, sample };
+  return {
+    binding,
+    cursor,
+    input,
+    sample,
+    canvas,
+    options,
+    interaction,
+    guards,
+  };
 }
 
 describe("pen cursor release presentation", () => {
@@ -181,4 +193,100 @@ describe("pen cursor release presentation", () => {
     expect(h.input.move).toHaveBeenCalledWith(foreign);
     expect(h.input.up).toHaveBeenCalledWith(mouseUp);
   });
+});
+
+describe("fresh pen contact transitions", () => {
+  it("starts a new pen contact reported as a move after focus cancellation", () => {
+    const h = harness();
+
+    h.binding.down(pointer(7, "pen", 1, 12));
+    h.binding.cancel();
+
+    const held = {
+      ...pointer(7, "pen", 1, 18),
+      button: -1,
+      target: h.canvas,
+    } as unknown as PointerEvent;
+
+    h.binding.move(held);
+    expect(h.input.down).toHaveBeenCalledTimes(1);
+
+    const contact = {
+      ...pointer(7, "pen", 1, 24),
+      target: h.canvas,
+    } as unknown as PointerEvent;
+
+    h.binding.move(contact);
+    expect(h.input.down).toHaveBeenCalledTimes(2);
+    expect(h.input.down).toHaveBeenLastCalledWith(contact);
+  });
+
+  it.each([
+    { pointerType: "mouse" },
+    { pointerType: "touch" },
+    { button: -1 },
+    { button: 2, buttons: 2 },
+    { buttons: 0 },
+    { buttons: 3 },
+    { isPrimary: false },
+  ])("does not recover unsupported move %j", (overrides) => {
+    const h = harness();
+
+    h.binding.move({
+      ...pointer(7, "pen", 1, 12),
+      target: h.canvas,
+      ...overrides,
+    } as unknown as PointerEvent);
+
+    expect(h.input.down).not.toHaveBeenCalled();
+  });
+
+  it("does not replace an active pointer with another contact transition", () => {
+    const h = harness();
+
+    h.binding.down(pointer(7, "pen", 1, 12));
+
+    h.binding.move({
+      ...pointer(8, "pen", 1, 24),
+      target: h.canvas,
+    } as unknown as PointerEvent);
+
+    expect(h.input.down).toHaveBeenCalledTimes(1);
+  });
+});
+
+it.each([
+  "outside",
+  "blur",
+  "space",
+  "pan",
+  "readonly",
+  "blocked",
+  "placement",
+])("does not recover a pen transition while %s", (guard) => {
+  const h = harness();
+
+  if (guard === "blur") h.interaction.focused = false;
+
+  if (guard === "space") h.interaction.spaceDown = true;
+
+  if (guard === "pan")
+    Object.defineProperty(h.options.navigation, "pointerId", { value: 9 });
+
+  if (guard === "readonly") h.guards.writable = false;
+
+  if (guard === "blocked") h.guards.blocked = true;
+
+  if (guard === "placement")
+    h.options.templatePlacement = {
+      active: true,
+      move: vi.fn(),
+    } as unknown as BindingOptions["templatePlacement"];
+
+  h.binding.move({
+    ...pointer(7, "pen", 1, 12),
+    target: guard === "outside" ? null : h.canvas,
+  } as unknown as PointerEvent);
+
+  expect(h.input.down).not.toHaveBeenCalled();
 });

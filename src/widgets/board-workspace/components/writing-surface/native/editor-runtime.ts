@@ -202,6 +202,8 @@ function create(
     const diagnostics = new SurfaceDiagnostics(
       {
         pointerType: null,
+        inputEvent: null,
+        lastPenContact: null,
         pressure: null,
         active: false,
         dpr: BoardCoordinates.validDpr(window.devicePixelRatio),

@@ -8,8 +8,9 @@ export class WritingFeedbackPage {
   ) {}
 
   private async pen(
-    phase: "down" | "move" | "up" | "lift" | "hover" | "leave",
+    phase: "down" | "move" | "up" | "lift" | "hover" | "leave" | "contact",
     anomalous = false,
+    primary = true,
   ) {
     await this.board.surface.evaluate(
       (canvas, input) => {
@@ -35,8 +36,8 @@ export class WritingFeedbackPage {
         const init = {
           pointerId: 47,
           pointerType: "pen",
-          isPrimary: true,
-          button: 0,
+          isPrimary: input.primary,
+          button: ["down", "up", "contact"].includes(input.phase) ? 0 : -1,
           buttons: released ? 0 : 1,
           pressure: released ? 0 : 0.5,
           clientX: bounds.left + (input.anomalous ? 600 : x),
@@ -63,7 +64,7 @@ export class WritingFeedbackPage {
 
         canvas.dispatchEvent(event);
       },
-      { phase, anomalous },
+      { phase, anomalous, primary },
     );
   }
 
@@ -114,6 +115,98 @@ export class WritingFeedbackPage {
     await expect
       .poll(() => this.cursor())
       .toEqual({ x: 240, y: 300, visible: true });
+  }
+
+  async expectFocusRecovery() {
+    await this.board.drawStroke();
+
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await this.pen("down");
+      await this.pen("move");
+      await this.page.evaluate(() => window.dispatchEvent(new Event("blur")));
+      await this.pen("move");
+      await this.page.evaluate(() => window.dispatchEvent(new Event("focus")));
+      await this.pen("move");
+
+      await expect(
+        this.page.getByRole("button", { name: "Перо", exact: true }),
+      ).toBeEnabled();
+
+      await this.board.storage.expectStrokeCount(attempt + 1);
+
+      // New tip-down is explicit in button=0, even though the event is a move.
+      await this.pen("contact");
+      await this.pen("move");
+
+      await expect(
+        this.page.getByRole("button", { name: "Перо", exact: true }),
+      ).toBeDisabled();
+
+      await this.pen("up");
+      await this.board.storage.expectStrokeCount(attempt + 2);
+    }
+
+    await this.board.reopenSavedBoard();
+    await this.board.storage.expectStrokeCount(4);
+    await this.board.drawStroke();
+    await this.board.undo();
+    await this.board.storage.expectStrokeCount(4);
+    await this.board.redo();
+    await this.board.storage.expectStrokeCount(5);
+  }
+
+  async expectCaptureCancellation() {
+    await this.pen("down");
+    await this.pen("move");
+
+    await this.board.surface.dispatchEvent("lostpointercapture", {
+      pointerId: 47,
+      pointerType: "pen",
+    });
+
+    await this.pen("move");
+    await this.pen("up");
+    await this.board.storage.expectStrokeCount(0);
+    await this.pen("contact");
+    await this.pen("move");
+    await this.pen("up");
+    await this.board.storage.expectStrokeCount(1);
+  }
+
+  async expectContactDiagnostics() {
+    await this.page
+      .getByRole("button", { name: "Помощь", exact: true })
+      .click();
+
+    await this.page
+      .getByRole("button", { name: "Диагностика", exact: true })
+      .click();
+
+    await this.pen("down", false, false);
+    await this.pen("hover");
+
+    const panel = this.page.getByRole("dialog", {
+      name: "Диагностика ввода",
+      exact: true,
+    });
+
+    await expect(panel).toContainText(
+      "pointerdown id=47 button=0 buttons=1 primary=false accepted=false",
+    );
+
+    await this.pen("contact");
+    await this.pen("move");
+
+    await expect(panel).toContainText(
+      "pointermove id=47 button=0 buttons=1 primary=true accepted=true",
+    );
+
+    await this.pen("up");
+    await this.board.storage.expectStrokeCount(1);
+
+    await expect(panel).toContainText(
+      "pointermove id=47 button=0 buttons=1 primary=true accepted=true",
+    );
   }
 
   private async styles() {

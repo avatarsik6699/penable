@@ -33,6 +33,8 @@ export type SelectionCommand =
 
 export type InputDiagnostics = {
   pointerType: string | null;
+  inputEvent: string | null;
+  lastPenContact: string | null;
   pressure: number | null;
   active: boolean;
   dpr: number;

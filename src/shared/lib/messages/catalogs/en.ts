@@ -1,4 +1,6 @@
 export const EnglishMessages = {
+  nativeInputEvent: "Native event",
+  lastPenContact: "Last pen contact",
   tooManyBoundaryVerticesLimit8192Per:
     "Too many boundary vertices: limit 8192 per fragment.",
   lassoLimit2048VerticesTryAShorter:

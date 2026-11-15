@@ -19,6 +19,14 @@ export class SurfaceDiagnostics {
       ...(event
         ? {
             pointerType: event.pointerType || "unknown",
+            inputEvent: event.type,
+            ...(event.pointerType === "pen" &&
+            (event.type === "pointerdown" ||
+              (event.type === "pointermove" && event.button === 0))
+              ? {
+                  lastPenContact: `${event.type} id=${event.pointerId} button=${event.button} buttons=${event.buttons} primary=${event.isPrimary} accepted=${this.pointer() === event.pointerId}`,
+                }
+              : {}),
             pressure: Number.isFinite(event.pressure) ? event.pressure : null,
             coalesced: typeof event.getCoalescedEvents === "function",
           }

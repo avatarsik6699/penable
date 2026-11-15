@@ -11,6 +11,8 @@ import type { SurfaceControls } from "./workspace-model.types";
 
 const diagnostics: WorkspaceDependencies["diagnostics"] = {
   pointerType: null,
+  inputEvent: null,
+  lastPenContact: null,
   pressure: null,
   active: false,
   dpr: 1,

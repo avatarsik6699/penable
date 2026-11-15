@@ -1,4 +1,6 @@
 export const RussianMessages = {
+  nativeInputEvent: "Событие ввода",
+  lastPenContact: "Касание пера",
   tooManyBoundaryVerticesLimit8192Per:
     "Слишком сложная граница: предел 8192 вершин на фрагмент.",
   lassoLimit2048VerticesTryAShorter:

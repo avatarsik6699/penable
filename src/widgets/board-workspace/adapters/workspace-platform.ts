@@ -10,6 +10,8 @@ function create(): WorkspaceModel {
     download: DocumentDownloads.download,
     diagnostics: {
       pointerType: null,
+      inputEvent: null,
+      lastPenContact: null,
       pressure: null,
       active: false,
       dpr: BoardCoordinates.validDpr(window.devicePixelRatio),

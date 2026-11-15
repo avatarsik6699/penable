@@ -17,3 +17,21 @@ test("readonly writing controls retain muted native disabled behavior", async ({
 }) => {
   await readOnlyWritingFeedback.expectReadOnlyStaysMuted();
 });
+
+test("explicit pen contact recovers after repeated focus loss without resuming cancelled held ink", async ({
+  writingFeedback,
+}) => {
+  await writingFeedback.expectFocusRecovery();
+});
+
+test("capture cancellation discards held pen input and the next fresh contact works", async ({
+  writingFeedback,
+}) => {
+  await writingFeedback.expectCaptureCancellation();
+});
+
+test("diagnostics retain rejected pen contact flags and later show recovered contact acceptance", async ({
+  writingFeedback,
+}) => {
+  await writingFeedback.expectContactDiagnostics();
+});
