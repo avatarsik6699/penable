@@ -7,7 +7,7 @@
 | Change | `39` |
 | Slug | `eraser-performance` |
 | Title | Responsive whole-stroke erasing |
-| Status | `active` |
+| Status | `shipped locally` |
 | Branch | `feature/39-eraser-performance` |
 
 ## Goal
@@ -49,7 +49,7 @@ clip/transform behavior, eight CSS pixel eraser radius, coalesced sweeps and tra
 
 ## Gate Checks
 
-Standard [STACK.md](../STACK.md) Fast/Full Gates. Native Pages preview4219, isolated E2E4185,
+Standard [STACK.md](../../STACK.md) Fast/Full Gates. Native Pages preview4219, isolated E2E4185,
 actual-engine benchmark4180. Baseline source is captured before edits in the ignored
 `.artifacts/change-39/baseline-src`; build baseline/candidate through the existing bench commands.
 Include pressure/transformed distant misses, sparse crossings, coalesced sweeps, preview rendering,
