@@ -6,7 +6,7 @@
 |---|---|
 | Change | 33 |
 | Slug | dense-compact-toolbar |
-| Status | active |
+| Status | `shipped locally` |
 | Branch | feature/33-dense-compact-toolbar |
 
 ## Goal
