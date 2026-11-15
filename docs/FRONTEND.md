@@ -197,3 +197,12 @@ changes never rebuild scene geometry or write board state. Its exact native Prev
 adapter owns capture/keyboard/blur and deduped RAF-deferred ResizeObserver updates; disposal
 releases contact, observer and pending frame. React hooks own only subscription/lifecycle and
 coarse presentation. Existing layers and exact PNG worker capability boundaries remain.
+
+## Application availability
+
+features/app-availability owns install/offline lifecycle and its coarse UI; app composes it beside
+board-workspace without peer imports. Its exact native adapter owns service-worker registration,
+install prompt and standalone media events. Views/hooks consume snapshots and actions only.
+Build-owned scripts/pwa emits manifest/icons and the complete versioned production shell. Cache
+Storage contains app assets only, never document data; SW does not claim clients or skip waiting.
+Updates cannot reload an active editor. Existing document sessions/leases retain all authority.

@@ -211,3 +211,9 @@ clear the axes and neighbors. Prior generator1 items retain their earlier appear
 
 Ordinary shape previews fill the available panel content width, retain their96px height and
 uniform figure proportions. Mathematical previews continue to fill their assigned grid column.
+
+## Application availability (Change31)
+
+Installation/offline controls reuse the existing light surface, semantic tokens and visible
+keyboard focus. Keep them contextual and separate from per-sample writing/dock geometry.
+Offline readiness describes the cached app; local note status remains independently authoritative.

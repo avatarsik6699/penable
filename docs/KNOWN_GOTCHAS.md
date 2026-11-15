@@ -122,3 +122,22 @@ math sheet uses the explicit visualViewport/safe-area cap instead of self-derive
 height. Tag observer callbacks/targets/CSS writes to identify the owner; never filter the error.
 Regression evidence: Change27 WebKit touch math, overlay/preview lifecycle tests and owned
 observer trace. Preserve ancestor observation and keyboard fitting when changing this adapter.
+
+## Async waitForFunction predicates can complete before the condition is true
+
+Observed in Change31 service-worker activation tests with installed Playwright1.62.1. An async
+predicate returns a truthy Promise before its resolved boolean is checked by the poller, so
+`waitForFunction(async () => false)` can finish immediately. A reload then races activation,
+leaving the new document uncontrolled when clients.claim is intentionally absent. Use
+`expect.poll(() => page.evaluate(async () => condition)).toBe(true)` for resolved-value polling,
+or observe the native lifecycle event before triggering it. Keep synchronous predicates for
+DOM/native boolean checks. Do not add skipWaiting/claim, retries or arbitrary sleeps to mask it.
+
+## Offline cache can mask deliberate worker-network failures in browser tests
+
+After Change31, a successfully cached worker may load even when page.route intentionally aborts
+its network URL. Failure-path tests then time out waiting for their expected error. The three
+worker-fault fixtures explicitly remove only the optional serviceWorker capability before app
+startup; their original network failure, recovery and saved-ink assertions stay intact. The
+separate offline fixtures keep native SW support and verify real cache/update failure paths.
+Do not disable SW globally, filter new runtime errors or weaken the fault assertions.

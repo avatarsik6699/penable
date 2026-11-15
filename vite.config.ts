@@ -1,9 +1,10 @@
 import { fileURLToPath, URL } from "node:url";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
+import { appAvailabilityPlugin } from "./scripts/pwa/plugin.mjs";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), appAvailabilityPlugin()],
   resolve: { alias: { "~": fileURLToPath(new URL("./src", import.meta.url)) } },
   server: { host: "127.0.0.1", port: 5173, strictPort: true },
   preview: { host: "127.0.0.1", port: 4173, strictPort: true },

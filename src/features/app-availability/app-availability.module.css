@@ -1,0 +1,86 @@
+.trigger {
+  position: fixed;
+  z-index: 4;
+  left: calc(max(12px, env(safe-area-inset-left, 0px)) + 60px);
+  bottom: max(12px, env(safe-area-inset-bottom, 0px));
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--paper);
+  box-shadow: var(--chrome-shadow);
+}
+.trigger button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  color: var(--text-muted);
+}
+.panel {
+  position: fixed;
+  z-index: 8;
+  left: max(12px, env(safe-area-inset-left, 0px));
+  bottom: calc(
+    var(--panel-keyboard-inset, 0px) + 76px + env(safe-area-inset-bottom, 0px)
+  );
+  width: min(330px, calc(100vw - 24px));
+  max-height: min(
+    var(--panel-available-height, 100dvh),
+    calc(
+      var(--panel-viewport-height, 100dvh) - 100px -
+        env(safe-area-inset-bottom, 0px)
+    )
+  );
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--paper);
+  box-shadow: var(--popover-shadow);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.heading h2 {
+  margin: 0;
+  font-size: 14px;
+}
+.heading button {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+}
+.panel p {
+  margin: 12px 0;
+}
+.action {
+  min-height: 44px;
+  width: 100%;
+  box-shadow: inset 0 0 0 1px var(--divider);
+}
+.hint {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+@media (max-width: 379px) {
+  .trigger {
+    left: max(12px, env(safe-area-inset-left, 0px));
+    bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .panel {
+    bottom: calc(
+      var(--panel-keyboard-inset, 0px) + 132px +
+        env(safe-area-inset-bottom, 0px)
+    );
+  }
+}

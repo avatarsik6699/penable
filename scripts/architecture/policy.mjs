@@ -1,5 +1,6 @@
 // Exact execution owners. New browser capabilities require an explicit policy change.
 export const platformOwners = {
+  "src/features/app-availability/adapters/app-platform.ts": ["dom"],
   "src/features/board-document/modules/jobs/document-jobs.ts": ["files"],
   "src/features/board-document/modules/jobs/jobs-protocol.ts": ["files"],
   "src/features/board-document/adapters/fragment-reader.ts": [

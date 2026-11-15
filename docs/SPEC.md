@@ -1148,3 +1148,36 @@ Acceptance includes pure limits/tickcount/nonoverlap/glyphmetrics/legacy invaria
 WebKit responsive preview/input, nativevisual desktop/phone/tablet, versionedcodec/JSON/clipboard/
 PNG/history/reload/exactselection tests, worstcase math CPU/raster and unchangedink budgets.
 Independent review and Fast/Full gates precede automatic localship. Publication separate.
+
+## 5.23 — Installation and offline use (Change31)
+
+Owner-requested2026-11-15. Supersedes earlier PWA/offline exclusions only. After one complete
+online preparation, production builds can reopen offline on the same origin/profile, including
+all lazy document/selection/overview/export workers. Existing IndexedDB, leases, backups and
+schemas remain unchanged. No account, cloud sync or native wrapper. Installation is optional;
+offline also works in a browser tab. First visit requires internet and browser storage retention.
+
+A base-aware manifest provides stable id/start_url/scope, standalone display, Russian naming,
+local192/512px icons and Apple touch icon. Scope stays inside the build base (/penable/ on Pages).
+Production-only service worker precaches the complete immutable app shell atomically with a
+build-content version; failure must not mark offline ready or replace a working version. Fetch
+only scoped same-origin GET app resources; never cache documents/user files/external requests.
+No skipWaiting, forced reload or clients.claim: open sessions keep their version; updates take
+effect after all app windows close and reopen. Old caches belonging to this app/scope only may
+be cleaned upon safe activation; never clear IndexedDB or unrelated caches. Dev has no SW.
+
+Compact contextual application controls preserve the approved editor/dock layout. Show accurate
+preparing/ready/unavailable offline status, update waiting guidance and optional native install
+action only when browser offers it. Explain manual browser installation including iPad Share →
+Add to Home Screen; no UA guessing or promise of native prompt support everywhere. Installed
+standalone mode hides redundant install action. Failed setup does not block writing/saving.
+Provide explicit retry and no unhandled registration/prompt errors. Native APIs belong to one
+exact adapter, lifecycle cleanup and coarse subscriptions only; no editor/input changes.
+
+Acceptance: root and Pages manifest/base/cache paths; online preparation then offline reload,
+writing/save/reload and lazy operations; install availability/dismissal/installed state; waiting
+update leaves open notes intact, then safe activation on fresh session; failed install retains
+old version and notes; scoped cleanup ignores unrelated caches. Chromium automated regression,
+native Chrome desktop/phone visual/console evidence and Full Gate/review precede local ship.
+OS-level installation and physical iPad home-screen behavior remain manual acceptance. Release
+and public-site deployment require separate instruction.

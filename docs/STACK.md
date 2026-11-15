@@ -1,7 +1,7 @@
 # Stack Guide
 
 > Source of truth for technologies, commands and required tools.
-> Status: CONFIGURED; changes01–30 shipped locally; Pages publication follows the origin/main workflow for the current release.
+> Status: CONFIGURED; changes01–31 shipped locally; Pages publication follows the origin/main workflow for the current release.
 > SPEC approved 2026-11-12. Desktop acceptance: Wacom One, Windows 11. Touch target: current phone/tablet browsers and iPad/Pencil; physical acceptance remains separate.
 
 ## Stack
@@ -512,3 +512,16 @@ newmath layout/paint CPU; existing ink fixtures retain paired baseline budgets. 
 Preserve exact v1/native ink raster; SVG/PNG newglyph outlines/metrics must agree. Font atlas
 provenance/license lives in the owning template glyph module; no font preparation is required
 by npmci/build. Actual iPad/Pencil acceptance remains separate; localship does not publishPages.
+
+## Change31 — Installation and offline shell
+
+SPEC5.23 supersedes historical offline/PWA exclusions. Native Service Worker + Cache Storage,
+base-scoped web manifest and generated local PNG icons; no new package or document migration.
+Production build owns complete content-versioned shell including all lazy workers; dev does not
+register a worker. Updates wait for all controlled app windows to close, with no forced reload.
+Exact app-platform adapter owns registration/install events; document storage ownership stays.
+Native isolated Pages preview4208; offline regression fixture owns4209 HTTP server, immutable dist
+and per-test contexts. E2E4185 remains the ordinary suite server. Offline suite tests actual
+registration, cache, network-disabled reload/save/lazy operations, safe waiting updates and
+failed updates. Existing engine/raster evidence applies because ink code is unchanged.
+OS install dialogs and physical iPad home-screen behavior remain separate manual acceptance.

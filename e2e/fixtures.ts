@@ -56,6 +56,15 @@ function monitor(
   };
 }
 
+// These scenarios deliberately fail network-loaded document workers. Disable the
+// optional offline capability so its successful cache cannot replace that fault.
+// Real SW/cache behavior is covered independently by offline/fixtures.ts.
+async function isolateWorkerFailure(page: Page) {
+  await page.addInitScript(() => {
+    Reflect.deleteProperty(Navigator.prototype, "serviceWorker");
+  });
+}
+
 async function seedRecords(page: Page, records: Record<string, unknown>) {
   const url = "http://127.0.0.1:4185/__e2e_seed";
 
@@ -498,6 +507,8 @@ export const test = base.extend<Fixtures>({
   },
 
   failedSwitch: async ({ page }, use) => {
+    await isolateWorkerFailure(page);
+
     let active = true,
       blocked = 0;
 
@@ -709,6 +720,8 @@ export const test = base.extend<Fixtures>({
   },
 
   overviewFailureNavigation: async ({ page }, use) => {
+    await isolateWorkerFailure(page);
+
     let active = true,
       blocked = 0;
 
@@ -744,6 +757,8 @@ export const test = base.extend<Fixtures>({
   },
 
   saveFailureBoard: async ({ page }, use) => {
+    await isolateWorkerFailure(page);
+
     let active = true,
       blocked = 0;
 
