@@ -7,7 +7,7 @@
 | Change | `40` |
 | Slug | `performance-audit` |
 | Title | Full application performance audit |
-| Status | `active` |
+| Status | `shipped` |
 | Branch | `feature/40-performance-audit` |
 
 ## Goal
@@ -57,7 +57,7 @@ coverage and internal optimizations, not new product features or a change of ren
 
 ## Gate Checks
 
-Standard [STACK.md](../STACK.md) gates plus full app scenario coverage. Baseline captured from
+Standard [STACK.md](../../STACK.md) gates plus full app scenario coverage. Baseline captured from
 7e83844 in `.artifacts/change-40/baseline/`. Native benchmark4180; owned Pages4220; isolated E2E4185.
 Ordinary200×50 and500/2000-point ink; large2000/10000×50; long10k/100k; stress20k/1M; dense,
 pressure/highlighter, affine/clip, images/math and100-board library. Track cold/warmCPU, frames,
