@@ -110,7 +110,9 @@ marker.
 ### 5. Scaffold `docs/changes/NN-slug.md`
 
 - Pick the next `NN` (two digits) by scanning `docs/changes/` and `docs/changes/archive/` for the
-  highest existing number and incrementing.
+  highest existing number and incrementing. Include numbers from
+  `docs/changes/archive/index.json` (the preserved ZIP history); never derive numbering
+  only from loose Markdown files. Read the archive README to locate compressed records.
 - Derive a short kebab-case `slug` from the unit of work's title.
 - Copy `docs/CHANGE_TEMPLATE.md` to `docs/changes/NN-slug.md` and fill it from the brief/spec:
   - **Backlog**: group items into Backend/Frontend/Infra/Data/Other, assign IDs sequentially per

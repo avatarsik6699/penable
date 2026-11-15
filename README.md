@@ -1,325 +1,332 @@
 # penable
 
-Личная среда для рукописных конспектов с Wacom One на Windows 11: настраиваемая ручка,
-свободная доска с масштабом, историей, ластиком и локальным сохранением.
+A personal handwriting workspace for study notes, math and explanations. The main confirmed input
+setup is Wacom One on Windows11. Write on a free board with configurable pens, precise fragment
+selection, mathematical templates, navigation and browser-local storage.
 
-[Открыть доску](https://avatarsik6699.github.io/penable/) ·
-[Репозиторий](https://github.com/avatarsik6699/penable)
+[Open penable](https://avatarsik6699.github.io/penable/) ·
+[Repository](https://github.com/avatarsik6699/penable)
 
-**Доска сохраняется в этом профиле браузера. Скачивайте JSON-копию для защиты от очистки данных сайта.**
-Качество письма и навигация приняты в change02, история/фон — в03; change04 добавляет
-IndexedDB, восстановление и резервные копии. Облачной копии нет.
-Change05 добавляет ластик целых штрихов.
-Change06 стабилизирует указатель, жесты тачпада и служебную панель.
-Change15 переносит утверждённый плавающий интерфейс; Change16 объединяет инструменты, статус
-и настройки в центральной панели и добавляет миникарту, возврат к письму и настройки фона.
-Change08 добавляет точное выделение и редактирование фрагментов; change09 сохраняет область выделения и устраняет блокировки при работе с ней.
+**Notes live in this browser profile. Download editable JSON copies to protect them against
+site-data clearing. There is no cloud backup or device synchronization.**
 
-Change17 добавляет изменение размера/поворот выделения, PNG/JPEG и несколько именованных досок.
-Изменения17–22 опубликованы; новые инструменты Change23 доступны локально.
-Опубликованный сайт обновляется отдельным release.
+This guide describes the locally shipped implementation through Change34. Public Pages updates
+use a separate release; local delivery alone does not establish which revision the public site runs.
+The current interface is Russian. Documentation uses English descriptions and includes Russian
+control labels where needed to find them; ru/en interface localization is the approved next stage.
 
-Change18 делает вставку изображений заметной, объединяет системный буфер обмена, добавляет
-боковую библиотеку с поиском/превью и фиксирует размеры верхней панели при смене инструмента.
-Change21 заменяет превью узнаваемыми цветными обложками со значками и добавляет настройку оформления.
+## Open and install
 
-## Использование в интернете
+Open **https://avatarsik6699.github.io/penable/** in Chrome. An account and installation are
+unnecessary. Pages serves application assets; notes remain in browser IndexedDB and are not sent
+to the repository.
 
-Откройте **https://avatarsik6699.github.io/penable/** в Chrome. Установка и аккаунт
-не нужны. GitHub Pages раздаёт приложение; записи остаются в IndexedDB вашего браузера,
-не попадают в репозиторий и не синхронизируются между устройствами.
+Localhost and the public site have separate storage. To transfer a board:
 
-У localhost и опубликованного сайта разные хранилища. Для переноса записей:
+1. On the old address, wait for saved status and download JSON through Board settings
+   («Настройки доски») → Files and copies («Файлы и копии»).
+2. On the destination, choose Import («Импорт»), select the JSON and confirm replacement.
+3. Wait for Saved («Сохранено»). Keep the downloaded file as a backup.
 
-1. На прежнем адресе дождитесь статуса сохранения и скачайте JSON-копию через «Настройки доски» → «Файлы и копии».
-2. На публичном сайте выберите «Импорт», загрузите JSON и подтвердите замену доски.
-3. Дождитесь «Сохранено». Сохраните скачанный файл как резервную копию.
+The production build includes installation and offline availability from Change31. Open App and
+offline («Приложение и офлайн») beside Help and wait for Ready to work offline
+(«Готово к работе без интернета»). Then the board can close/reopen without network access. The
+first load and complete preparation require internet; installation itself is optional for offline use.
 
-Change31 добавляет установку и офлайн-запуск; публикация на сайте выполняется отдельным release.
-В сборке с Change31 откройте «Приложение и офлайн» рядом с кнопкой помощи и дождитесь
-«Готово к работе без интернета». После этого можно закрыть и снова открыть доску без сети.
-Для первого открытия и полной подготовки нужен интернет; установка для офлайн-работы необязательна.
+Chrome/Edge may offer Install penable («Установить penable») in the app or browser menu.
+On iPad/iPhone, use Share → Add to Home Screen. OS installation and standalone behavior depend
+on browser/device support; physical iPad home-screen and OS-install acceptance remain separate.
+Installing does not create cloud storage. Different devices/profiles may contain different notes.
 
-В Chrome/Edge используйте «Установить penable», когда браузер предложит установку, или меню
-браузера. На iPad/iPhone: «Поделиться» → «На экран “Домой”». Приложение откроется отдельным
-окном; системная установка зависит от браузера. Записи остаются локальными: установка
-не создаёт облачную копию. На разных устройствах и в разных профилях записи могут отличаться.
+Updates do not reload an active board. When Update ready («Обновление готово») appears, wait
+for saved status, close every penable tab/window, then reopen. Site-data clearing can delete both
+notes and offline assets. Keep JSON copies of important boards.
 
-Обновления не перезагружают доску во время работы. Если появилась надпись «Обновление готово»,
-дождитесь сохранения, закройте все вкладки и окна penable, затем откройте приложение снова.
-Очистка данных сайта может удалить и записи, и офлайн-копию: сохраняйте JSON важных досок.
+## Run locally
 
-## Запуск
-
-Нужен Node.js 22.12+ в ветке 22, Node.js 24 или 26+. В текущем окружении используется
-Node.js 24.21.0 и npm 11.19.0. В терминале WSL, из корня проекта:
+Use Node22.12+ within22, Node24 or26+, plus npm. The recorded development environment is
+Node24.21.0/npm11.19.0. In WSL, from the repository root:
 
 ```bash
 npm ci
 npm run dev
 ```
 
-Откройте **http://localhost:5173** в обычном Windows Chrome. Драйвер Wacom должен
-быть установлен в Windows. Бэкенд, Docker, аккаунт и ключи доступа не нужны.
-Сервер слушает только `127.0.0.1`; если порт занят, Vite сообщает об ошибке.
-Остановка сервера — `Ctrl+C` в его терминале.
+Open **http://localhost:5173** in ordinary Windows Chrome, with the Wacom driver installed on
+Windows. No backend, Docker, account or access keys are needed. The server listens on127.0.0.1
+and fails if the port is occupied. Stop it with Ctrl+C in its terminal.
 
-## Управление доской
+## Navigate and write
 
-- Прокрутка двумя пальцами и обычное колесо над листом перемещают доску по двум осям.
-  Ctrl+колесо и pinch тачпадом масштабируют вокруг указателя; Shift+вертикальное колесо
-  перемещает горизонтально. Вне листа сохраняется обычное поведение браузера.
-- Space + перетаскивание основной кнопкой или средняя кнопка перемещают доску.
-- Кнопки −/+ меняют масштаб вокруг центра. Кнопка с процентом устанавливает 100%, сохраняя центр текущего вида.
-  «К месту письма» возвращает вид после последнего завершённого штриха пера.
-  «Миникарта» открывает обзор записей: клик перемещает вид без изменения масштаба, стрелки
-  перемещают вид с клавиатуры. «Показать все записи» находится внутри миникарты.
-- Масштаб доски 25–800%; толщина задаётся в единицах доски и увеличивается вместе с ней.
-- Во время незавершённого штриха собственный zoom/pan не применяется; resize или смена
-  разрешения отменяют незавершённый штрих, сохраняя завершённые записи.
-- Инерционный поток прокрутки, пересёкшийся с письмом/стиранием/перетаскиванием,
-  игнорируется до паузы150мс, чтобы после отпускания не сдвигались записи.
-- В параметрах письма выбираются «Ручка», «Перо с нажимом» и «Маркер». Ручка сохраняет
-  постоянную толщину; у пера она зависит от нажима Wacom, а мышь рисует постоянной толщиной.
-  Маркер полупрозрачный: один штрих не темнеет на собственных пересечениях.
-- Инструменты находятся в плавающей панели сверху. Толщина доступна рядом с выбранным пером;
-  повторное нажатие «Перо» открывает стабилизацию. Помощь и диагностика — кнопка «?» слева снизу,
-  масштаб и показ всех записей — справа снизу. Escape закрывает панель и возвращает фокус.
-- Толщина: 0.5–12 px, шаг слайдера 0.1 px, начальная 3 px.
-- Стабилизация: слайдер 0–100% с шагом 1%, начальная 65%. 0% выключает фильтр,
-  50% соответствует прежней лёгкой стабилизации, 100% — усиленной. Обе настройки действуют
-  со следующего штриха; прошлые записи сохраняют свою форму. Сырые точки остаются в модели.
-- Кнопки отмены/повтора и Ctrl+Z / Ctrl+Shift+Z отменяют добавление штриха или одно
-  движение ластиком.
-  Поддерживается физическая клавиша Z при русской раскладке; Meta — эквивалент Ctrl.
-  Во время письма и перемещения доски история заблокирована. В текстовых полях
-  сохраняется нативная отмена браузера.
-- После отмены новый завершённый штрих или непустое стирание очищают повтор. Прерванный ввод,
-  zoom/pan, настройки пера и переключение фона оставляют повтор доступным.
-- Фон выбирается через «Настройки доски» → «Вид»: «Без фона», «Точки» или «Клетка». Он привязан к координатам доски и движется
-  вместе с записями. При отдалении сетка становится реже; чернила и история не меняются.
+- Two-finger scrolling or a normal wheel pans both axes over the board. Ctrl+wheel/trackpad pinch
+  zooms around the pointer; Shift+vertical wheel pans horizontally. Elsewhere the browser behaves normally.
+- Space+primary drag or middle-button drag pans. −/+ zoom around the center; the percentage button
+  sets100% while retaining the current view center.
+- Return to writing («К месту письма») restores the last completed pen view. Minimap («Миникарта»)
+  opens the overview: click to reposition at the same zoom, or use focused arrow keys. Fit all
+  («Показать все записи») is inside the minimap.
+- Board zoom is25–800%. Width is in board units and scales with the view. Active ink blocks own
+  pan/zoom; real resize/resolution changes cancel unfinished ink while retaining completed notes.
+- Wheel/inertia overlapping ink/erase/drag is ignored until150ms quiet so release cannot move notes.
+- Writing settings offer constant-width Pen («Ручка»), Pressure pen («Перо с нажимом») and
+  Highlighter («Маркер»). The pressure pen uses pen pressure; mouse input stays constant-width.
+  A highlighter stroke is translucent and does not darken at its own crossings.
+- Tools float at the top. Width is beside the selected pen; clicking Pen again opens settings.
+  Help/diagnostics are lower-left; zoom/navigation lower-right. Escape closes a panel and returns focus.
+- Pen width0.5–12px, slider step0.1, default3. Stabilization0–100%, step1, default65%;0 disables,
+  50 matches legacy light and100 legacy strong. Both affect the next stroke; existing geometry and
+  raw samples remain intact.
+- Undo/redo controls and Ctrl+Z/Ctrl+Shift+Z reverse completed actions. Physical KeyZ works on a
+  Russian keyboard layout; Meta is equivalent to Ctrl. Ink/pan blocks history; text fields retain
+  native browser undo.
+- New completed ink/nonempty erasure clears redo. Cancelled input, navigation, pen settings and
+  backgrounds preserve it.
+- Board settings → View («Вид») chooses Blank/Dots/Grid. The world-anchored pattern moves with
+  content and becomes coarser when zoomed out; changing it does not affect ink/history.
 
-## Цвета и заготовки
+## Colors and templates
 
-Повторное нажатие «Перо» открывает выбор инструмента, десять готовых цветов и настройки.
-Каждый инструмент запоминает свои параметры; изменения действуют на следующие штрихи.
-У пера доступна сила нажима, у маркера — непрозрачность. Стандартный маркер: толщина20,
-непрозрачность30%. Аппаратное ощущение нового пера требует пробы на Wacom.
+Click the selected Pen again for instrument choice, ten colors and settings. Each instrument keeps
+its settings for subsequent strokes. Pressure strength belongs to the pressure pen; opacity to the
+highlighter, default width20/opacity30%. Physical feel of these later tools requires a Wacom trial.
 
-«Фигуры и заготовки» содержит отрезок, стрелку, прямоугольник, эллипс, треугольник,
-числовую прямую, оси XY и тригонометрическую окружность с радианами. Выберите заготовку,
-при желании настройте её и нажмите «Разместить на доске». Предварительный вид следует
-за курсором; клик размещает, Esc отменяет. После вставки заготовка выделена: её можно
-перемещать, масштабировать, поворачивать, вырезать частично и копировать между досками.
-Параметры задаются до вставки; ластик целых штрихов заготовки не удаляет.
+Shapes and templates («Фигуры и заготовки») offers line, arrow, rectangle, ellipse, triangle,
+number line, XY axes and a trigonometric circle with radians. Configure before insertion, then
+choose Place on board («Разместить на доске»). Preview follows the pointer; click commits,
+Esc cancels. The inserted template is selected for move/resize/rotate/partial selection or copying
+between boards. The whole-stroke eraser does not erase templates.
 
-Новый документ использует формат5 и читает старые форматы1–4. При первом обновлении
-исходная запись сохраняется отдельно и доступна в «Файлы и копии».
+Current JSON is format5 and reads1–4. The first upgrade retains the original record separately,
+accessible in Files and copies.
 
-## Выделение и перенос
+## Select and move
 
-Выберите «Выделение» и режим «Рамка» или «Лассо», затем обведите нужную область.
-Выделяются только чернила внутри неё: пересечённая линия разделяется по границе области.
-Пунктир сохраняет нарисованную область, включая пустые поля вокруг записи.
-Перетащите выделение за любую точку внутри этой области, чтобы перенести его; другие записи под ним не присоединяются.
-Лассо сохраняет выбранную форму; копирование и вставка сохраняют размер области и пустые поля.
-Команды копирования, вырезания, вставки, удаления и дублирования находятся в меню «Действия».
-При удержании у края окна полотно прокручивается автоматически. Кнопка «Показать все записи»
-возвращает к содержимому большой доски. Пустая рамка сама по себе записи не создаёт.
+Choose Selection («Выделение») and Rectangle («Рамка») or Lasso («Лассо»), then surround an
+area. Selection clips the painted content at the boundary, including crossing-stroke fragments.
+The outline retains the drawn area and empty margins. Drag anywhere inside to move the frozen
+selection; underlying/unselected content is not adopted. Lasso keeps its shape. Copy/paste retain
+region size/margins. Actions («Действия») contains copy/cut/paste/delete/duplicate. Holding near
+an edge auto-pans; Fit all returns to distant content. An empty region creates no content.
 
-- Ctrl+A выделяет все записи, Esc снимает выделение или отменяет незаконченный перенос.
-- Ctrl+C/X/V — копировать, вырезать и вставить через системный буфер. Между досками Penable
-  рукопись остаётся редактируемой, включая после перезагрузки страницы, пока буфер не заменён.
-  Вставка появляется в центре текущего вида и выделяется. Для переноса: Ctrl+X, другая доска, Ctrl+V.
-- Ctrl+D создаёт выделенный дубликат с небольшим смещением. Delete/Backspace удаляют выделенное.
-- Стрелки сдвигают выделение на один экранный пиксель, Shift+стрелки — на десять.
-- Одно завершённое действие отменяется через Ctrl+Z; Ctrl+Shift+Z возвращает его.
-  Сочетания работают в контексте доски, не мешая текстовым полям и диалогам. Meta заменяет Ctrl.
+| Shortcut | Action |
+|----------|--------|
+| Ctrl+A / Esc | Select all / dismiss or cancel an unfinished move |
+| Ctrl+C / X / V | Copy/cut/paste through the system clipboard |
+| Ctrl+D | Duplicate with a small offset |
+| Delete / Backspace | Delete selection |
+| Arrows / Shift+arrows | Nudge1 /10screen pixels |
+| Ctrl+Z / Ctrl+Shift+Z | Undo/redo one completed action |
 
-Обычное копирование также передаёт PNG выбранной области для внешних приложений, с прозрачными
-полями, без клетки, точек и пунктирной границы. «Действия → Скачать PNG» работает непосредственно
-для текущего выделения. Изображение создаётся
-из векторов с плотностью два пикселя на единицу доски; предел —8192 по стороне и16777216
-пикселей суммарно. Слишком большую область нужно уменьшить; скрытого ухудшения качества нет.
-Крупное выделение может готовиться в фоне: Esc отменяет его.
-При пределе20 000 фрагментов перенос части штриха может создать лишний фрагмент: выделите
-штрихи целиком либо удалите ненужные записи. Неудачная операция оставляет записи на месте.
-В режиме просмотра разрешены выделение и копирование, но запрещены изменение и удаление.
-Маркеры рамки меняют размер и поворачивают выделение; точные значения доступны в «Преобразовать».
+Meta replaces Ctrl. Board shortcuts leave text fields/dialogs intact. Clipboard handwriting remains
+editable between penable boards, including after reload until the external clipboard changes.
+Paste centers/selects the result; moving between boards is Ctrl+X → switch board → Ctrl+V.
 
-## Ластик
+Copy also provides a PNG for external apps, with transparent margins and no dots/grid/outline.
+Actions → Download PNG («Скачать PNG») exports the selected area directly. Vector-derived output
+uses2pixels/worldunit, max8192per side/16,777,216totalpixels. Reduce oversize regions; there is no
+silent quality reduction. Heavy work may run in the background and Esc cancels it. At20k fragments,
+moving part of a stroke may exceed the item limit; select whole strokes or remove unneeded content.
+Failures preserve content. Read-only permits selection/copy, not mutation/deletion.
 
-- Выберите «Ластик» и коснитесь записи или проведите по нескольким: затронутые штрихи
-  исчезают целиком. После разрезания выделением удаляется затронутый видимый фрагмент,
-  отдельно перенесённые части сохраняются. Это относится и к записям после перезагрузки.
-- Одно движение с нажатой основной кнопкой/пером — одно действие: undo возвращает
-  все удалённые этим движением штрихи; redo снова удаляет их.
-- Пока контакт не отпущен, удаление предварительное. Прерванный ввод, потеря фокуса,
-  capture или изменение размера окна возвращают записи. Сохранение/экспорт во время
-  предварительного удаления содержат исходные штрихи; подтверждение происходит при отпускании.
-- Круг цели имеет радиус8экранных пикселей независимо от масштаба доски. Толщина пера
-  и стабилизация не меняют ластик; их значения сохраняются при возврате к «Перо».
-- Промах и смена инструмента не очищают redo. Во время жеста переключение инструмента,
-  навигация доски, история и импорт заблокированы. В покое Space+drag/средняя кнопка
-  продолжают перемещать доску и при выбранном ластике.
-- После открытия/импорта выбирается «Перо». Аппаратные кнопки Wacom не назначаются;
-  стирание части штриха и настройка размера ластика пока не реализованы.
+## Resize and rotate
 
-## Сохранение и резервные копии
+Rectangle/lasso selections have side/corner resize handles and a round rotation handle above.
+Shift preserves aspect ratio or snaps rotation to15°. The opposite side stays anchored. Esc cancels
+an unfinished transform; completed transforms support undo. Actions → Transform («Преобразовать»)
+accepts width/height percentages and degrees. Handwriting remains vector content; width scales with it.
 
-Начиная с Change16 инструменты, статус сохранения и «Настройки доски» находятся
-в одной центральной верхней панели. Зелёная точка означает «Сохранено локально», жёлтая —
-изменения ожидают записи, серая — загрузка или просмотр, красная — ошибка с видимым сообщением.
-Наведите указатель или откройте статус для подробностей. Шестерёнка открывает «Вид»:
-фон, контраст и шаг. Вкладка «Файлы и копии» объединяет экспорт, импорт, восстановление и
-повтор сохранения/подключения. Название penable не является кнопкой. Панели не сдвигают полотно;
-их можно закрыть повторным нажатием, кликом снаружи или Escape. Навигация остаётся снизу справа,
-помощь — снизу слева. Публичная Pages-версия обновляется отдельным release.
+## Erase
 
-После открытия приложение загружает одну доску: завершённые штрихи, положение/масштаб,
-фон, толщину и стабилизацию. До загрузки запись заблокирована. История действий начинается
-заново: ранее сохранённые штрихи становятся базой, undo/redo действуют на новые действия.
+- Choose Eraser («Ластик») and touch/sweep ink: hit strokes disappear whole. After clipping,
+  only the hit visible fragment is removed; distant siblings survive, including after reload.
+- One down→up is one undo action covering every hit. Undo restores all; redo removes them again.
+- Removal is preview-only until release. Cancel/blur/capture loss/resize restores content;
+  save/export during preview still includes original ink.
+- Target radius is8screen pixels at every zoom. Pen width/stabilization do not alter it and are
+  retained when returning to Pen.
+- Misses/tool switching preserve redo. During contact, switching/navigation/history/import are
+  blocked. At rest Space/middle pan works with Eraser selected.
+- Initial load/import selects Pen. Hardware Wacom buttons, partial-stroke erasure and adjustable
+  eraser size are not implemented. Partial selection is a separate way to edit fragments.
 
-- После письма, отмены/повтора и настройки вида приложение сохраняет изменения автоматически.
-  Дождитесь **«Сохранено локально»** перед закрытием. Частичный незавершённый штрих не сохраняется.
-- При ошибке записи заметки остаются в памяти: доступны повтор сохранения и «Скачать копию».
-  Предупреждение при уходе помогает при unsaved, но не гарантирует сохранение при аварии
-  браузера/системы или принудительном завершении процесса.
-- «Скачать копию» выгружает текущие завершённые записи в редактируемый JSON, включая
-  ещё не записанные в IndexedDB. Проверьте, что браузер сохранил файл в загрузках.
-- «Импорт» проверяет файл и показывает количество штрихов/точек. Только «Заменить доску»
-  подтверждает замену. Отмена/неверный файл не меняют текущие записи. При успешной замене
-  прежняя доска сохраняется дополнительно; «Копия до замены» позволяет её скачать и восстановить
-  обычным импортом. Копия до замены сохраняется и после перезагрузки; следующая
-  подтверждённая замена перезаписывает этот единственный предыдущий снимок.
-- Если доска открыта в нескольких вкладках, только одна может записывать. Остальные —
-  просмотр/экспорт без изменений. Закройте вкладку-владельца и нажмите «Повторить подключение»:
-  приложение загрузит актуальную сохранённую версию перед разрешением письма.
+## Images
 
-Используйте один адрес **http://localhost:5173**. Другой host/порт, например `127.0.0.1:5173`
-или preview на4173, имеет отдельное хранилище. Данные также зависят от профиля браузера;
-очистка данных сайта/профиля может их удалить. Офлайн-запуск доступен в production-сборке с Change31 после подготовки; синхронизации
-между компьютерами нет. Для записи нужен браузер с Web Locks (целевой — Chrome).
+Insert image («Вставить изображение») opens PNG/JPEG. Files can also be dropped onto the board
+or pasted while it has focus. File/clipboard insertion is view-centered; drop uses its location.
+The result is selected. Paste accepts editable penable fragments or images; denied clipboard access
+is explained. Cut preserves the original if clipboard writing fails. Text/HTML/SVG/links create no
+objects; a new external clipboard never silently falls back to an old internal copy. If the browser
+cannot distinguish editable content from image content, preserve data and explain the refusal.
 
-Текущий формат — `penable-board`, `schemaVersion:4`: упорядоченные элементы `items` и таблица
-исходных изображений `assets`, положение/масштаб, фон и инструменты, настройки фона и вид письма.
-JSON1/2/3 по-прежнему читаются; преобразования не перезаписывают исходные точки линий.
-При переходе к библиотеке и формату4 исходная запись атомарно сохраняется в «Копия до библиотеки досок» / «Копия до обновления v4». Старые восстановительные копии сохраняются отдельно.
-Импорт заменяет только открытую доску; её JSON-копия содержит все необходимые изображения.
-Старые версии приложения не поддерживают новый формат4.
+Images/ink can be jointly selected, moved, resized, rotated, copied and deleted. Crop images
+(«Обрезать изображения») retains affected portions inside the region, preserving other ink;
+partial selection/move can also cut fragments. Undo restores originals. Eraser affects ink only;
+use selection to delete images. PNG includes images/transparency; image source resolution is retained.
 
-Входные ограничения:64MiB JSON,20тыс. фрагментов,1млн. точек суммарно,
-100тыс. на штрих; это guards, не обещание производительности на пределе. Данные не обрезаются:
-за пределами поддерживаемого формата сохранение/импорт дают ошибку, полная выгрузка памяти
-остаётся возможной с предупреждением об ограничении обратного импорта. Повреждённые non-JSON
-сырые значения IDB не подменяются пустой доской: сохраняются без изменения, невозможность
-JSON-выгрузки объясняется отдельно. Восстановление чужих форматов не обещается.
+Limits: PNG/JPEG≤8MiB,8192per side/16Mpixels each; up to100unique sources,32MiB bytes and32Mpixels
+per board. Copies share source bytes in JSON. SVG/URLs are not loaded; invalid files preserve notes.
 
-## Проверка пера
+## Boards and appearance
 
-На полотне используется указатель приложения: маленькая точка со светлой обводкой
-для пера/мыши, кольцо для ластика и рука для перемещения. Контакт и отпускание не скрывают
-точку. Когда планшет перестаёт передавать координаты, она остаётся в последней известной
-позиции; над инструментами, в modal и при потере активности окна скрывается.
-Синей рамки вокруг листа нет; Tab-фокус обозначается небольшой меткой «Полотно».
-Фокус кнопок и настроек остаётся видимым.
+Boards («Доски») and current title at the start of the dock open a searchable sidebar with colored
+covers and New board («Новая доска»). Row actions change appearance, rename or delete; clicking a
+row opens it. Every board keeps its content/images/view/background/tools/recovery copies. Switching
+drains saves first and stays on the current board on failure. The library does not load board scenes
+or render thumbnails just to show the list.
 
-1. Откройте страницу и диагностику. Зафиксируйте версию Chrome и драйвера Wacom.
-2. Проведите пером над планшетом без касания: след появляться не должен.
-3. Напишите несколько строк, затем точки, короткие штрихи и быстрые петли.
-   Линия должна появляться во время движения; точки — оставаться после короткого касания.
-4. Во время контакта посмотрите `pointerType` и `pressure`. Ожидаемый тип пера — `pen`.
-   Измените силу нажатия и проверьте, меняется ли давление. После отпускания нулевое
-   значение нормально. Постоянная толщина линии предусмотрена независимо от давления.
-5. Измените толщину и начните новый штрих. Толщина уже написанного не меняется.
-6. Удерживая перо или левую кнопку мыши, выйдите за край поля и вернитесь. После
-   отпускания движение не должно продолжать линию. Правая кнопка и hover не рисуют.
-7. Начните штрих и переключитесь в другое окно. После возврата нужно новое касание;
-   прерванный штрих может исчезнуть, завершённые должны остаться.
-8. Измените размер окна и масштаб браузера. Завершённые записи сохраняют форму
-   и положение относительно начала поля. Уменьшение поля скрывает часть записей,
-   увеличение возвращает её. Текущий незавершённый штрих при resize отменяется.
+Deletion names the board in a confirmation and removes its local recovery copies too. The last board
+cannot be deleted. Switching starts fresh session history; clipboard fragments can cross boards.
+One origin/profile has one writer tab; others remain read-only. A legacy single board migrates as
+My board («Моя доска») with content preserved.
 
-Для обратной связи достаточно сообщить:
+Colors/icons are assigned independently of content and remain stable through renaming/editing.
+Row … → Appearance («Оформление») opens a draft editor. Save appearance («Сохранить оформление»)
+commits; Cancel («Отмена») or dismissal discards the draft. Appearance is library metadata, not part
+of an ordinary board JSON backup. Dock width/control placement stays stable between tools; compact
+screens use a persistent multirow composition.
 
-- Версии Chrome и драйвера, виден ли тип `pen`, меняется ли `pressure` при контакте.
-- Удобно ли писать, заметны ли отставание, разрывы, искажение букв или лишние жесты.
-- На каком действии возникает проблема и повторяется ли она с мышью.
+## Save, restore and storage boundaries
 
-Браузерные тесты с искусственным типом `pen` проверяют обработку событий, но не
-доказывают передачу давления и удобство физического планшета. Если ввод определяется
-как `mouse`, приложение остаётся пригодным для проверки линии; конфигурацию драйвера
-и Windows Ink нужно исследовать отдельно по наблюдаемой проблеме.
+Tools, save status and Board settings share the top-center dock. Green means locally saved, yellow
+pending changes, gray loading/read-only and red an error with visible explanation. Hover/open status
+for details; Board settings → Files and copies contains recovery actions.
 
-## Проверка качества
+- Writing/history/view changes autosave. Wait for Saved locally («Сохранено локально») before closing.
+  Unfinished ink is not saved. A crash/forced process exit may lose the latest unsaved action.
+- Write failures preserve memory for retry and Download copy («Скачать копию»). That JSON includes
+  current completed unsaved content. Verify the file reached the browser's downloads.
+- Import validates and shows statistics. Only Replace board («Заменить доску») mutates content;
+  cancel/invalid files preserve it. Successful replacement retains one previous copy. Copy before
+  replacement («Копия до замены») survives reload and can be imported normally; the next confirmed
+  replacement overwrites that single snapshot.
+- Other tabs are read-only. Close the writer and choose Retry connection («Повторить подключение»)
+  to reload the latest saved content before editing.
 
-Напишите мелкий текст, точки, петли и диагонали. Сравните вид линии во время движения,
-после отпускания и после изменения масштаба доски на 100/200/400%. Завершение штриха
-не должно менять его форму, оставлять лишние отрезки или затемнять места стыков.
-Проверьте сохранность положения записей после zoom/pan и возврата к исходному виду.
+Keep one address, **http://localhost:5173**. A different host/port, including127.0.0.1:5173 or4173,
+is a different storage origin. Browser profiles/devices are separate too. Clearing site/profile data
+can delete notes. Writing requires Web Locks; Chrome is the main target. Offline boot requires the
+prepared production shell; there is no cross-device synchronization.
 
-Собственный zoom доски, обычный browser zoom и нативный pinch страницы — разные пути
-проверки. В диагностике важны фактические DPR, масштаб и плотность bitmap. При экстремальном
-разрешении применяется бюджет памяти; диагностическое ограничение не равно обещанию
-чёткости при произвольном увеличении. Естественное сглаживание края линии допустимо.
-Ощущение письма и сохранение формы букв после сглаживания оценивает пользователь на Wacom.
+Current format is `penable-board`, `schemaVersion:5`: ordered items, deduplicated image assets,
+styled ink/vector templates, viewport, background/tools/background settings and last-writing view.
+Older JSON1–4 remain readable; transforms do not overwrite raw ink samples. The first write upgrading
+an older board to5 atomically retains its exact old record as `before-schema5` if no such copy exists,
+downloadable as `penable-before-schema5.json`. Older library/schema2/3/4 recovery copies remain
+separate. Import replaces only the current board; its JSON includes required image bytes. Older
+applications may reject format5; use recovery copies when returning to an older version.
 
-Для настройки напишите одну короткую фразу при одинаковой толщине и масштабе.
-Начните со стабилизации 65% и меняйте её небольшими шагами; проверьте мелкие петли
-и смену направления. Если буквы округляются сильнее желаемого, уменьшите значение.
-Слайдеры поддерживают стрелки на клавиатуре для изменения ровно на один шаг.
-Адаптивная фильтрация опирается на идею [1€ Filter](https://gery.casiez.net/1euro/),
-с локальными ограничением отклонения и точной конечной точкой. Это не воспроизведение
-внутреннего алгоритма Miro; задержка и удобство требуют отдельной аппаратной пробы.
+Document guards:64MiBJSON,20kitems,1Mtotalpoints,100k/stroke. These are safety limits, not near-limit
+performance promises. No truncation: save/import fail explicitly; complete in-memory export remains
+available with a warning if reimport exceeds supported limits. Corrupt non-JSON raw IDB values remain
+unchanged instead of becoming an empty board; unavailable JSON export is explained. Foreign-format
+recovery is not promised.
 
-## Команды разработчика
+## Physical pen and quality check
+
+The app cursor is a small outlined dot, eraser ring or pan hand. Release does not hide the dot;
+missing digitizer coordinates retain the last valid position. Tools/modals/window inactivity hide
+it. Canvas has a small Tab-focus badge («Полотно») instead of a blue frame; controls retain focus.
+
+1. Open diagnostics; record Chrome/Wacom-driver versions.
+2. Hover without touching: no ink. Write lines, dots, short strokes and fast loops; ink appears
+   during movement and a short tap leaves a dot.
+3. Check actual pointerType=pen and changing pressure under contact. Zero after release is normal.
+   Constant-width Pen intentionally stays constant; choose Pressure pen for variable width.
+4. Change width, start a new stroke: earlier ink keeps its width/shape.
+5. Move outside/back during contact, then release: later hover/right-button motion must not draw.
+6. Start ink and switch windows: return requires a new contact; unfinished ink may disappear,
+   completed content remains. Resize/browser zoom preserves completed logical geometry and cancels
+   unfinished ink; narrowing may hide content which returns when the surface grows.
+7. Compare small text/loops/diagonals during drawing, after release and at board zoom100/200/400%.
+   No shape jump, extra segments or dark seams. Check positions through pan/zoom/return.
+
+Report versions, pen-vs-mouse/pressure observations, perceived lag/gaps/letter distortion/unwanted
+gestures and reproducible steps, including whether mouse input behaves similarly. Synthetic pen
+checks event handling, not hardware pressure/comfort. If a driver reports mouse input, line checks
+still work; investigate Windows Ink/driver setup against the observed failure.
+
+Own board zoom, browser zoom and native page pinch are different paths. Inspect actual DPR/scale/
+bitmap density; extreme resolution is memory-capped and does not guarantee arbitrary zoom quality.
+Normal edge antialiasing is expected. Tune stabilization from65% in small steps with the same phrase,
+width and zoom; reduce if loops/turns round too much. Slider arrows adjust one step. The adaptive
+filter uses the [1€ Filter](https://gery.casiez.net/1euro/) idea with local deviation limits/exact tips;
+it is not a reproduction of Miro internals or a measured hardware-latency claim.
+
+## Phones, tablets and Apple Pencil
+
+By default pen writes, one finger pans and two fingers pan/zoom. Begin gestures on canvas; panels/
+sliders retain normal scrolling. During pen contact fingers cannot move notes/view; lift previous
+contacts before starting a new gesture.
+
+Pen settings → Draw with finger («Рисовать пальцем») enables one-finger pen/eraser/selection;
+a second finger cancels unfinished editing and starts navigation. The mode survives board switching
+within the tab, resets off on reload. To place a template, prepare placement and tap the board;
+a two-finger gesture cannot insert it.
+
+Physical current-Safari/iPad checklist: write lines with light/heavy pressure; rest a palm while
+writing; lift pen/fingers, pan/pinch and continue; rotate, open settings/library and rename with
+the screen keyboard; select/move/undo and verify saved reload. No exact iPad/Pencil model is required
+to launch. Chromium/WebKit touch automation does not prove actual latency, palm handling or a
+specific Pencil. Double-tap/squeeze Pencil gestures are not implemented. Offline preparation is
+covered separately above and is not proof of physical home-screen installation.
+
+## Mathematical templates
+
+Number line, XY and trig circle use versioned handwritten vector labels; old templates retain
+legacy appearance. For line/XY choose From/To and Manual step. Ranges0…15,0…100,−100…100 at step1
+retain every tick/number by enlarging the figure; no hidden step substitution. Limit201ticks/axis,
+32768units/side; range includes zero. Invalid drafts keep the last valid preview and correction hint.
+
+Fit («Целиком») shows the entire template by default. Detail («Крупно») shows a readable area
+around zero; pan with mouse/finger or focused arrow keys without moving the board. Placement anchors
+numeric zero at the click; large figures can extend offscreen, reachable with board navigation.
+Circle Angles («Углы») controls outer radian labels; Coordinates («Координаты») controls inner±1
+independently, without an extra coordinate zero. Axis names remain. Preview/board/PNG share vector
+glyph outlines without network fonts; JSON retains editable configuration and generator version.
+
+## Development and publication
 
 ```bash
 npm run lint
+npm run format:check
 npm run typecheck
 npm run test:unit
+npm run check:docs
 npm run build
 npm run preview
 ```
 
-`preview` открывает локальную проверку сборки на http://localhost:4173.
-Это не production-сервер. Сценарии проверки и требования инструментов — в
-[docs/STACK.md](docs/STACK.md).
+Preview serves a local build check at http://localhost:4173, not a production server. Repository
+formatting uses `npm run format`. Install browser engines once with `npm run test:e2e:install`, then
+run `npm run test:e2e`; it builds Pages output and owns4185 with isolated test data.
 
-## Публикация
+[STACK](docs/STACK.md) owns setup/gates/required tools; [FRONTEND](docs/FRONTEND.md) owns
+`app → widgets → features → entities → shared`, public boundaries, native ownership and tests.
+Geometry/history are browser/React-free; document/storage/jobs are separate from native rendering.
+Recursive components/hooks/modules and scoped types/utils/config have real responsibility;
+architecture policies reject private-boundary imports. [SPEC](docs/SPEC.md) owns product intent;
+[shipped history](docs/changes/archive/README.md) preserves changes01–34 with original evidence limits.
+Workflow: `plan → work → manual product acceptance → ship`. The owner authorizes automatic local
+ship after required gates/review; `ship --release` separately pushes main and verifies deployment.
 
-GitHub Actions в [.github/workflows/pages.yml](.github/workflows/pages.yml) проверяет PR
-и изменения `main`: lint и архитектурные политики, форматирование, TypeScript, unit tests, зависимости, production-сборку и изолированные браузерные регрессии.
-Успешная сборка `main` автоматически публикуется в GitHub Pages; PR не получают прав
-на deployment. В настройках Pages выбран источник **GitHub Actions**. Публикуется только
-содержимое `dist`, без исходников, SDD-документов и локальных артефактов.
-
-Локальная проверка той же сборки:
+[Pages workflow](.github/workflows/pages.yml) checks PR/main lint/architecture/format/types/unit/
+audit/build/browser regression. Successful main publishes only dist through GitHub Actions; PRs
+have no deployment authority. Local Pages check:
 
 ```bash
 npm run build:pages
 npm run preview:pages
-```
-
-Откройте **http://localhost:4173/penable/**. Эта сборка использует путь `/penable/`;
-обычные `npm run dev` и `npm run build` сохраняют корневой путь `/`.
-При переименовании репозитория обновите путь в `build:pages`/`preview:pages` и ссылки выше.
-Сборка CI использует Node.js 24 из [.node-version](.node-version) и `npm ci` по lockfile.
-
-Для проверки зависимостей и исходных файлов:
-
-```bash
 npm run audit:deps
 npm run scan:secrets
 ```
 
-Для второй команды нужен установленный Gitleaks на PATH. В этом окружении он уже
-доступен. Сканируются и ещё не закоммиченные файлы; generated dependencies, сборка,
-Git internals и локальные артефакты исключены. Содержимое найденных секретов скрывается.
+Open http://localhost:4173/penable/. Pages uses `/penable/`, dev/ordinary build `/`. Renaming the
+repository requires updating build/preview base and public links. CI uses Node24 from
+[.node-version](.node-version) and npm ci. Gitleaks must be on PATH; scanning includes uncommitted
+files, excludes generated dependencies/build/.git/local artifacts and redacts findings. Ignored
+.artifacts/dependencies/build/.env are not published; release also scans Git history.
 
-## Проверка производительности
-
-Проверки движка запускаются отдельно от приложения и не открывают сохранённую доску:
+## Performance verification
 
 ```bash
 npm run bench:build
@@ -328,156 +335,13 @@ npm run bench:history
 npm run bench:lifecycle
 ```
 
-Стенд доступен на http://127.0.0.1:4180. Инструкции для Playwriter, сравнения сборок и
-ограничения измерений описаны в [STACK.md](docs/STACK.md#change10--reproducible-engine-performance).
-Стандартная сборка приложения этот стенд не включает.
+The standalone engine stand at http://127.0.0.1:4180 does not open saved notes or enter ordinary
+app builds. Procedure/limits are in [STACK](docs/STACK.md#change10--reproducible-engine-performance).
 
-Change10: в трёх одинаковых сравнениях Windows Chrome157/DPR1.215 медиана95-го процентиля
-времени порции ввода и отрисовки для10k-точечного штриха снизилась с2.2 до0.5мс;
-для50k-точечного — с13.2 до2.4мс. Это время работы главного потока стенда, не задержка
-Wacom. Нативный захват1×1px поддерживал~144Hz RAF одинаково для обеих сборок.
-Сравнения672растровых префиксов при zoom25–800%/DPR1–2 не выявили различий пикселей.
-
-При500переносах одного объекта на доске из20kобъектов рост сериализованного графа истории
-снизился с74,557,939 до66,439байт. Полная отмена/повтор сохраняется. Проверка Node GC
-освободила все400слабых ссылок на200завершённых/отменённых штрихов и массивов точек.
-Это не измерение GPU-памяти браузера. Для20kодновременно видимых объектов остаётся
-существенная стоимость полной отрисовки; предельные размеры документа не гарантируют
-плавность на любом устройстве.
-
-## Разработка по SDD
-
-[change 10](docs/changes/archive/10-writing-performance.md) — производительность письма и истории;
-[SPEC.md](docs/SPEC.md) — согласованные требования, [change 08](docs/changes/archive/08-canvas-selection.md) — точное выделение;
-[change 09](docs/changes/archive/09-selection-responsiveness.md) — сохранение области и отзывчивость;
-[change 06](docs/changes/archive/06-board-ux-stability.md) — стабилизация UI/UX;
-[change 05](docs/changes/archive/05-stroke-eraser.md) — ластик;
-[change 04](docs/changes/archive/04-local-storage.md) — сохранение и копии;
-[change 03](docs/changes/archive/03-board-history.md) — завершённая история/фон;
-[change 02](docs/changes/archive/02-ink-quality.md) — принятая и завершённая итерация качества;
-[change 01](docs/changes/archive/01-pen-input.md) — завершённая проверка пера. Цикл: `plan → work → ручная проверка → ship`.
-Пользователь подтвердил 2026-11-12 письмо Wacom One на Windows 11, различение pen/mouse
-и изменение давления в диагностике. Толщина линии в M1 намеренно постоянная.
-`ship --release` запускает проверки, отправляет `main` в origin и проверяет deployment
-согласно [STACK.md](docs/STACK.md). Локальные `.artifacts`, зависимости, сборки и `.env`
-исключены из Git; перед публикацией проверяются рабочие файлы и Git-история на секреты.
-
-
-Архитектура описана в [FRONTEND.md](docs/FRONTEND.md): `app → widgets → features → entities → shared`.
-Геометрия и история не зависят от React и браузера; документ, хранение и фоновые задачи отделены
-от нативного рендерера. Границы, платформенные зависимости и правила композиции проверяются автоматически.
-
-Для разработки доступны `npm run format`, `npm run format:check`, `npm run lint`.
-Браузерные регрессии: один раз `npm run test:e2e:install`, затем `npm run test:e2e`.
-Они собирают Pages-версию и используют отдельный порт4185 с изолированными данными, не записи
-в вашей обычной вкладке. Описание проверок и измерений — в [STACK.md](docs/STACK.md).
-
-
-Внутри слоёв используется фрактальная структура: сложный компонент или подсистема владеет
-локальными `components/`, настоящими `hooks/`, подмодулями и файлами `.types.ts`, `.utils.ts`,
-`.config.ts` по необходимости. Например, панель пера собирает предметные группы инструментов,
-а модуль геометрических областей — маски, запросы к штрихам и операции с фрагментами.
-`index.ts` задаёт публичную границу; прямые обращения к приватным файлам соседних подмодулей
-отклоняет архитектурная проверка. Подробные правила — в [FRONTEND.md](docs/FRONTEND.md).
-
-
-## Изменение размера и поворот
-
-Выделите область рамкой или лассо. Углы и стороны рамки меняют размер, круглая ручка над ней
-вращает фрагмент. Shift сохраняет пропорции при размере и привязывает поворот к15°.
-Противоположная сторона остаётся на месте. Esc отменяет незавершённое преобразование;
-завершённое действие отменяется обычным undo.
-
-Через «Действия» → «Преобразовать» можно ввести ширину/высоту в процентах и угол в градусах.
-Рукопись остаётся векторной; исходная толщина масштабируется вместе с фрагментом.
-
-## Изображения
-
-«Вставить изображение» в верхней панели открывает PNG/JPEG. Также можно перетащить файл
-на полотно или вставить картинку из буфера, когда фокус находится на доске. Файл/буфер
-вставляется по центру текущего вида; перетаскивание — в месте сброса. Вставка выделяет результат.
-Обычная команда «Вставить» и Ctrl+V принимают редактируемый фрагмент Penable или изображение
-из системного буфера. При отказе доступа появляется сообщение; вырезание сохраняет исходник,
-если запись в буфер не удалась. Текст, HTML, SVG и ссылки не создают объекты на полотне.
-Новый внешний буфер никогда не заменяется старым внутренним фрагментом. Если браузер запрещает
-чтение и не позволяет отличить картинку от рукописи Penable, приложение сообщает об отказе,
-сохраняя данные, вместо незаметного превращения рукописи в растр.
-
-Картинки и линии можно выделять вместе, переносить, изменять размер/угол, копировать и удалять.
-«Обрезать изображения» оставляет их часть внутри выделения, сохраняя остальные линии.
-Частичное выделение/перенос также поддерживает вырезание кусочков. Undo возвращает исходник.
-Ластик по-прежнему стирает чернила; картинки удаляются выделением. PNG-экспорт включает
-картинки и сохраняет прозрачность. Растровая картинка сохраняет разрешение своего исходника.
-
-Ограничения: PNG/JPEG до8MiB,8192px по стороне,16млн.пикселей на источник; до100уникальных
-источников,32MiB байтов и32млн.пикселей суммарно на доску. Копии одного источника не дублируют
-его байты в JSON. SVG/ссылки не загружаются. Некорректный файл не заменяет текущие записи.
-
-## Несколько досок
-
-Кнопка «Доски» и название текущей доски находятся в центральной верхней панели.
-Она открывает боковой список с поиском, цветными обложками и кнопкой «Новая доска». Через меню карточки
-можно настроить оформление, переименовать или удалить доску; нажатие на карточку открывает её. У каждой доски свои
-записи, картинки, вид, фон, инструменты и восстановительные копии. Перед переключением
-приложение завершает сохранение; при ошибке остаётся на текущей доске.
-
-Удаление требует подтверждения с названием и удаляет также локальные восстановительные копии
-этой доски. Последнюю доску удалить нельзя. После переключения история начинается заново,
-как после загрузки; скопированный внутри вкладки фрагмент можно вставить на другую доску.
-Один профиль/адрес допускает одну пишущую вкладку; остальные сохраняют режим просмотра.
-Существующая единственная доска становится «Моя доска», её содержимое сохраняется.
-
-Цвет и значок назначаются автоматически и остаются прежними при переименовании и изменении записей.
-Чтобы поменять их, откройте меню «…» нужной доски → «Оформление», выберите варианты и нажмите
-«Сохранить оформление». «Отмена» или закрытие панели не сохраняют черновой выбор. Оформление
-хранится в каталоге библиотеки; обычная JSON-копия содержит записи, без оформления обложки.
-Список досок не загружает их содержимое и не создаёт миниатюры.
-Панель инструментов сохраняет ширину и положение кнопок при смене пера, ластика и выделения;
-на узком экране используется постоянная раскладка в несколько строк.
-
-
-## Телефоны, планшеты и Apple Pencil
-
-По умолчанию перо пишет, один палец перемещает доску, два пальца перемещают и масштабируют её.
-Начинайте жест на полотне: прокрутка панелей и ползунки работают обычным способом. Во время
-касания пером пальцы не меняют записи и вид; для нового жеста отпустите прежние касания.
-
-На телефоне откройте параметры пера повторным нажатием на него → «Рисовать пальцем». Тогда
-один палец использует выбранное перо, ластик или выделение; второй отменяет незавершённое
-действие и начинает навигацию. Режим сохраняется при переключении досок в текущей вкладке,
-после перезагрузки снова выключен. Для заготовки выберите размещение и коротко коснитесь
-полотна; жест двумя пальцами не вставляет фигуру.
-
-Короткая проверка на настоящем iPad в актуальном Safari:
-
-1. Напишите несколько строк Pencil, включая слабый/сильный нажим с «Перо с нажимом».
-2. Положите ладонь во время письма: полотно не должно уезжать, лишних штрихов быть не должно.
-3. Отпустите перо и пальцы; переместите одним пальцем, приблизьте двумя, продолжите писать.
-4. Поверните iPad, откройте настройки/список досок и переименуйте доску с экранной клавиатуры.
-5. Выделите/перенесите фрагмент, проверьте undo, затем сохранение после перезагрузки.
-
-Модель iPad и поколение Pencil для запуска не требуются. Автоматически проверены Chromium
-и WebKit с сенсорными сценариями; реальные задержка, ладонь и поведение конкретного Pencil
-требуют этой проверки на устройстве. Специальные жесты Pencil (двойное касание/сжатие) и
-офлайн-запуск здесь не добавлены.
-
-
-## Математические заготовки
-
-Откройте «Фигуры и заготовки»: доступны числовая прямая, оси XY и тригонометрическая окружность.
-Новые фигуры используют рукописные векторные обозначения; старые сохраняют прежний вид.
-
-Для прямой и XY задайте «От»/«До», выберите «Вручную» и нужный шаг. Диапазоны0…15,0…100 и
-−100…100 с шагом1 сохраняют каждое деление и число: фигура увеличивается, шаг не подменяется.
-Предел —201деление на ось и32768единиц на сторону. Диапазон должен включать ноль.
-При ошибке остаётся последний корректный вид и подсказка, как исправить параметры.
-
-По умолчанию «Целиком» показывает всю фигуру. «Крупно» показывает читаемый фрагмент около нуля; перемещайте его мышью, пальцем или стрелками
-после фокуса на превью. Эти действия не двигают доску.
-После размещения ноль числовой фигуры оказывается в точке нажатия; большая фигура может
-выходить за экран. Используйте масштаб/навигацию доски, чтобы увидеть остальные части.
-
-На окружности «Углы» включает внешние подписи в радианах, «Координаты» — внутренние±1.
-Они включаются независимо; дополнительного координатного нуля нет. Названия осей сохраняются.
-Рукописные знаки одинаково строятся в превью, на доске и при PNG-экспорте, без загрузки шрифтов
-из сети. JSON-копия сохраняет редактируемую фигуру и версию её генератора.
+Historical Change10 measurements in three paired WindowsChrome157/DPR1.215 runs: median p95 input+
+paint batch time fell2.2→0.5ms for10kpoints and13.2→2.4ms for50kpoints. These are main-thread stand
+times, not Wacom latency. A1×1native capture kept~144HzRAF for both builds.672prefix raster
+comparisons at zoom25–800%/DPR1–2 matched pixels. For500moves on a20k-item scene, serialized history
+graph size fell74,557,939→66,439bytes with full undo/redo. NodeGC released400weakrefs to200finished/
+cancelled strokes/point arrays; this is not browser GPU memory. Full redraw of20kvisible items
+still costs substantial work, so document limits do not promise smoothness on every device.

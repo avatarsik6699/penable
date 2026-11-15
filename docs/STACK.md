@@ -14,7 +14,7 @@
 | Selection geometry | polygon-clipping0.15.7; normalized local vector clips and source lineage |
 | Background jobs | Native module Worker; bounded transferable point chunks for large selection/validation/save |
 | Backend | n/a — browser only |
-| Storage | Native IndexedDB, versioned one-board document; exclusive origin Web Lock; JSON backup |
+| Storage | Native IndexedDB; document5/catalog2/IDB1, named boards, exclusive origin Web Lock, per-board JSON backups |
 | Package manager | npm, package-lock.json |
 | Lint / format | Oxlint, TypeScript AST architecture policies/self-tests; Prettier3.9.6 / EditorConfig |
 | Browser regression | Playwright1.62.1 Chromium + bounded mobile WebKit, domain fixtures + Page Objects, isolated contexts |
@@ -27,7 +27,8 @@
 Node supported by package.json engines: 22.12+ within Node 22, Node 24, or Node 26+.
 Observed environment: Node 24.21.0, npm 11.19.0. Lockfile is the authority for package versions.
 Gitleaks must be installed on PATH for the mandatory secrets scan; it is available on this machine.
-No Docker, backend, database, environment variables or credentials are required.
+Python3 is required for `npm run check:docs` (standard-library link and historical ZIP integrity checks).
+No Docker, backend, server database, environment variables or credentials are required.
 
 ## Initial setup
 
@@ -51,6 +52,7 @@ Run applicable rows after each task, scoped to changed behavior. API generation 
 | Type-check (affected) | npm run typecheck | Strict TypeScript, no emit; includes unit/E2E tests and Vite/Playwright configs |
 | Targeted / affected unit tests | npm run test:unit | Optional file argument scopes cases; no passing empty test suites |
 | LSP diagnostics | TypeScript LSP diagnostics | Tool exposed; run on changed TS files; disclose tool failure separately from tsc |
+| Documentation / historical archive | npm run check:docs | Active Markdown links and original ZIP entry SHA-256 integrity; Python3 |
 | API type regen | n/a | No API |
 
 ## Full Gate
@@ -66,6 +68,7 @@ A focused build is appropriate when establishing/changing build configuration.
 | Frontend build | npm run build | TypeScript followed by Vite static build |
 | Pages build | npm run build:pages | Separate production build with /penable/ asset base; final dist is Pages artifact |
 | Frontend unit tests | npm run test:unit | Includes input ownership/cancellation and coordinate transforms |
+| Documentation / historical archive | npm run check:docs | Active Markdown links and original ZIP entry SHA-256 integrity; Python3 |
 | E2E lint / determinism | npm run lint; npm run format:check | AST policies cover spec/fixture/Page Object ownership; spacing and self-tests included |
 | E2E suite | npm run test:e2e:run | After build:pages; owns strict4185 preview and isolated Chromium contexts; run test:e2e:install once (Chromium + WebKit) |
 | Smoke | npm run dev; npm run preview:pages | Playwriter: active change scenarios; change07 verifies production /penable/ assets/input/storage at port4173; hardware acceptance is separate |
@@ -105,7 +108,7 @@ and Release Gates. No custom domain, cloud database, analytics or automatic note
 | Architecture | frontend-architecture | Before structural decisions | Consulted during plan |
 | Frontend design | frontend-design; impeccable for bounded craft review | Preserve SPEC §5.3 | Skills available; no new visual direction required |
 | New API | n/a | No backend | n/a |
-| User acceptance | User in Windows Chrome; Wacom when relevant | Active change T3 | Physical writing accepted; storage/backup require their own user check |
+| User acceptance | User in Windows Chrome; Wacom when relevant | Device-specific owner acceptance | Physical writing accepted; storage/backup require their own user check |
 
 ## Testing
 
@@ -114,6 +117,7 @@ npm run test:unit
 npm run test:unit -- src/entities/board/input/input.test.ts
 npm run lint
 npm run typecheck
+npm run check:docs
 ```
 
 Browser checks use Playwriter per AGENTS.md. Synthetic pointer events cover event handling;
@@ -158,6 +162,12 @@ Codex plugin or hooks.json does not prove native activation. Procedures can run 
 First local ship initialized main from feature/01-pen-input; change 01 is archived.
 Change07 configures origin as https://github.com/avatarsik6699/penable.git and Actions-based Pages.
 
+
+## Historical delivery-specific tooling and evidence
+
+The sections below preserve per-change setup, baselines and verification boundaries. Their schema
+numbers, temporary ports and then-current exclusions are historical, not the current feature list.
+Current contracts live in SPEC/FRONTEND; archived originals are in the [history index](changes/archive/README.md).
 
 ## Change 02 — Quality and Viewport Contract
 
@@ -251,7 +261,7 @@ Change07 configures origin as https://github.com/avatarsik6699/penable.git and A
 - Plain wheel pans2axes; Ctrl/pinch zoom anchors25–800%; Shift maps vertical-only scroll horizontally.
   Normalize pixel/line16/page-axis units; suppress wheel during pointer input and quarantine any
   overlapping stream until150ms quiet. No device guessing or per-sample React/timer.
-- Storage uses stable status/export/import/Хранение row with secondary actions/details in a
+- Storage uses stable status/export/import/Storage row with secondary actions/details in a
   nonmodal out-of-flow panel. Status/error/notice changes cannot resize canvas or steal focus.
 - Busy UI follows immediate history state, guards remain synchronous. Read-only navigation does
   not persist. Keep schema1 and accepted stroke geometry. Physical Wacom/trackpad checks are

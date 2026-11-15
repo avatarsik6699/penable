@@ -1,53 +1,48 @@
-# Макет редактора penable
+# penable editor mock
 
-**Визуальное направление утверждено2026-11-13.** Этот каталог остаётся отдельным макетом;
-перенос в рабочий редактор выполняется в Change15 по SPEC5.3/5.14.
-Конспект синтетический; его вид не является демонстрацией качества реального письма.
+**Visual direction approved on2026-11-13.** This directory preserves the isolated historical
+mock used for Change15's production transfer under SPEC5.3/5.14. It is not the current editor.
+The synthetic note does not demonstrate real handwriting quality. Original Russian mock labels
+and frozen screenshots/assets remain unchanged as accepted historical references.
 
-## Открыть
+## Open
 
-Из корня проекта:
+From the repository root:
 
 ```bash
 npm run mock:serve
 ```
 
-Открыть http://127.0.0.1:4190. Переключатель над полотном показывает пять состояний:
-письмо, параметры пера, выделение, меню доски и ошибку сохранения.
-Повторный щелчок по выбранному перу открывает стабилизацию; толщина доступна сразу.
-Меню закрываются щелчком снаружи или Escape; Escape возвращает фокус на кнопку.
+Open http://127.0.0.1:4190. The selector above the board shows five states: writing, pen settings,
+selection, board menu and save error. Click the selected pen again for stabilization; width is
+inline. Outside click/Escape closes menus; Escape returns focus to the trigger.
 
-Слайдеры, выбор инструмента, фон и демонстрация восстановления меняют только макет.
-Записи не рисуются, файлы и буфер обмена не открываются, браузерное хранилище не используется.
-Кнопки операций показывают сообщение о демонстрационном режиме. Никаких внешних ресурсов:
-SVG и шрифт загружаются с того же локального сервера.
+Sliders, instrument/background selection and recovery controls change only the mock. They do not
+draw, open files/clipboard or use browser storage. Operation buttons show a demonstration notice.
+Only same-origin SVG/font assets are fetched; no external resources are required.
 
-## Превью
+## Previews
 
-Все PNG — кадры полотна 1440×900 без внешнего переключателя состояний:
+All PNGs are1440×900 board frames without the external state selector:
 
-- [Письмо](previews/writing.png)
-- [Параметры пера](previews/pen.png)
-- [Выделение](previews/selection.png)
-- [Меню доски](previews/board.png)
-- [Ошибка сохранения](previews/error.png)
+- [Writing](previews/writing.png)
+- [Pen settings](previews/pen.png)
+- [Selection](previews/selection.png)
+- [Board menu](previews/board.png)
+- [Save error](previews/error.png)
 
-Для просмотра без переключателя: `/?preview=1&state=writing`.
-Допустимые состояния: `writing`, `pen`, `selection`, `board`, `error`.
-Целевые размеры обсуждаемого дизайна: 1440×900 и 1280×720; мобильная версия в этот change не входит.
+Without the selector: `/?preview=1&state=writing`. States: `writing`, `pen`, `selection`, `board`,
+`error`. The proposal targeted1440×900 and1280×720; it did not define the mobile app layout.
 
-## Границы
+## Boundaries
 
-[BRIEF.md](BRIEF.md) описывает выбранную композицию и критерии.
-[DESIGN.md](DESIGN.md) фиксирует реализованные элементы предложения, не заменяя дизайн приложения.
-Владелец одобрил перенос макета в рабочий редактор в отдельном Change15.
-Статические файлы не попадают в Vite/Pages-сборку приложения.
+[BRIEF.md](BRIEF.md) records the chosen composition/criteria. [DESIGN.md](DESIGN.md) describes
+implemented proposal elements without replacing production design authority. The owner approved
+transfer to the working editor in Change15. These static files are excluded from Vite/Pages builds.
 
-## Ассеты и лицензия
+## Assets and license
 
-`assets/scene.svg` — специально написанный синтетический пример конспекта, не пользовательские записи.
-Все иконки — авторские inline SVG без сторонней библиотеки.
-
-Для синтетического почерка локально включён [Caveat из Google Fonts](https://github.com/google/fonts/tree/main/ofl/caveat),
-вариативный шрифт 400–700 с кириллицей. Лицензия SIL Open Font License 1.1 включена в
-[assets/OFL.txt](assets/OFL.txt). Элементы интерфейса используют системный Segoe UI / sans-serif.
+`assets/scene.svg` is an authored synthetic note, not user content. Icons are authored inline SVGs
+without a third-party library. The mock bundles [Caveat from Google Fonts](https://github.com/google/fonts/tree/main/ofl/caveat),
+a400–700 variable font with Cyrillic support, for the synthetic handwriting. SIL Open Font License1.1
+is included in [assets/OFL.txt](assets/OFL.txt). UI text uses Segoe UI/system sans-serif.

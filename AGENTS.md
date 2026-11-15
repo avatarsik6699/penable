@@ -67,6 +67,8 @@ Keep lightweight long-lived project memory in `docs/`:
 
 There is no separate contract-mirror file to keep in sync. The codebase is the source of truth for
 what currently exists; `docs/changes/archive/` is the source of truth for what's already shipped.
+Changes01–34 are preserved unchanged in its ZIP, with an English README index and SHA-256 manifest;
+read the index before looking for a historical numbered Markdown file.
 
 ## Filesystem Permission Failures
 
@@ -134,7 +136,7 @@ section exists only for what git can't tell you.
 |------|------|----------------|
 | `docs/SPEC.md` | Strategic product and system intent | Rarely; architect-approved |
 | `docs/changes/NN-slug.md` | Active unit of work: Backlog, files, gate overrides, review notes, implementation notes | Continuously while active |
-| `docs/changes/archive/NN-slug.md` | Completed unit of work, kept as history | Written once, by `/ship` |
+| `docs/changes/archive/NN-slug.md` or indexed historical ZIP entry | Completed unit of work, kept as history | Written once, by `/ship`; originals01–34 retained unchanged in ZIP |
 | `docs/STACK.md` | Stack-specific commands, Fast/Full/Release gate tables, required tooling | When tooling changes |
 | `docs/KNOWN_GOTCHAS.md` | Recurring pitfall log | When new traps are discovered |
 

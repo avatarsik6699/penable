@@ -1,0 +1,209 @@
+{
+  "archive": "changes-01-34.zip",
+  "entries": [
+    {
+      "number": 1,
+      "file": "01-pen-input.md",
+      "sha256": "995b901c33ee564b60c21841f857cdde389127778affc93428024bc8bae84a39",
+      "title": "Pen input acceptance"
+    },
+    {
+      "number": 2,
+      "file": "02-ink-quality.md",
+      "sha256": "02c5ca55bffd0ec7e15eb22a4cc1d4d66528cec9710ba44f505bc26269cd0931",
+      "title": "Ink and zoom quality"
+    },
+    {
+      "number": 3,
+      "file": "03-board-history.md",
+      "sha256": "fd3deb89e9c36c108efb3bcc5ea768dcafc2119313b043cadb49b0b884ff1ea9",
+      "title": "Stroke history and board background"
+    },
+    {
+      "number": 4,
+      "file": "04-local-storage.md",
+      "sha256": "9c25b006acb41ffba22d58cbd672f92dc2777697ddfed96e1ff34b1a234d4f68",
+      "title": "Local storage and recovery copies"
+    },
+    {
+      "number": 5,
+      "file": "05-stroke-eraser.md",
+      "sha256": "6216cf5413c45129439c7de9480a7077cacce819041bdf617a6987e2fbb97313",
+      "title": "Whole-stroke eraser"
+    },
+    {
+      "number": 6,
+      "file": "06-board-ux-stability.md",
+      "sha256": "cc5bff2987f7dd8642ce550faa0eaeb773f01365a42e6ac13bc361fcb94c149c",
+      "title": "Board stability and editing UX"
+    },
+    {
+      "number": 7,
+      "file": "07-github-pages.md",
+      "sha256": "301b1d05a0e08611b53e9ced3acd7f60b2ee4db09b9a9f4b66d3fbee0cc9a936",
+      "title": "CHANGE 07 \u2014 GitHub repository and Pages"
+    },
+    {
+      "number": 8,
+      "file": "08-canvas-selection.md",
+      "sha256": "3f68c8449a1ecc6ed85195120a3028e7ea34a7d6139d317d9e38c692a1677709",
+      "title": "Exact canvas fragment selection"
+    },
+    {
+      "number": 9,
+      "file": "09-selection-responsiveness.md",
+      "sha256": "f16490ae44fa6f20ec4728d7984a4f239df68b9cc733d54feb83ef3e58320cdd",
+      "title": "Selection region and responsiveness"
+    },
+    {
+      "number": 10,
+      "file": "10-writing-performance.md",
+      "sha256": "936b86acd51022a4669bacad0def28ff544c104cffc19bf016a546b41b286250",
+      "title": "Writing and large-note performance"
+    },
+    {
+      "number": 11,
+      "file": "11-architecture-alignment.md",
+      "sha256": "b01f2b09547a42f4e294fb058295c278e2b0f0fb554e591777ade3f459722ebb",
+      "title": "Architecture and composition"
+    },
+    {
+      "number": 12,
+      "file": "12-code-spacing.md",
+      "sha256": "0eadddc87f0e019b0b25426cafe7305e81d31e63ee00fd728fdaa2ea10a740d9",
+      "title": "Readable semantic blocks"
+    },
+    {
+      "number": 13,
+      "file": "13-fractal-modules.md",
+      "sha256": "98db54920ef4e583e1b3b4ba80a6ae5070fd3c7980a5f7f636f681f47e322103",
+      "title": "Fractal module decomposition"
+    },
+    {
+      "number": 14,
+      "file": "14-editor-design-mockup.md",
+      "sha256": "0a7a72433cb5e27348561940f7da0f4c1eb2ede16cb9cff17a8ee2f937291bf4",
+      "title": "Editor visual mock"
+    },
+    {
+      "number": 15,
+      "file": "15-floating-editor-ui.md",
+      "sha256": "7616b53fc71483fd2371dcb90c8e7430f3ad87907eede9efc8b0ea2112179ea3",
+      "title": "CHANGE 15 \u2014 Floating editor UI"
+    },
+    {
+      "number": 16,
+      "file": "16-board-settings-navigation.md",
+      "sha256": "f04c2345613da74eda616a8c56a1be3fbe2a93e2c474907a4975c6fb0d817874",
+      "title": "CHANGE 16 \u2014 Board settings and predictable navigation"
+    },
+    {
+      "number": 17,
+      "file": "17-board-editing-library.md",
+      "sha256": "6ff45765e06f691b0d7c5e4b277986defecd7df90bd13e33b4ac66889a2c8ae8",
+      "title": "CHANGE17 \u2014 Transformable content, images and board library"
+    },
+    {
+      "number": 18,
+      "file": "18-editor-ux-clipboard.md",
+      "sha256": "f26d44143996cb2dc9bdfcc1014f8771f25e65347cf3004cb5e0aa6bf6275c56",
+      "title": "CHANGE18 \u2014 Editor UX and unified clipboard"
+    },
+    {
+      "number": 19,
+      "file": "19-board-label-focus.md",
+      "sha256": "d59b5eadea26a1189f756be6dd224b6be8046e84505dddc13351d4682f64026c",
+      "title": "CHANGE19 \u2014 Board label and rename focus"
+    },
+    {
+      "number": 20,
+      "file": "20-compact-board-slot.md",
+      "sha256": "9b2262bd87cb9a0c4aeedcbe24bd9609b30ed63717bef3204689bca953d38729",
+      "title": "CHANGE20 \u2014 Compact board slot"
+    },
+    {
+      "number": 21,
+      "file": "21-board-appearance.md",
+      "sha256": "dc3f93820d77a1b08308605da15e952ac5940856a1ae34335618c6e02993049d",
+      "title": "CHANGE21 \u2014 Distinct board covers"
+    },
+    {
+      "number": 22,
+      "file": "22-bounded-selection-observation.md",
+      "sha256": "1a67e43fa0529e471e9cb6cd94a2547480378636cc7b863cb764e92965015428",
+      "title": "CHANGE 22 \u2014 Bounded selection test observation"
+    },
+    {
+      "number": 23,
+      "file": "23-writing-tools-templates.md",
+      "sha256": "680c4a3df09281dafce9a040ce0d7f94435ce1f872083ec1ddde1dc45555f3c0",
+      "title": "CHANGE 23 \u2014 Writing instruments and vector templates"
+    },
+    {
+      "number": 24,
+      "file": "24-compact-tool-panels.md",
+      "sha256": "884ed7f7d345c2c6a3b24a4f59c6478ff17cc6896d29c529ad787b4345366dd9",
+      "title": "CHANGE24 \u2014 Compact writing and template controls"
+    },
+    {
+      "number": 25,
+      "file": "25-tool-visual-consistency.md",
+      "sha256": "5cf40fdf6b293cca4298971a8b73db3d86032316d14e7da187f1406160877eb8",
+      "title": "CHANGE25 \u2014 Tool selection and mathematical icon consistency"
+    },
+    {
+      "number": 26,
+      "file": "26-touch-tablet-experience.md",
+      "sha256": "8a4ebb79e56b6bd374a49a0475696b7e6b27e285a9ebd56e12b8d803954cd736",
+      "title": "CHANGE26 \u2014 Touch, phone and tablet experience"
+    },
+    {
+      "number": 27,
+      "file": "27-readable-math-templates.md",
+      "sha256": "0f8494b5cfc10d1e351d25c9214f9b5d293dc2aff9f5d5e06786ea850000ef32",
+      "title": "CHANGE27 \u2014 Readable mathematical templates"
+    },
+    {
+      "number": 28,
+      "file": "28-whole-template-preview.md",
+      "sha256": "db98d6b1ec98f1364c88b4f1bfda0a73b86b10cc57dd7dabf9ef88e142c8acec",
+      "title": "CHANGE28 \u2014 Whole-figure preview by default"
+    },
+    {
+      "number": 29,
+      "file": "29-full-width-shape-preview.md",
+      "sha256": "5c6ebfa4fdeb0e7154d8a3a4bcbc1055fcbbbf229517a1668f4d474cd904e966",
+      "title": "CHANGE29 \u2014 Full-width shape preview"
+    },
+    {
+      "number": 30,
+      "file": "30-telegram-feedback.md",
+      "sha256": "37690f4520fa94c40836351ea6ed2b362fcb48607eebd0904593431b2915f715",
+      "title": "CHANGE30 \u2014 Telegram feedback"
+    },
+    {
+      "number": 31,
+      "file": "31-install-offline.md",
+      "sha256": "31644cf02cdee29a7388026873a2fbf393bf0d8c591ef6ed772be28b33840fd4",
+      "title": "CHANGE 31 \u2014 Installation and offline use"
+    },
+    {
+      "number": 32,
+      "file": "32-toolbar-responsive-layout.md",
+      "sha256": "6ee27659ef6dc7cf7d388f6c2ade6bcf124c1153e0cc96910b089efa9d143450",
+      "title": "CHANGE 32 \u2014 Compact responsive toolbar"
+    },
+    {
+      "number": 33,
+      "file": "33-dense-compact-toolbar.md",
+      "sha256": "0746e99b3b85b4c4c7ee7d1665582e87a93af35e8bcee9755e02df521be14753",
+      "title": "CHANGE 33 \u2014 Dense compact toolbar composition"
+    },
+    {
+      "number": 34,
+      "file": "34-calm-writing-feedback.md",
+      "sha256": "5ad6ef62a0e6c9169dcb5e1c187be4960eeadb2ec836a168c274e667c6bd94d7",
+      "title": "CHANGE 34 \u2014 Stable pen-lift cursor and calm writing controls"
+    }
+  ]
+}

@@ -1,246 +1,227 @@
-# penable — спецификация
+# penable — specification
 
-> Статус: утверждено пользователем; дизайн Change14 принят2026-11-13 для переноса в Change15.
-> Подтверждено: React, сначала проверка пера, светлый лист с компактными инструментами,
-> Wacom One на Windows 11. Changes 01–05 приняты и завершены, включая ластик целых штрихов.
-> Change06 shipped локально; пользователь подтвердил работу нового курсора и жестов: «Отлично, всё работает».
-> Change07 опубликован: https://avatarsik6699.github.io/penable/ .
-> Приоритет качества подтверждён пользователем 2026-11-12: «качественную доску с качественным
-> письмом, чтобы не было дефектов, артефактов, блюра». Тестовые записи разрешено обновлять.
+> Owner-approved product contract. The Change14 visual direction was accepted on 2026-11-13
+> for production transfer in Change15. The original Wacom One / Windows 11 handwriting check,
+> pen/mouse distinction and changing pressure were accepted; this is not blanket hardware
+> acceptance for later pen, touch or driver changes. Changes01–34 are shipped locally.
+> The public site is https://avatarsik6699.github.io/penable/; local delivery does not establish
+> the currently deployed revision. Publication is a separate release.
+>
+> Original owner confirmation for Change06: «Отлично, всё работает» (“Great, everything works”).
+> Original quality priority, 2026-11-12: «качественную доску с качественным
+> письмом, чтобы не было дефектов, артефактов, блюра» (a board with good handwriting quality,
+> without defects, artifacts or blur). Updating demonstration notes was authorized.
 
 ## Metadata
 
-| Поле | Значение |
-|------|----------|
-| Версия | 1.5 — readable versioned mathematical templates |
-| Дата | 2026-11-14 |
-| Архитектор / владелец | Пользователь |
-| Предметная область | Личные рукописные конспекты в браузере |
-| Стек | React + TypeScript, Vite + Canvas 2D, IndexedDB; см. [STACK.md](STACK.md) |
+| Field | Value |
+|-------|-------|
+| Version | 1.6 — current contracts, English documentation and approved localization intent |
+| Date | 2026-11-15 |
+| Architect / owner | User |
+| Domain | Personal handwritten notes in the browser |
+| Stack | React + TypeScript, Vite + Canvas 2D, IndexedDB; see [STACK.md](STACK.md) |
 
 ## 1. Project Overview and Goals
 
-### 1.1 Проблема
+### 1.1 Problem
 
-Нужна личная среда для письма графическим планшетом: записывать текст и схемы,
-свободно размещать материал и возвращаться к нему после закрытия приложения.
-Качество письма и сохранность конспектов определяют полезность продукта.
+A personal workspace for writing text and diagrams with a drawing tablet, arranging material
+freely and returning after closing the app. Handwriting quality and note safety determine
+whether the product is useful.
 
-### 1.2 Цель и проверка результата
+### 1.2 Goal and acceptance
 
-Цель версии для ежедневных записей: открыть доску, написать конспект, закрыть браузер
-и продолжить позже с сохранёнными штрихами и положением просмотра.
-Первый этап проверяет только ввод. Пользователь пишет несколько строк, быстрые петли,
-короткие штрихи и точки своим планшетом; оценивает соответствие линии движениям,
-задержку по ощущениям и отсутствие нежелательных жестов. До этой пробы совместимость
-с конкретным устройством и удобство письма считаются непроверенными.
+Daily-use goal: open a board, write notes, close the browser and resume with completed content
+and the saved view. The first milestone tested input only: several handwritten lines, fast loops,
+short strokes and dots on the owner's tablet. The owner judges line fidelity, perceived lag and
+unwanted gestures. Until that check, compatibility and writing comfort on a device are unverified.
 
-### 1.3 Границы
+### 1.3 Historical milestone boundaries
 
-| Этап | Включено | Отложено |
-|------|----------|----------|
-| M1 — завершён | Одна область письма, перо/мышь, чёрная ручка постоянной толщины, настройка размера, диагностика, resize/DPR, инструкция запуска | Навигация доски, undo/redo, сохранение, импорт/экспорт |
-| M2 — доска | Change 02 принят: качество штриха, перемещение, чёткий масштаб. Change 03: фон и undo/redo | Несколько тетрадей, совместная работа |
-| M3 — регулярные записи | Change 04: IndexedDB, восстановление, индикатор сохранения, JSON-копия и восстановление | Облачная синхронизация, PNG/PDF |
-| M4 — улучшения | Change05: ластик; change06: UX; change08: точное выделение и перенос, PNG фрагмента | Частичный ластик, resize/rotate, несколько тетрадей |
+This table records the original delivery sequence, not current missing features. Later §5
+contracts supersede earlier exclusions. Current storage is document5/catalog2/IDB1; named boards,
+images, transforms, instruments, mathematical templates, touch navigation and the offline shell
+are implemented. Physical acceptance and public deployment remain separately qualified.
 
-M1 — временный стенд: при перезагрузке записи исчезают. Это явно видно на экране.
-До M3 приложение не позиционируется как место хранения важных конспектов.
+| Stage | Original inclusion | Originally deferred |
+|-------|--------------------|---------------------|
+| M1 — complete | One writing surface, pen/mouse, black constant-width pen, width, diagnostics, resize/DPR, launch guide | Navigation, undo/redo, storage, import/export |
+| M2 — board | Change02: stroke quality/navigation/clear zoom; Change03: backgrounds/history | Multiple notebooks, collaboration |
+| M3 — regular notes | Change04: IndexedDB, reload, save status, JSON backup/restore | Cloud sync, PNG/PDF |
+| M4 — improvements | Change05: eraser; Change06: UX; Change08: exact selection/move and fragment PNG | Partial eraser, resize/rotate, multiple notebooks |
+
+M1 was a temporary in-memory input stand and explicitly lost notes on reload. The app was not
+presented as a place for important notes until M3 added storage and recovery.
 
 ## 2. Domain Context
 
-### 2.1 Пользователь и окружение
+### 2.1 User and environment
 
-Один пользователь на своём компьютере, без аккаунтов и прикладных ролей.
-Основной сценарий — графический планшет; мышь нужна для проверки и резервного ввода.
-Пользователь подтвердил Wacom One и Windows 11. Пользователь также подтвердил письмо, различение pen/mouse и изменение pressure в диагностике.
-Версии браузера и драйвера не записаны; количественные характеристики не измерены. Разработка — в WSL, проверка —
-в обычном Windows Chrome, а не только в автоматизированном браузере.
+One person on their computer, without accounts or application roles. Primary input is a drawing
+tablet; mouse input supports checks and fallback use. The owner confirmed Wacom One / Windows 11,
+writing, pen/mouse distinction and changing pressure in diagnostics. Browser/driver versions were
+not recorded and quantitative hardware characteristics were not measured. Development is in WSL;
+verification uses ordinary Windows Chrome as well as isolated automated browsers.
 
-### 2.2 Сущности
+### 2.2 Entities
 
-Stroke — завершённый штрих; Point — образец координат и данных ввода;
-ActiveStroke — незавершённый штрих одного указателя; Viewport — преобразование
-координат доски в экранные. Document объединит штрихи и метаданные в M3.
+Stroke is a completed stroke; Point is an input coordinate/data sample; ActiveStroke is one
+pointer's unfinished stroke; Viewport maps board coordinates to the screen. Document combines
+content and metadata. Later contracts add ordered ink/image/template items and a board library.
 
 ## 3. Data Model
 
-### 3.1 M1 — только память вкладки
+### 3.1 Historical M1 — tab memory only
 
-| Объект | Данные / инварианты |
-|--------|--------------------|
-| Point | Конечные числовые x/y в логических единицах, pressure из события, время образца. Нулевое давление допустимо |
-| Stroke | Уникальный id, чёрный цвет, положительная толщина, непустой упорядоченный список точек |
-| ActiveStroke | Один pointerId, точки текущего ввода, зафиксированная при начале толщина |
-| Scene | Завершённые штрихи отдельно от активного; источник повторной отрисовки |
+| Object | Data / invariant |
+|--------|------------------|
+| Point | Finite numeric x/y in logical units, event pressure and sample time; zero pressure is valid |
+| Stroke | Unique id, black color, positive width, nonempty ordered points |
+| ActiveStroke | One pointerId, current points, width captured at stroke start |
+| Scene | Completed strokes separate from the active stroke; redraw source |
 
-Координаты штриха не зависят от разрешения bitmap canvas и devicePixelRatio.
-В M1 экранные CSS-координаты переводятся в локальные координаты рабочей области;
-Viewport имеет единичный масштаб. Будущая навигация расширит преобразование,
-не переводя хранимые точки в bitmap-координаты. Resize не масштабирует и не удаляет
-завершённые штрихи; скрытая часть снова видна после увеличения области.
-Давление не влияет на толщину M1. Его наличие в событии само по себе не доказывает
-поддержку изменяемого давления устройством.
+Stroke coordinates do not depend on canvas bitmap resolution or devicePixelRatio. M1 mapped
+screen CSS coordinates to local surface coordinates with unit viewport scale. Navigation extends
+that transform without storing bitmap coordinates. Resize does not scale/delete completed
+strokes; hidden content becomes visible when the surface grows. M1 pressure intentionally does
+not affect width; pressure in an event alone does not prove variable device pressure support.
 
-### 3.2 Доска и последующее хранение
+### 3.2 Board coordinates and persistence
 
-Change 02 хранит точки в координатах доски. Viewport содержит zoom и offset x/y в CSS-единицах;
-экранная точка = world × zoom + offset. Обратное преобразование используется при вводе.
-Zoom сохраняет world-точку под курсором; pan/zoom не изменяют исходные координаты штрихов.
+Change02 stores world points. Viewport holds zoom and CSS x/y offset: screen = world × zoom +
+offset; input uses its inverse. Zoom anchors the world point under the cursor, and navigation
+does not alter raw stroke coordinates.
 
-Сила стабилизации (0–100%) и масштаб доски при начале фиксируются
-на каждом новом штрихе. Исходные точки не фильтруются на месте. Штрихи без этих
-метаданных отображаются без дополнительного фильтра; прежние `off`/`light`/`strong`
-читаются как 0/50/100% с сохранением прежней геометрии. Смена инструмента не меняет прошлые записи.
+Each new stroke captures stabilization0–100% and start zoom. Raw points are never filtered in
+place. Missing profile means no extra filtering; old off/light/strong profiles retain their
+geometry as0/50/100%. Settings changes do not reinterpret earlier writing.
 
-История change 03 действует на завершённые штрихи: undo переносит последний объект в redo,
-redo возвращает тот же объект с исходными точками, толщиной и профилем стабилизации.
-Только завершение нового штриха очищает redo; отменённый ввод, навигация, фон и настройки
-его сохраняют. Незавершённые штрихи не входят в историю. В M3 документ хранится в IndexedDB;
-JSON содержит версию формата, штрихи
-и положение просмотра. Импорт проверяет структуру, конечность чисел и версию до изменения
-данных. Ошибочный импорт сохраняет текущие записи. Подробный формат, лимиты и конфликты
-согласуются в соответствующем change.
+Change03 history operates on completed strokes: undo retains the last object for redo; redo
+restores the same raw points, width and profile. New completed ink clears redo; cancellation,
+navigation, backgrounds and settings preserve it. Unfinished ink is not history. M3 persists
+versioned documents and viewport in IndexedDB. Import validates shape, finite numbers and version
+before mutation; invalid imports preserve current content. The exact later formats and limits
+are governed by §5.6 onward. Current document5 reads1–4; catalog2 and IDB1 remain separate versions.
 
 ## 4. API / Backend Contract
 
-Прикладной сервер, HTTP API, серверная БД и секреты не нужны. Vite обслуживает файлы
-при разработке; сборка представляет статические файлы. Приложение не отправляет штрихи по сети.
+No application server, HTTP API, server database or secrets are required. Vite serves development
+files; production is static assets. The app does not upload strokes.
 
-Поток: Pointer Events → контроллер ввода → модель штрихов → Canvas 2D.
-React управляет инструментами и состоянием интерфейса. Накопление точек и рендер не требуют
-React-render на каждое движение. Контроллер не зависит от React или IndexedDB;
-рендерер не владеет каноническими данными. Позднее сохранение подключается к изменениям
-документа. Глобальный store, роутер, готовый движок досок и WebGL сейчас не требуются.
+Flow: Pointer Events → input controller → content model → Canvas2D. React owns controls and UI
+state; sample collection/rendering do not require React renders per movement. The controller is
+independent of React/IndexedDB, and the renderer does not own canonical data. Persistence follows
+document changes. No global scene store, router, drawing SDK or WebGL engine is required.
 
-Рассмотренные варианты: React-state на каждый образец проще связать с интерфейсом,
-но он добавляет работу в потоке ввода. Готовый редактор досок ускоряет богатый интерфейс,
-но добавляет зависимости и ограничения до проверки пера. Предлагается небольшой
-независимый контроллер и Canvas 2D; пересмотр — при измеренных ограничениях.
+Alternatives considered: React state per sample simplifies UI wiring but adds work to the input
+path; a drawing SDK accelerates a rich interface but introduces dependencies/constraints before
+pen validation. Keep a small independent controller and Canvas2D; revisit against measured limits.
 
 ## 5. Frontend / Client Contract
 
-### 5.1 Экран
+Sections5.2–5.13 preserve historical delivery contracts. Later instrument, library, touch and
+availability sections explicitly extend them; read a historical schema or exclusion in that context.
 
-Один маршрут `/`: поле занимает всё окно, компактные плавающие инструменты и контекстные
-панели описаны в §5.3/5.14. Локальное сохранение и его ошибки явно показаны. Диагностика
-доступна через помощь и может оставаться видимой при письме. Дополнительных экранов нет.
+### 5.1 Screen
 
-### 5.2 Письмо и состояния M1
+One route `/`: full-window writing surface, floating tools and contextual panels per §5.3/5.14.
+Local storage status and failures are explicit. Diagnostics are available through Help and can
+remain open while writing. No additional pages are required.
 
-- Пишут кончик пера и основная кнопка мыши. Hover, правая кнопка и touch не начинают штрих.
-  Второй указатель не продолжает и не заменяет активный штрих.
-- Толщина 0.5–12 логических px с шагом 0.1 px, начальная 3 px; изменение действует со следующего штриха.
-- Одиночное касание оставляет точку. Линия появляется при движении, до отпускания.
-- pointerup завершает штрих с конечной точкой. Pointer capture удерживает последовательность
-  при выходе из области; видимая отрисовка ограничена рабочим полем.
-- pointercancel, неожиданная потеря capture, потеря фокуса окна и размонтирование прекращают
-  ввод. Незавершённый штрих отбрасывается, завершённые остаются; возврат без нового нажатия
-  не рисует. Resize во время ввода отменяет текущий штрих по тому же правилу.
-- getCoalescedEvents используется при наличии; иначе обрабатывается исходное событие.
-  Не добавлять повторно образцы родительского события. Предсказание, pointerrawupdate
-  и сильное сглаживание в M1 не требуются.
-- Нативные жесты и контекстное меню подавляются только в области письма в необходимом
-  для пера объёме. Остальная страница сохраняет обычное поведение.
-- Resize и смена DPR сохраняют логическую геометрию. Подписки, observers и отложенные кадры
-  освобождаются; React StrictMode не создаёт двойного ввода.
-- Если Canvas 2D недоступен, экран сообщает причину и предлагает поддерживаемый браузер.
+### 5.2 Historical M1 writing and states
 
-Диагностика: фактические pointerType/pressure, активность штриха, доступность coalesced events
-и DPR. Её обновление ограничено и не задерживает рисование. Константное давление допустимо:
-ручка фиксированной толщины работает и без него. Частоту событий нельзя выдавать за измеренную
-сквозную задержку. Автоматического определения модели планшета не требуется.
+- Pen tip and primary mouse button draw. Hover, right button and touch do not start ink in M1.
+  A second pointer cannot continue/replace the active stroke; later touch behavior is in §5.21.
+- Width0.5–12 logical px, step0.1, default3; changes affect the next stroke.
+- A single contact leaves a dot; moving ink is visible before release.
+- pointerup commits the final point. Pointer capture retains the sequence outside the surface;
+  visible painting stays clipped to the work area.
+- pointercancel, unexpected capture loss, window blur/unmount and real resize cancel unfinished
+  input while preserving completed content. Returning without a new down does not draw.
+- Use getCoalescedEvents when available, otherwise the original event; do not duplicate parent
+  samples. M1 requires no prediction, pointerrawupdate or strong smoothing.
+- Suppress native gestures/context menu only as needed within the writing surface; preserve
+  normal browser behavior elsewhere.
+- Resize/DPR preserve logical geometry. Dispose listeners/observers/frames; StrictMode must not
+  duplicate input. Canvas2D unavailability has an explicit reason and supported-browser guidance.
+
+Diagnostics show actual pointerType/pressure, active stroke, coalesced-event availability and DPR.
+Updates are bounded and do not delay ink. Constant pressure is valid for constant-width writing.
+Event frequency is not measured end-to-end latency; automatic tablet-model detection is unnecessary.
 
 ### 5.3 Design System
 
 Updated by owner approval on2026-11-13 of docs/design/editor-v1: light full-window board,
-floating horizontal tool dock top-center with settings gear/compact status; static brand top-left, zoom/return/minimap
-bottom-right, help/diagnostics bottom-left. Width is inline; repeat selected Pen opens stabilization.
-The approved reference is the actual HTML/CSS and PNGs; synthetic handwriting remains demo content.
+floating horizontal tool dock top-center with settings gear/compact status; static brand top-left,
+zoom/return/minimap bottom-right, help/diagnostics bottom-left. Width is inline; repeating the
+selected Pen opens stabilization. The actual HTML/CSS and PNGs are the approved reference;
+synthetic handwriting is demonstration content, not hardware acceptance.
 
 White paper/chrome, ink#182230, muted#526176, blue#175CD3, error#B42318, subtle offset shadows,
-40px minimum interactive targets, system Segoe UI with sans-serif fallback and one Lucide SVG
-icon family. No font/network dependency in production. Tool/status panels are out of flow and never
-resize or remount the canvas. Secondary actions are disclosed without adding permanent instruction rows.
-Existing loading/error/read-only/busy/import/recovery and selection feedback remain explicit.
-Compact screens retain usable controls/scrollable panels; no new mobile drawing behavior.
+40px minimum interactive targets, Segoe UI/system sans-serif and one Lucide SVG family. No network
+font dependency in production. Tool/status panels are out of flow and never resize/remount canvas.
+Secondary actions are disclosed without permanent instruction rows. Loading/error/read-only/
+busy/import/recovery and selection feedback stay explicit. Compact controls/panels remain usable;
+this historical design transfer itself introduced no mobile drawing behavior.
 
+### 5.4 Writing quality and navigation — Change02
 
-### 5.4 Качество письма и навигация — change 02
+Keep §5.3 styling. Provide zoom out/current percentage/zoom in and view reset. Own zoom25–800%,
+default100%. The original wheel/ctrl-wheel zoom behavior was superseded by §5.8 plain-wheel pan;
+Ctrl+wheel/trackpad pinch remains cursor-anchored zoom. Space+primary/middle drag pans without ink.
+Browser Ctrl+plus/minus remains native; wheel is not intercepted outside the board. +/− zoom about
+the surface center;100% sets zoom1 around the current center (§5.15), retaining the viewed area.
 
-Оформление §5.3 сохраняется. В компактной панели добавляются zoom out / текущий процент /
-zoom in и возврат к исходному виду. Диапазон собственного зума: 25–800%, старт 100%.
-Колесо и ctrl-wheel (в том числе pinch тачпадом, передаваемый браузером как ctrl-wheel)
-над рабочим полем масштабируют доску вокруг курсора; Space + основная кнопка и средняя
-кнопка перемещают её. Во время навигации штрих не создаётся. Обычные browser Ctrl+plus/minus
-остаются браузерными командами. За пределами рабочего поля wheel не перехватывается.
-Кнопки +/− масштабируют вокруг центра поля; 100% возвращает zoom=1 вокруг текущего центра (§5.15), сохраняя рассматриваемую область.
+Retain raw points/pressure; derive geometry deterministically with one path algorithm for active,
+commit and redraw. Consecutive duplicate XY adds no segment. Change02 width is constant and
+scales with the board; later instruments add pressure width. Moderate smoothing must not visibly
+lag or distort letters; raw data remains available independently of presentation.
 
-Сохраняются сырые точки и pressure, а геометрия линии строится детерминированно из точек.
-Одна и та же функция пути используется при письме, завершении и повторной отрисовке;
-последовательные одинаковые позиции не создают лишних сегментов. Толщина пока постоянная,
-с учётом масштаба доски. Давление не превращается в толщину без отдельного задания.
-Умеренное сглаживание не должно добавлять заметное отставание или изменять форму букв;
-исходные точки остаются доступными независимо от отображения.
+After blur was fixed, the owner observed shaky lettering and confirmed a hardware improvement,
+then requested intermediate stabilization strength. Replace three modes with0–100%, step1,
+default65%:0 is off,50 equals legacy light,100 equals legacy strong. Below50 continuously blend
+light-filtered and raw positions;50–100 linearly interpolate the legacy light/strong parameters.
+Stabilization is a pure pre-curve adaptive2D speed low-pass with a shared axis coefficient,
+without prediction or future-sample waits. Capture correction limits in CSS units at stroke start;
+subsequent zoom does not change the shape. Filtered support-point deviation is bounded to1.5/3CSSpx
+at50/100%, proportionally smaller below50. First/last positions remain exact; replace the filtered
+last position rather than adding a backward tail. Repeated XY with different pressure/time does
+not advance filtering. These are geometry limits, not measured latency or a guarantee of Miro parity.
 
-После подтверждённого устранения blur пользователь отметил дрожащие и неровные буквы.
-После аппаратной пробы пользователь подтвердил улучшение, но запросил промежуточную силу.
-Слайдер 0–100% с шагом 1% заменяет три режима: 0% выключает фильтр, 50% соответствует
-прежней лёгкой стабилизации, 100% — усиленной. Начальное значение 65%.
-Ниже 50% отфильтрованные лёгким профилем позиции непрерывно смешиваются с исходными;
-от 50 до 100% линейно интерполируются параметры прежних лёгкого/усиленного профилей.
-Стабилизация — чистое производное преобразование перед построением кривой: адаптивный
-двумерный low-pass по скорости с общим коэффициентом для осей, без предсказания и ожидания
-будущих событий. Предел коррекции задаётся в CSS-единицах при начале штриха; последующий zoom
-не меняет форму. Отклонение фильтрованных опорных точек ограничивается 1.5/3 CSS px
-при 50/100%; ниже 50% предел пропорционально уменьшается. Первая и последняя позиции остаются точными;
-конечная позиция заменяет фильтрованную, без добавления обратного хвоста.
-Повторные XY с новым pressure/time не продвигают фильтр. Эти ограничения не являются
-измеренной сквозной задержкой и не гарантируют идентичного Miro ощущения письма.
+Completed scene and active ink use separate layers. Clear/draw the active layer once per frame
+as one path; do not traverse completed ink per movement. Commit transfer must not leave tails,
+seams or jumps. Viewport/DPR/native pinch redraw geometry instead of CSS-stretching a bitmap.
+Use visualViewport.scale with devicePixelRatio. Total two-layer budget16,777,216pixels (~64MiB
+raw RGBA excluding overhead), max side8192; expose effective-resolution capping in diagnostics.
 
-Завершённая сцена и активный штрих рисуются на отдельных слоях. Активный слой очищается
-и рисуется одним путём не чаще одного кадра; завершённая сцена не обходится на каждое
-движение. При завершении перенос между слоями не должен оставлять хвост, шов или скачок.
-Viewport/DPR/native pinch требуют повторной отрисовки геометрии, а не CSS-растяжения bitmap.
-Нативный pinch учитывается через visualViewport.scale вместе с devicePixelRatio.
-Размер bitmap ограничивается общим бюджетом 16 777 216 pixels для двух слоёв
-(около 64 MiB сырых RGBA, без накладных расходов) и стороной 8192 pixels; если полного разрешения достичь нельзя,
-ограничение видно в диагностике, а не скрывается за обещанием произвольного зума.
+Acceptance: own zoom100/200/400%, DPR1/2, page zoom/native pinch; no post-commit raster enlargement,
+gaps, artificial reverse segments, dark seams or pointerup shape change in dots/loops/diagonals/
+short strokes. Normal edge antialiasing is expected. World/screen and anchored-zoom round-trip
+error≤1e-6 in unit fixtures. Real resize/DPR cancels active ink and preserves completed content;
+no-op repeated observer callbacks do not cancel it. Own navigation is blocked during ink. The
+owner separately evaluates lettering and perceived lag on physical Wacom hardware.
 
-Проверяемые критерии: при собственном зуме 100/200/400% и DPR 1/2 нет видимого увеличения
-готового растра после завершения жеста; обычное сглаживание краёв остаётся ожидаемым.
-На тестовых точках, петлях, диагоналях и коротких штрихах нет пропусков, искусственных
-обратных сегментов, затемнения стыков или изменения геометрии при pointerup.
-Round-trip world/screen и anchor при zoom сохраняются с погрешностью ≤ 1e-6 в unit fixtures.
-Resize/DPR отменяют текущий незавершённый штрих и сохраняют завершённые.
-Собственный zoom/pan во время письма не применяется до завершения штриха;
-обычный повторный observer callback без реальных изменений активный штрих не отменяет.
-На реальном Wacom пользователь отдельно оценивает форму букв и ощущение задержки.
+### 5.5 Historical next steps — Change03
 
-### 5.5 Следующие этапы
+Complete the board with undo/redo controls and Ctrl+Z/Ctrl+Shift+Z (Meta equivalents). Use physical
+KeyZ for Russian keyboard layouts. Empty actions are disabled; ink/pan blocks history. Board/tool
+shortcuts are handled, while text inputs/select/contenteditable retain native undo. Ignore Alt,
+composition and already-prevented events. Update enabled flags only at operation boundaries,
+without per-point/navigation React renders. Undo/redo performs a geometry redraw; commit→undo
+before RAF cannot leave ghost ink.
 
-Change 03 завершает базовую доску: две кнопки «Отменить штрих» / «Вернуть штрих» и
-Ctrl+Z / Ctrl+Shift+Z (также Meta на соответствующей клавиатуре). Используется физический
-KeyZ для работы с русской раскладкой. Пустые действия недоступны; во время письма или
-перетаскивания доски история заблокирована. Сочетания над доской/инструментами поглощаются,
-но в текстовых полях, select и contenteditable сохраняется нативная отмена. Alt, composition
-и уже обработанные события игнорируются. Состояние кнопок обновляется на границах операций,
-без React-render на каждую точку или движение навигации. Undo/redo вызывают полную
-геометрическую перерисовку; commit→undo до ближайшего RAF не оставляет «призрачного» штриха.
+Background choices are blank(default), dots and grid: a CSS pattern below two transparent canvases,
+not ink/history or an extra bitmap. Base spacing24world units, doubled by powers of two until
+screen spacing≥12CSSpx. Anchor pattern to world origin through negative offsets and zoom; keep
+lines/dots around1CSSpx in a subdued color. Switching preserves strokes/redo/input and bitmap
+budget. Check negative offsets, zoom and narrow layout. At this historical stage backgrounds and
+history were tab-memory settings; M3 added persistence.
 
-Компактный выбор фона: «Без фона» (начальный), «Точки», «Клетка». Фон — отдельный CSS-узор
-под двумя прозрачными canvas, не часть чернил/истории и не дополнительный bitmap.
-Базовый шаг 24 единицы доски; если экранный шаг меньше 12 CSS px, используется кратный
-степени двух шаг. Узор привязан к началу координат доски и меняется вместе с zoom/pan;
-толщина линий/точек остаётся около 1 CSS px. Цвет деликатный, фон не спорит с рукописью.
-Переключение не очищает штрихи и redo, не пересоздаёт ввод и не меняет бюджет canvas.
-Проверки включают отрицательные смещения, масштаб и narrow layout. Настройки фона и история
-пока живут в памяти вкладки; сохранение остаётся этапом M3.
+### 5.6 Local storage and backups — Change04
 
-### 5.6 Локальное сохранение и резервные копии — change 04
-
-Хранится одна доска в native IndexedDB: БД `penable` версии1, objectStore `documents`,
-ключ `main`. Документ и JSON-копия имеют одинаковую структуру:
+Historical first persistence contract: native IndexedDB database `penable` version1, object store
+`documents`, key `main`. The document and editable JSON shared this initial structure:
 
 ```ts
 type BoardDocument = {
@@ -253,418 +234,277 @@ type BoardDocument = {
 }
 ```
 
-Сохраняются только завершённые штрихи, без pointerId/active, pixels, diagnostics и redo.
-При открытии/импорте восстановленные штрихи становятся базой новой сессионной истории:
-undo/redo относятся к последующим действиям, не отменяют исходное написание базы.
-Последующее стирание загруженных штрихов и его отмена определены в §5.7. Объекты/профили старых
-штрихов сохраняют геометрию. Панорама, фон, толщина и стабилизация восстанавливаются.
-
-До завершения начальной загрузки/валидации редактирование и автозапись запрещены: пустые
-значения по умолчанию не могут перезаписать существующие данные. Отсутствие `main` — новая
-пустая доска. Повреждённая/неподдерживаемая запись или ошибка открытия — явная ошибка
-загрузки с повтором и восстановлением через импорт; исходная запись не удаляется.
-
-Commit/undo/redo планируют сохранение; viewport/tools/background — debounce около300ms
-с максимальной задержкой1500ms. Снимок отделяется от живой сцены только перед записью,
-не на каждой точке или движении. Записи сериализуются, новая ревизия не считается сохранённой
-после подтверждения старой. «Сохранено» появляется только после transaction.complete для
-текущей ревизии; request.success недостаточно. При ошибке запись остаётся в памяти,
-отображаются повтор сохранения и экспорт; бесконечных автоматических retry нет.
-Flush при скрытии/закрытии — best effort; несохранённые изменения требуют beforeunload
-предупреждения. Принудительное завершение процесса не обещает сохранение последнего действия.
-
-Только одна вкладка origin владеет Web Lock `penable:board:main` (`exclusive`, `ifAvailable`).
-Другие загружают снимок только для чтения: можно смотреть/экспортировать и двигать вид,
-но писать/менять настройки/импортировать нельзя. Явный повтор захватывает lock и заново
-загружает актуальные данные перед разрешением ввода. Без Locks API — понятная ошибка
-возможности записи, без ненадёжной эмуляции lease. При cleanup сначала прекращаются/завершаются
-записи, затем закрывается DB и освобождается lock; устаревшие async callbacks игнорируются.
-versionchange закрывает соединение и запрещает дальнейшую запись до безопасного повтора.
-
-Экспорт берёт актуальный завершённый документ из памяти, включая ещё не сохранённые изменения,
-независимо от успеха IndexedDB. Частичный штрих не входит. File download не выдаётся за
-подтверждение физической записи файла. Импорт: размер проверяется до чтения файла, затем
-JSON/schemaVersion, поля/enum, конечность/range чисел, уникальность положительных safe IDs,
-координаты/смещения по модулю≤1e9, время≥0, pressure0–1, width0.5–12, strength0–100 и zoom0.25–8.
-Профиль штриха числовой либо старый `off/light/strong`, без двусмысленного сочетания.
-Объекты реконструируются по известным полям, не копируются через spread из недоверенного JSON.
-
-Первичные resource guards:64MiB файла,20тыс. штрихов,1млн. точек суммарно,100тыс. на штрих.
-Это технические пределы первой версии, не подтверждённая производительность больших досок.
-Превышение не обрезает данные: сохранение/импорт явно отказывают, память остаётся доступной
-для полной выгрузки; экспорт за пределами формата должен явно сообщать, что обратный импорт
-этой версией не поддерживается. Round-trip обещается только в пределах валидируемого формата.
-
-После проверки файла показывается количество штрихов/точек и явная кнопка «Заменить доску».
-До подтверждения всё остаётся прежним. Замена требует idle input/pan, блокирует новые изменения,
-сериализуется после текущей записи и одной транзакцией пишет прежний завершённый снимок
-(включая unsaved) в `before-import`, а кандидат — в `main`. При восстановлении после ошибки
-загрузки сохраняется исходное raw значение `main`. Только transaction.complete меняет живую
-сцену/настройки и пересоздаёт поверхность с новым seed IDs и пустой сессионной историей.
-Ошибка/отмена не меняют старую сцену и сохранённые данные. Копия до последней замены доступна
-для скачивания, в том числе после открытия страницы, для валидной доски и JSON-представимых
-сырых значений (дерево plain objects/dense arrays, конечные числа и JSON-примитивы).
-Успешного JSON.stringify недостаточно: Map/Set/Date, undefined, BigInt, NaN/Infinity,
-циклы и иные lossy значения отклоняются положительной проверкой до скачивания.
-Произвольные non-JSON значения из повреждённой/чужой IDB сохраняются в raw backup без
-изменения; невозможность JSON-выгрузки объясняется явно, без фиктивного пустого файла.
-Хранится один снимок до последней замены: следующая подтверждённая замена перезапишет его,
-в том числе неподдерживаемый raw. Бессрочная сохранность и восстановление чужих форматов не обещаются.
-
-Интерфейс: компактный статус «Загрузка / Есть изменения / Сохранение / Сохранено / Ошибка»
-с доступным role=status, кнопки экспорта/импорта, понятные retry/read-only/recovery сообщения.
-Убирается прежнее утверждение, что все записи исчезают при перезагрузке; остаётся короткое
-пояснение «Локально в этом браузере» и необходимость копии от очистки данных сайта.
-Нет аккаунта, сервера, облачной синхронизации, PWA или гарантии от ручной очистки профиля.
-
-### 5.7 Ластик целых штрихов — change05
-
-Пользователь разрешил следующий предложенный этап: переключение «Перо / Ластик»,
-удаление целых штрихов при касании/проведении, undo/redo и сохранение на любом масштабе.
-Светлый компактный интерфейс §5.3 сохраняется: две подписанные кнопки с `aria-pressed`,
-выбранный инструмент заметен цветом/границей. Область цели controls от40CSSpx.
-Ластик стирает штрих целиком; подсказка объясняет это до применения.
-
-Выбор инструмента — состояние текущего сеанса, вне JSON/IDB. Начальное открытие и импорт
-включают перо. Толщина/стабилизация относятся к перу; их значения сохраняются при смене
-инструмента. Доступ к переключению блокируется при активном вводе/панорамировании,
-read-only, загрузке и импорте. Синхронные guards предотвращают гонки до React-render.
-
-Ластик работает основным контактом pen/mouse, без hover, touch, второго указателя,
-правой кнопки или автоматического назначения аппаратных кнопок планшета. Один down→up
-удаляет все затронутые штрихи одной операцией истории. Радиус цели постоянен на экране:
-8CSSpx плюс видимая половина толщины линии, в world он делится на zoom. Точки, короткие
-и длинные линии, круглые концы и сглаженные кривые учитываются по той же производной
-геометрии, которая нарисована, с малой ограниченной погрешностью аппроксимации до0.25CSSpx.
-Проверяется весь пройденный отрезок между образцами, включая coalesced samples, чтобы
-быстрое движение не пропускало линию между событиями. Исходные точки не меняются.
-
-Во время жеста затронутые штрихи скрываются только в предварительном отображении.
-Канонический scene/snapshot и IDB не меняются до успешного pointerup: flush/export во время
-жеста содержат исходные записи. pointercancel, неожиданная потеря capture, blur, resize,
-утрата права записи, modal/unmount отменяют предварительное удаление без потери штрихов.
-Потеря основной кнопки во время move также отменяет жест. При успешном отпускании записи
-удаляются из канонического списка, результат сохраняется через существующую revision queue.
-
-История хранит операции добавления и группового удаления с исходными объектами и индексами.
-Одно undo удаления возвращает все штрихи на прежние позиции с той же геометрией/метаданными;
-redo повторяет удаление. Загруженные штрихи можно стереть и вернуть. Undo не отменяет их
-написание до загрузки. Новый непустой erase/commit очищает redo; промах, отмена, смена
-инструмента и навигация сохраняют redo и не запускают сохранение. Команды и UI состояния
-обновляются на границах операций, без React-state на каждом образце.
-
-Во время ластика блокируются undo/redo, собственный zoom/pan и импорт, как во время письма.
-Space+drag и средняя кнопка продолжают двигать доску в idle режиме ластика без стирания.
-Предварительное скрытие/отмена/удаление/history инвалидируют завершённый слой и очередь
-ожидающих commit, исключая «призрачные» линии до RAF. Каноническая геометрия письма,
-сглаживание и bitmap budget не меняются. Публичный формат остаётся `schemaVersion:1`;
-экспорт, импорт и перезапуск содержат только итоговый список существующих штрихов.
-
-Не входят: стирание фрагмента/разрезание штриха, изменяемый размер ластика, аппаратное
-переключение инструментов, новые цвета, облако, новые зависимости и обещание скорости
-на предельных размерах документа. Проверки охватывают zoom25/100/400/800%, pan,
-hit/miss на сглаженных линиях, групповую историю/порядок, все отмены, read-only, сохранение,
-JSON round-trip и desktop/narrow. Реальный комфорт ластика на Wacom оценивает пользователь.
-
-### 5.8 Стабилизация ввода и UI/UX — change06
-
-Пользователь утвердил план и поручил реализацию. Светлый интерфейс и расположение основных
-инструментов сохраняются. Этот контракт заменяет wheel→zoom и рамку canvas из ранних этапов.
-
-**Курсор.** Отдельный presentation-слой над canvas: тёмная точка3CSSpx со светлым ореолом1px
-для pen/mouse; кольцо ластика с радиусом8CSSpx, рука при готовности к pan/во время pan.
-Курсор не является чернилами, не попадает в snapshot/JSON и не использует React-state на каждый
-образец. Положение в локальных CSS-координатах, без world/zoom/DPR множителя; DOM обновляется
-через один RAF. Размер постоянен при собственном zoom доски. Системный cursor скрыт в рабочей
-области только когда app-cursor готов. Hover/down/up не меняют видимость точки. Pen leave из
-зоны digitizer удерживает последнее валидное положение; leave не перекидывает её в0,0.
-Выход на инструменты/вне доски, modal, blur/hidden скрывают overlay; возврат корректен без
-двойного курсора. Пока есть активный контакт, другие pointerId не перемещают указатель.
-Touch и compatibility mouse events не создают дополнительного указателя. Все listeners/RAF
-освобождаются при StrictMode cleanup/unmount. Новых координат при отсутствии событий нет:
-сохраняется последняя известная позиция, управление курсором ОС вне приложения не обещается.
-
-**Фокус.** Canvas остаётся tab-focusable без синей рамки. Небольшая угловая метка «Полотно»
-появляется при входе через Tab, скрывается при pointer-вводе/blur. Controls сохраняют видимый
-keyboard focus. Не снимать outline глобально и не выключать shortcuts/возможность фокусировки.
-
-**Навигация.** Wheel без Ctrl перемещает полотно по обеим осям: offset -= normalized delta;
-направление следует браузеру/системной настройке. Pixel mode1:1, line mode16CSSpx, page mode
-использует ширину/высоту области для соответствующей оси. Shift+вертикальная дельта даёт
-горизонтальное перемещение, уже горизонтальную не преобразовывать повторно. Ctrl+wheel/pinch
-масштабирует25–800% вокруг указателя; Space+primary и middle pan сохраняются. Вход wheel
-содержит deltaX/Y, deltaMode, Ctrl/Shift, anchor и размеры области, конечные значения проверяются.
-Wheel остаётся canvas-only/nonpassive; на границе zoom и при busy не утекает в прокрутку/zoom
-страницы. Во время ink/erase/pointer-pan wheel игнорируется; пересёкшийся с контактом поток
-и его inertia блокируются до паузы≥150ms между wheel events. Для этого годится clock в pure
-controller, без таймеров на каждый sample. Read-only позволяет смотреть/pan/zoom без сохранения.
-
-**Стабильные элементы интерфейса.** Начиная с Change16 статус и настройки находятся в
-центральной верхней панели (§5.15), экспорт/импорт и резервные копии — во вкладке «Файлы и копии». Подробные message/notice и retry находятся
-в nonmodal popover вне layout flow; прежняя постоянная строка заменена композицией §5.14.
-Динамические статусы/сообщения/появление recovery actions не меняют bounds canvas при том же
-viewport, не отменяют текущий жест и не крадут focus автоматически. Ошибка всегда заметна
-в основном индикаторе (приоритет над read-only label), полный текст и recovery доступны в popover;
-ошибка не исчезает автоматически. Popover закрывается повторным нажатием, outside click или
-Escape; внутри есть ограничение высоты и обычная прокрутка. Import dialog с подтверждением,
-проверкой файла и backup остаётся modal. Cursor скрыт над UI overlays/modal, controls доступны
-клавиатурой и имеют40px targets. Zoom-control disabled использует актуальный busy, не
-диагностику с100ms задержкой; синхронные guards остаются источником истины.
-
-Геометрия/стабилизация/сбор точек и сохранение schemaVersion1 не меняются. Настоящий resize,
-blur и потеря прав безопасно отменяют незавершённый жест; завершённые записи сохраняются.
-Проверки: cursor lifecycle/mixed pointers/zoom/DPR, wheel axes/modifiers/units/inertia/busy,
-keyboard/popup/layout stability, pen/eraser/history/IDB/JSON regressions, desktop/narrow.
-Синтетический pen/wheel не доказывает реальную Wacom/Precision Touchpad конфигурацию;
-аппаратная проверка отмечается отдельно и не подменяется автоматической. По правилу владельца
-успешные автоматические gates/review ведут к local ship; push/deploy остаются отдельной командой.
-
-### 5.9 Точное выделение и перенос — change08
-
-План утверждён пользователем «Продолжай разработку по плану» 2026-11-13. Рамка и лассо
-выделяют только чернила внутри области, включая части пересечённых штрихов. Базовые
-операции: перенос, копировать/вырезать/вставить, удалить, дублировать, выделить всё,
-снять выделение и undo/redo. Инверсия, обрезка всей доски, resize/rotate/flip и вставка
-внешних картинок в этот этап не входят.
-
-**Управление и UI.** Добавить «Выделение», режимы «Рамка / Лассо» и компактные действия
-поверх полотна без изменения его размеров: компактная строка «Рамка / Лассо / Действия»,
-полный набор команд раскрывается по запросу и закрывается после команды, повторным нажатием,
-снаружи или Esc (первый Esc закрывает меню, следующий снимает выделение). При закрытии
-сохранить видимый keyboard focus; ошибки остаются доступны. Граница без resize-handles. Выбранный состав
-фрагментов фиксируется до следующего выделения: пересечение с другими записями при
-переносе не присоединяет их. Мышь и pen используют существующий ownership/cancel.
-Стрелка для выделения и move для переноса используют стабильный app-cursor, не крестик.
-Ctrl/Meta+A/C/X/V/D, Delete/Backspace, Esc доступны только в контексте доски; не перехватывать
-текстовые поля, dialog и native clipboard текстового UI. Стрелки двигают на1CSSpx,
-Shift+стрелки на10CSSpx; одно удержание — одна history operation. Вставка центрируется
-в текущем виде; дубликат смещён на24CSSpx при текущем zoom. Обе операции выделяют результат.
-Esc отменяет незавершённое действие, а в покое снимает выделение; click снаружи начинает новое.
-
-**Навигация.** Idle selection сохраняется при wheel/pinch/Space pan. Во время marquee/drag
-обычная навигация блокируется, сохраняется wheel inertia quarantine. При drag действует
-edge-pan: зона32CSSpx, плавное ускорение до600CSSpx/sec, RAF с ограниченным timestep.
-Cancel возвращает и фрагменты, и начальный viewport; успешный move сохраняет viewport,
-undo возвращает только чернила. «Показать все записи» использует видимые ink bounds,
-отступ48CSSpx и zoom25–800%; для пустой сцены исходный вид. Скрытый исходный штрих не
-должен растягивать bounds. Resize/blur/lost capture/read-only/import отменяют preview.
-
-**Геометрия.** Не нарезать raw points и не стабилизировать их заново. В модели сохраняются
-полный исходный штрих и profile, source lineage, локальная векторная clip-mask MultiPolygon
-и translation. polygon-clipping0.15.7 обеспечивает intersection/difference/union; nonzero
-для preview/нормализации/рендера лассо. Отсечение относится ко всей окрашенной толщине,
-включая край толстого штриха, центр которого вне выделения. Фрагменты одного неизменного
-источника с одинаковым translation рисуются один раз через union масок: complementary
-clips не должны давать AA-шов после move-back. Source lineage не совпадает с reusable item ID;
-paste/duplicate получают новую lineage. Eraser видит только видимый фрагмент, удаляет его
-целиком и не удаляет отдалённых siblings. Сохраняются accepted curve/filter алгоритмы,
-существующий двухслойный bitmap budget, no per-sample React и balanced canvas save/restore.
-
-**Атомарность и данные.** Просто выделение/copy/нулевой move не изменяют scene/history/save.
-Preview не попадает в snapshot или JSON. Каждая законченная операция — один replacement
-history action (removed/inserted entries+indices), undo восстанавливает объекты и порядок.
-Готовить и проверять весь кандидат до мутации; ошибка геометрии/лимита сохраняет scene,
-selection, history и redo. Clipboard, region, cursor и незаконченные действия не сохраняются.
-
-Нужен document schemaVersion2: schema1 декодер отбрасывал бы clip/translation и возвращал
-скрытые чернила. Принимать старые schema1 JSON/IDB без изменения их геометрии; DB/store version1
-не меняется. При первой записи schema2 атомарно сохранить точный исходный schema1 main
-в отдельном before-schema2, если такой копии ещё нет. before-import остаётся отдельной
-копией. Показать «Копия до обновления» в «Хранении». Обновить codec/clone/snapshot/stats,
-import/export/session/repository вместе. Незнакомая версия не сбрасывается. Хранимые JSON
-деревья независимы, даже если runtime разделяет исходную геометрию между фрагментами.
-ID, source lineage, соответствие исходной геометрии lineage, translation и polygon topology
-проверяются. Сохранить64MiB/20kitems/1Mpoints/100kpoints-per-item; повторённые raw points
-считаются. Дополнительно2048lasso vertices,8192mask vertices/item,100000mask vertices/document.
-Нет частичной вставки, тихого truncation или упрощения рукописи при превышении лимитов.
-
-**Буфер и PNG.** Ctrl+C/«Копировать» хранит редактируемый immutable фрагмент в текущей
-вкладке до её перезагрузки; системный буфер не читается. Отдельное «Копировать изображение»
-строит PNG из векторов с прозрачным фоном, без grid/cursor/selection. Плотность2pixels/worldunit,
-не зависит от текущего bitmap; max side8192 и16777216pixels. При превышении объяснить ошибку,
-не уменьшать незаметно. ClipboardItem image/png только по действию пользователя; отказ не
-теряет внутреннюю копию, предлагает «Скачать PNG». Async result не меняет сцену/selection.
-Temporary PNG bitmap освобождается после использования. Read-only разрешает select/copy/PNG,
-но запрещает мутации. Все loading/error/modal/focus правила предыдущих changes сохраняются.
-
-**Приёмка.** Unit tests для geometry/footprint/clips/history/input/limits/PNG; реальный браузер
-для двух способов выделения, частичных штрихов, moving/clipboard/export/reload, edge-pan,
-fit-all, keyboard, cancellation, readonly и миграции с abort. Проверить AA seams при25–800%,
-DPR1/2 и дробном translation, desktop/narrow layout и console. Wacom и реальный Windows
-clipboard — отдельная аппаратная проба без фиктивного PASS. После gates/review local ship
-автоматически; release/push для этого change не разрешён.
-
-### 5.10 Область выделения и отзывчивость — change09
-
-Уточнение владельца2026-11-13: выделение должно сохранять ровно нарисованную область,
-как в Paint, включая пустые поля; не подгонять пунктир под чернила. Рамка сохраняет
-исходные world-границы, лассо — исходную нормализованную область. Перенос и стрелки
-перемещают её вместе с выбранным содержимым. Copy/cut сохраняют область во внутреннем
-буфере, paste центрирует область, duplicate смещает её на24CSSpx. Пустую область можно
-показать и снять; команды изменения содержимого без чернил ничего не меняют. Select-all
-использует видимые границы записей. PNG выбранной области сохраняет прозрачные поля
-и прежний2x/bitmap budget. Область остаётся transient, schema2 не меняется. Вставку
-изображений, заливку и новые примитивы этот change не добавляет; выбранная модель области
-должна позволять их последующее отсечение тем же region-контрактом.
-
-Устранить синхронный перерасчёт ink-bounds из outline/hit/cursor. Измерить весь путь
-marquee→release→drag→commit→save, отдельно selection geometry, bounds/fit/PNG и redraw.
-Кэшировать только неизменяемые источники/маски, не активный изменяемый штрих. Не снижать
-качество линий и точность видимых отсечений ради скорости. Избегать повторных Boolean
-операций на каждом событии указателя; preview рисуется не чаще одного RAF, промежуточные
-состояния не сохраняются. Тяжёлую работу разбивать/выносить с cancel/generation guards,
-если измерения показывают блокировку главного потока. Не применять устаревший результат
-после cancel/blur/import/readonly/dispose; ошибки сохраняют старую сцену и undo/redo.
-
-Инженерная приёмка: одинаковые before/after fixtures (500/2000-point handwriting,
-10k-point long stroke,200×50-point notes, dense/complex lasso и near-limit stress), холодный
-и повторный запуск. Записывать release/drag frame/commit/save времена и main-thread long
-tasks(>=50ms), а не только среднее время чистого helper. Для обычных fixtures не должно
-быть attributable long tasks при выделении/переносе; для тяжёлых случаев интерфейс должен
-оставаться отменяемым и отзывчивым. Пределы нагрузки и невыполненные аппаратные проверки
-сообщать явно, без обещания нулевой задержки на любом устройстве.
-
-### 5.11 Производительность письма и больших конспектов — change10
-
-По утверждённому плану2026-11-13 сохраняются React/TypeScript/Canvas2D и schema2.
-Активный штрих обрабатывается последовательно: новые точки и изменяемый хвост, без
-повторного фильтрования всего префикса. Результат каждого префикса совпадает с принятой
-пакетной геометрией, включая точный кончик, legacy-профили, duplicateXY и captureZoom.
-Raw pressure/time и все точки сохраняются; качество не снижается ради скорости.
-
-Воспроизводимый стенд сравнивает одинаковые production engine/app до/после: длинное
-непрерывное письмо, распределённые и плотные конспекты, pan/zoom, selection/move,
-undo/redo и фоновое сохранение. Записывать frame/operation timings, >=50ms main-thread
-LongTasks, память и среду. Обычные fixtures:500/2000-point handwriting,10k-point long
-stroke,200×50-point notes; большие:2000/10000×50points;20kitems/1Mpoints — стресс,
-а не обещание60fps. Для обычных операций не допускаются attributable >=50ms задачи;
-сравнивать распределение кадров, не ограничиваться средними helper-times.
-
-Навигационные/памятные оптимизации применяются к подтверждённым замерами причинам;
-проверять невидимые объекты, повторные вычисления, историю и освобождение кэшей.
-Undo не ограничивается автоматически. При измерении памяти отделять полезную историю
-от утечек; повторные create/dispose не должны удерживать старый движок/документ.
-Существующие документы, JSON backup, retained selection region, clipping, порядок/AA,
-атомарность save/cancel/error и восстановление сохраняют свои контракты. Физическая
-Wacom latency/ощущения остаются отдельной аппаратной приёмкой.
-
-### 5.12 Архитектура и композиция — change11
-
-Утверждено владельцем2026-11-13: перенос применимой архитектуры и кодового стиля infraegev2,
-включая браузерный регресс fixtures/Page Objects. Binding contract: [FRONTEND](FRONTEND.md).
-Целевые owners: app → widgets/board-workspace → features/board-document → entities/board → shared.
-Core не знает React/DOM/codec/worker protocol; DTO/strict validation/recovery принадлежат document
-feature, native Canvas/DOM — workspace. Scoped UI snapshot отделён от mutable scene и файлового
-DTO. Схема2/чтение1, IDB1, предыдущие копии, UI, geometry/stabilization и все guards неизменны.
-
-Рефакторинг включает типы/props/effects/kebab-case/CSS Modules/semantic tokens, явные factories,
-public APIs и исполняемые политики. Legacy директории после переноса удаляются; дублирующего
-старого движка в новой сборке нет. Baseline main5624f9e;672native raster cases и408unit assertions
-сохраняют смысл. Three paired warm performance runs: median p95 ≤ max(1ms,baseline×1.2), normal
-fixtures без attributable >=50ms tasks. Dedicated isolated Playwright smoke checks same Pages
-artifact on4185; interactive checks retain Playwriter. Local automatic ship after Full Gate/review;
-new product features and separate release are outside this change.
-
-### 5.13 Фрактальная декомпозиция — change13
-
-Уточнение владельца2026-11-13: внешний граф слоёв сохраняется, но внутренности модулей имеют
-рекурсивную структуру с локальными components/, настоящими hooks/, подмодулями и файлами
-*.types.ts, *.utils.ts, *.config.ts по обязанностям. Binding convention — FRONTEND. Требуется
-содержательная декомпозиция крупных компонентов, native orchestration, selection/regions и
-жизненного цикла документов, а не только перенос файлов. Public API подмодуля скрывает детали;
-внутренние зависимости ацикличны. Текущие UI, схемы/резервные копии и качество пера сохраняются.
-Baseline4345ce1; все416unit cases,672raster cases и9browser scenarios сохраняют смысл. Native
-изменения проверяются тем же бюджетом CPU/RAF из5.12; аппаратная задержка отдельно. Локальный
-ship после проверок и независимого review; release остаётся отдельной командой.
-
-## 6. Auth & Access Model
-
-Авторизации нет. Доступ соответствует доступу к компьютеру и профилю браузера.
-В M1 данные только в памяти вкладки. В M3 они привязаны к origin и профилю,
-не синхронизируются автоматически и могут исчезнуть после очистки данных сайта.
-Запрос persistent storage не заменяет экспорт резервной копии.
-
-## 7. Infrastructure and Deploy/CI
-
-### 7.1 Локальный запуск
-
-Предлагается Vite SPA без SSR, Docker и внешних сервисов. Node/npm доступны в WSL;
-версии зависимостей фиксируются lockfile при реализации. Инструкция объясняет запуск
-в WSL и открытие localhost в Windows Chrome. Dev-server слушает loopback;
-открывать его в локальную сеть без необходимости не следует.
-
-### 7.2 Проверка и публикация
-
-Автоматические проверки проверяют логику и сборку; Playwriter — интерфейс и консоль;
-пользователь — физический планшет. Пользователь разрешил публикацию проекта в GitHub
-и GitHub Pages. Change07 создаёт публичный `avatarsik6699/penable`, сохраняет Git-историю
-и публикует только статическую сборку на `https://avatarsik6699.github.io/penable/`.
-
-GitHub Actions проверяет PR и main (lint, TypeScript, unit tests, dependency audit, Pages build).
-Только main после успешных проверок может выкладываться через environment `github-pages`;
-официальные actions фиксируются SHA. Локальный Full Gate и scan истории на секреты обязательны
-перед `ship --release`; успешность публикации подтверждается run/deployment и живой страницей.
-Локальные build/dev сохраняют корневой путь, Pages build использует `/penable/`.
-
-Штрихи остаются в IndexedDB браузера и не отправляются в GitHub. Новый HTTPS origin имеет
-отдельное хранилище: перенос с localhost выполняется JSON-экспортом/импортом. GitHub Pages
-управляет HTTP-заголовками, прикладного API и настройки серверных заголовков здесь нет.
-PWA — отдельный этап; IndexedDB само по себе не обеспечивает загрузку приложения без сети.
-
-## 8. Non-Functional Requirements
-
-| Область | Критерий / ограничение |
-|---------|----------------------|
-| Письмо | Видны точки и финальный отрезок; hover и отмена не оставляют залипшего ввода. Удобство оценивает пользователь |
-| Производительность | Нет React-render на каждую точку. Активный штрих перерисовывается одним путём на отдельном слое не чаще RAF; завершённая сцена не обходится на каждую точку. Сквозная задержка и предел сцены пока не обещаны |
-| Чёткость | Change 02: DPR 1/2, собственный zoom 100/200/400%, page zoom и native pinch; полная геометрическая перерисовка, контроль стыков и совпадения live/committed. Бюджет bitmap и непроверенные аппаратные сценарии указываются явно |
-| Доступность | Controls доступны клавиатурой, подписаны, имеют focus; статус объяснён текстом. Семантический эквивалент рукописи и формальный аудит WCAG — вне M1 |
-| Security headers / CORS | Без внешних ресурсов и прикладного API; CORS API неприменим. Публичный сайт использует HTTPS GitHub Pages и его заголовки; собственный сервер и произвольные response headers отсутствуют |
-| Privacy / observability | Без аналитики, передачи штрихов и логирования содержимого; диагностика ввода локальна |
-| Backup / restore | M1 явно сообщает, что не сохраняет. M3 требует редактируемую резервную копию и проверку восстановления |
-| Ошибки | Недоступный Canvas объясняется; ошибка записи в M3 не отображается как «сохранено», записи остаются в памяти для экспорта |
-| Проверяемость | Синтетический pen не подтверждает устройство; скриншоты и зелёные тесты не заменяют аппаратную пробу |
-| Зависимости | Минимальный набор и lockfile; проверки секретов и зависимостей определяются до ship |
-| Compliance / SLO | Специальных требований из brief нет; дополнительные обещания не вводятся |
-
-## 9. Roadmap
-
-| Этап | Результат | Условие перехода |
-|------|-----------|------------------|
-| M1 | Проверка пера, change 01 | Проверки, браузер и явный результат пользователя на планшете; найденные проблемы письма исправлены |
-| M2 | Change 02: качество и навигация; затем фон и история | Чёткость при масштабировании, отсутствие стыков/случайных штрихов/смещения, аппаратная оценка письма |
-| M3 | Сохранение и резервные копии | Восстановление после перезапуска, ошибки записи, round-trip экспорта/импорта |
-| M4 | Ластик, UX и точное выделение фрагментов (change08) | Проверки геометрии, сохранения, выделения и пользовательская проба |
-
-Сроки из исходного текста — ориентиры предварительного описания, не обязательства проекта.
-
-## 10. Out of Scope
-
-Для первых трёх этапов: совместное редактирование, аккаунты, облако, собственный backend,
-распознавание текста, фигуры/стикеры, плагины, мобильные жесты, WebGL-движок,
-PDF, PWA и несколько тетрадей. Ластик разрешён change05; точное выделение и PNG выбранного фрагмента — change08 после базовой версии.
-Новые возможности добавляются отдельными Backlog items / change после обсуждения.
-
-## 11. Open Questions
-
-- M1: Wacom One / Windows 11, письмо, тип pen/mouse и изменение pressure подтверждены пользователем. Версии браузера/драйвера не зафиксированы; это ограничение диагностической информации, не повод повторять принятую проверку.
-- SPEC и запуск /work 01 утверждены пользователем 2026-11-12.
-- Change 02: свободная доска с чётким zoom/pan и улучшенной геометрией штрихов разрешена пользователем. Фон и история — следующая часть M2.
-- Change04: формат/лимиты/сессионная история/закрытие/несколько вкладок определены в §5.6.
-- Change05: ластик целых штрихов разрешён пользователем «Продолжай по плану»; контракт §5.7.
-- Change07: пользователь разрешил GitHub и GitHub Pages; стабильный origin и CI определены в §7.2.
-
-## Технические источники
-
-Проверены 2026-11-12; React и Vite также запрошены через Context7.
-Источники описывают платформу, а не подтверждают конкретное устройство.
-
-- [Wacom: Pointer Events](https://developer-docs.wacom.com/docs/icbt/web/web-api-basics/).
-- [W3C Pointer Events](https://www.w3.org/TR/pointerevents/): capture, отмена, coalesced events.
-- [React useRef](https://react.dev/reference/react/useRef) и [useEffect](https://react.dev/reference/react/useEffect): императивная интеграция и cleanup.
-- [Vite Getting Started](https://vite.dev/guide/): клиентский React/TypeScript проект.
-- [MDN: квоты и удаление данных](https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria).
-
+Current document5 and named-board storage extend this shape in later sections; the old declaration
+is retained to explain compatibility. Persist only completed ink, without pointerId/active state,
+pixels, diagnostics or redo. Load/import establishes a fresh history baseline: undo covers later
+actions, not original creation of loaded content. Erasing loaded ink and undoing erasure is allowed
+by §5.7. Old stroke objects/profiles retain geometry; viewport/background/width/stabilization reload.
+
+Disable editing/autosave until initial load/validation succeeds. Defaults must not overwrite data.
+Missing `main` means a new empty board; corrupt/unsupported/open errors are explicit with retry
+and import recovery, preserving the original record.
+
+Commit/undo/redo schedule writes; viewport/tools/background debounce~300ms, maxwait1500ms. Detach
+a snapshot only before writing, not per point/movement. Serialize revisions; an old completion does
+not mark newer changes saved. Saved requires transaction.complete for the current revision, not
+request.success. Failure preserves memory and exposes retry/export without endless auto-retry.
+Hide/close flush is best effort; unsaved changes require a beforeunload warning. Forced termination
+does not promise the last operation is durable.
+
+One origin tab holds exclusive ifAvailable Web Lock `penable:board:main`. Other tabs load read-only
+snapshots: view/export/navigation are allowed, ink/settings/import are blocked. Explicit retry
+acquires authority and reloads current data before editing. Missing Locks API is an explicit write
+capability error, never an unreliable emulated lease. Cleanup drains/stops writes, closes DB, then
+releases the lock; ignore stale async callbacks. versionchange closes the connection and blocks
+writes until safe retry. Later library authority retains these ownership guarantees.
+
+Export uses current completed memory, including unsaved changes, even if IDB fails. Exclude active
+ink. A browser download request is not proof of filesystem persistence. Import checks file size
+before reading; then JSON/schemaVersion, known fields/enums, finite/ranged values and unique
+positive safe IDs. Coordinates/offsets have absolute value≤1e9, time≥0, pressure0–1, width0.5–12,
+strength0–100, zoom0.25–8. Accept numeric profiles or legacy off/light/strong without ambiguous
+combinations. Reconstruct known fields rather than spreading untrusted JSON.
+
+Initial resource guards:64MiB/file,20k strokes,1M totalpoints,100k/stroke. These are technical limits,
+not proven near-limit performance. Do not truncate on overflow: save/import explicitly fail while
+memory remains exportable. Out-of-format export must warn that reimport is unsupported; round-trip
+is promised only within validated limits.
+
+Validated import shows stroke/point counts and an explicit Replace board confirmation. Until then,
+nothing changes. Replacement requires idle input/pan, blocks mutations, drains/serializes after
+pending writes and atomically stores prior completed memory(including unsaved) in before-import
+and candidate in main. Recovery after load failure preserves exact raw main instead. Only
+transaction.complete replaces live content/settings and surface generation, seeds IDs and starts
+empty session history. Error/cancel preserves prior live/durable state.
+
+The previous copy remains downloadable after reload for valid documents or JSON-safe raw trees:
+plain objects/dense arrays, finite numbers and JSON primitives. JSON.stringify success alone is
+insufficient: positively reject Map/Set/Date, undefined, BigInt, NaN/Infinity, cycles and other lossy
+values before download. Arbitrary corrupt/non-JSON IDB values remain unchanged in raw backup;
+explain unavailable JSON export instead of emitting an empty file. Keep one before-import snapshot;
+the next confirmed replacement overwrites it, including unsupported raw values. Do not promise
+indefinite retention or support for foreign formats.
+
+UI has an accessible role=status for loading/dirty/saving/saved/error, import/export controls and
+clear retry/read-only/recovery messages. Replace M1's reload-loss notice with local-browser storage
+and backup guidance. Change04 added no account/server/cloud/PWA; §5.23 later adds offline launch.
+Site-data clearing can still delete content.
+
+### 5.7 Whole-stroke eraser — Change05
+
+Owner-approved pen/eraser switching, touch/sweep whole-stroke deletion, undo/redo and persistence at
+any zoom. Preserve compact light §5.3 UI, labeled aria-pressed controls, selected color/border and
+≥40CSSpx targets. Explain whole-stroke behavior before use.
+
+Tool selection is session-only, outside JSON/IDB; initial load/import selects Pen. Width and
+stabilization remain pen settings through switching. Block switches during input/pan, read-only,
+load/import, using synchronous guards before React updates.
+
+Primary pen/mouse contact erases; hover/second pointer/right button do not. Change05 added no touch
+or automatic tablet-button mapping. One down→up removes all hit strokes as one history action.
+Target radius8CSSpx plus visible half-width, divided by zoom in world space. Hit dots/short/long
+lines/round caps/stabilized curves using rendered derived geometry, approximation error≤0.25CSSpx.
+Sweep the whole segment between samples, including coalesced samples, to avoid fast-motion misses.
+Raw points stay unchanged.
+
+During contact, hide hits only in preview. Canonical scene/snapshot/IDB remain unchanged until
+successful pointerup; mid-preview flush/export includes original ink. pointercancel/unexpected
+capture loss/blur/resize/write-authority loss/modal/unmount or primary-button loss on move cancels
+preview. Successful release commits removal through the existing revision queue.
+
+History stores add/group-erase actions with original objects/indices. Undo restores all erased ink
+at the same positions/geometry/metadata/order; redo removes it again. Loaded ink can be erased and
+restored, but undo cannot undo its pre-load creation. New nonempty erase/commit clears redo;
+miss/cancel/tool switch/navigation preserves redo without writes. UI updates at operation boundaries.
+
+Eraser blocks history, own zoom/pan and import while active. Idle Space+drag/middle pan still works.
+Preview/cancel/removal/history invalidate completed layer and pending commits, preventing ghost
+lines before RAF. Preserve accepted geometry/stabilization/two-layer budget. Historical format1
+saved only remaining strokes; later schemas preserve fragments/items.
+
+Change05 excludes partial erasure, adjustable eraser size, hardware switching, new colors/cloud/
+dependencies and near-limit speed promises. Test zoom25/100/400/800%, pan, stabilized hits/misses,
+group history/order/cancellation/read-only/save/JSON round-trip and desktop/narrow. Wacom eraser
+comfort remains the owner's hardware check. Later selection can split ink (§5.9); it is not a
+partial-eraser implementation.
+
+### 5.8 Input stabilization and UI/UX — Change06
+
+Owner-approved plan; preserve the light composition. This supersedes early wheel→zoom behavior
+and the canvas focus border.
+
+**Cursor.** A separate presentation overlay shows a dark3CSSpx pen/mouse dot with1px light halo,
+8CSSpx eraser ring or pan hand. It is not ink/snapshot/JSON and has no per-sample React state.
+Local CSS coordinates, no world/zoom/DPR multiplier, one RAF update; constant screen size under
+board zoom. Hide the OS cursor inside the board only when the app cursor is ready. Hover/down/up
+do not toggle dot visibility. Pen leave retains the last valid digitizer position, never0,0.
+Tools/outside/modal/blur/hidden hide it; return cannot create duplicate cursors. Only the active
+pointer moves it during contact. Touch/compatibility mouse events add no extra cursor. Dispose
+listeners/RAF under StrictMode/unmount. No event means retain last position, not OS cursor control.
+Later §5.26 refines pen terminal-event handling without altering accepted ink input.
+
+**Focus.** Keep canvas tab-focusable without a blue frame. A small Canvas badge appears for Tab
+entry, hides for pointer input/blur. Controls retain visible keyboard focus; do not globally remove
+outlines, shortcuts or focusability.
+
+**Navigation.** Plain wheel pans both axes: offset -= normalized delta, following system/browser
+direction. Pixel mode1:1, line mode16CSSpx, page mode uses the respective surface axis dimension.
+Shift+vertical maps to horizontal; do not remap existing horizontal deltas. Ctrl+wheel/pinch zooms
+25–800% about the cursor; preserve Space+primary/middle pan. Input supplies finite deltaX/Y,
+deltaMode, Ctrl/Shift, anchor and surface dimensions. Canvas-only nonpassive handling prevents
+page scroll/zoom leakage at zoom limits or while busy. Ink/erase/pointer-pan ignores wheel; a
+stream overlapping contact and its inertia stays quarantined until≥150ms quiet between events.
+Use a clock in the pure controller, not per-sample timers. Read-only navigation never persists.
+
+**Stable UI.** Since Change16, status/settings live in the top-center dock (§5.15), while export/
+import/backups live in Files and copies. Detailed messages/notices/retry are in out-of-flow
+nonmodal panels; §5.14 replaces the former permanent row. Dynamic status/error/recovery cannot
+change canvas bounds for the same viewport, cancel gestures or steal focus. The main indicator
+always exposes errors ahead of read-only status; full text/recovery remain available and errors
+do not auto-dismiss. Repeat trigger/outside/Escape closes the bounded scrollable panel. Import
+validation/confirmation/backup remains modal. Hide cursor over overlays; controls are keyboard
+accessible with40px targets. Zoom disabled flags use immediate busy state, not100ms diagnostics;
+synchronous guards remain authoritative.
+
+Preserve geometry/stabilization/sample collection and historical schema1 persistence. Real
+resize/blur/authority loss cancels unfinished gestures safely while completed content remains.
+Test cursor lifecycle/mixed pointers/zoom/DPR, wheel axes/modifiers/units/inertia/busy, keyboard/
+panel/layout stability and pen/eraser/history/IDB/JSON regressions on desktop/narrow. Synthetic
+pen/wheel does not prove Wacom/Precision Touchpad setup. Hardware acceptance stays separate;
+automated gates/review trigger local ship under owner policy, while push/deploy need release.
+
+### 5.9 Exact selection and move — Change08
+
+Owner approved on2026-11-13: «Продолжай разработку по плану» (“Continue development according
+to the plan”). Rectangle/lasso selects only painted content inside the region, including parts
+of crossing strokes. Move/copy/cut/paste/delete/duplicate/select-all/deselect and undo/redo are
+included. This stage excludes inversion, whole-board crop, resize/rotate/flip and external images;
+later contracts add transforms/images.
+
+**Controls/UI.** Selection has Rectangle/Lasso and compact Actions over the board without resizing
+it. Reveal full commands on demand; close after a command/repeated trigger/outside/Esc. First Esc
+closes Actions; the next deselects. Preserve visible keyboard focus and accessible errors. This
+stage has no resize handles. Freeze selected fragments until the next selection; moving over
+other writing cannot adopt it. Pen/mouse reuse ownership/cancel. Use stable arrow/move app cursors,
+not a crosshair. Ctrl/Meta+A/C/X/V/D, Delete/Backspace and Esc apply only to the board, leaving text
+fields/dialogs/native text clipboard untouched. Arrows move1CSSpx, Shift10CSSpx; one key hold is one
+history operation. Paste centers in the current view; duplicate offsets24CSSpx at current zoom;
+both select the result. Esc cancels unfinished work or deselects at rest; outside click starts anew.
+
+**Navigation.** Idle selection survives wheel/pinch/Space pan. Marquee/drag blocks normal navigation
+and retains wheel inertia quarantine. Drag edge-pan uses a32CSSpx zone, smooth acceleration up
+to600CSSpx/sec and bounded RAF timestep. Cancel restores fragments and starting viewport; successful
+move keeps viewport, and undo restores only ink. Fit all uses visible ink bounds,48CSSpx padding,
+zoom25–800%; empty scene uses initial view. Hidden source ink cannot inflate bounds. Resize/blur/
+lost capture/read-only/import cancel preview.
+
+**Geometry.** Never cut/refilter raw samples. Retain full source stroke/profile, source lineage,
+local MultiPolygon vector clip mask and translation. polygon-clipping0.15.7 supplies intersection/
+difference/union; lasso preview/normalization/render uses nonzero fill. Clip the full painted width,
+including edges whose centerline is outside selection. Same-source/same-translation fragments render
+once with unioned masks: complementary clips cannot leave AA seams after moving back. Lineage is
+separate from reusable item ID; paste/duplicate get new lineage. Eraser hits/removes only the visible
+fragment, preserving distant siblings. Keep accepted curves/filter, two-layer budget, no per-sample
+React and balanced canvas save/restore.
+
+**Atomicity/data.** Selection/copy/zero move does not mutate scene/history/save. Preview is excluded
+from snapshots/JSON. Each complete operation is one replacement history action(removed/inserted
+objects+indices), restoring identity/order on undo. Prepare/validate the whole candidate first;
+geometry/limit failure preserves scene/selection/history/redo. Clipboard/region/cursor/unfinished
+operations are transient.
+
+Schema2 was required because a schema1 decoder would drop clips/translations and restore hidden
+ink. Read schema1 JSON/IDB unchanged; keep DB/store1. First schema2 write atomically preserves exact
+raw schema1 main as before-schema2 if absent. before-import remains separate. Expose the upgrade
+copy in storage; update codec/clone/snapshot/stats/import/export/session/repository together.
+Unknown versions are not reset. Stored JSON trees are independent even when runtime fragments share
+source geometry. Validate IDs/lineage/source agreement/translation/topology. Preserve64MiB/20kitems/
+1Mpoints/100k-per-item, counting repeated raw points. Add2048lasso vertices,8192mask vertices/item,
+100000/document. No partial paste, silent truncation or handwriting simplification on overflow.
+
+**Clipboard/PNG.** Historical Change08 kept immutable editable fragments within the tab until
+reload and did not read system clipboard. Change18 supersedes that with the native editable+PNG
+clipboard contract. Separate image-copy derives transparent PNG from vectors, excluding background/
+cursor/selection:2pixels/worldunit, independent of current bitmap, max side8192/16,777,216pixels.
+Explain oversize rather than silently downsampling. Write ClipboardItem image/png only on user
+action; denial preserves internal copy and offers PNG download. Async output cannot mutate scene/
+selection; release temporary bitmap. Read-only allows select/copy/PNG but no mutations. Preserve
+all prior loading/error/modal/focus rules.
+
+**Acceptance.** Units cover geometry/footprint/clips/history/input/limits/PNG. Actual browser covers
+both selection modes, partial strokes, moving/clipboard/export/reload, edge-pan/fit-all/keyboard/
+cancel/read-only/migration abort. Check AA seams at25–800%, DPR1/2 and fractional translations,
+desktop/narrow and console. Physical Wacom and Windows clipboard checks stay separate. Local ship
+after gates/review is automatic; Change08 did not authorize release/push.
+
+### 5.10 Selection region and responsiveness — Change09
+
+Owner clarification2026-11-13: preserve the exact drawn selection, Paint-style, including empty
+margins; do not shrink outline to ink. Rectangle retains world bounds, lasso retains normalized
+region. Drag/arrows move region with contents. Copy/cut preserve region; paste centers it and
+duplicate offsets24CSSpx. Empty regions can be shown/dismissed; content commands are no-ops without
+ink. Select-all uses visible content bounds. PNG retains transparent margins and existing2x/budget.
+Region is transient and schema2 unchanged. This change adds no images/fill/primitives; the region
+model must support their later clipping under the same contract.
+
+Remove synchronous ink-bound recomputation from outline/hit/cursor. Measure the full marquee→
+release→drag→commit→save path, separating geometry, bounds/fit/PNG and redraw. Cache immutable
+sources/masks only, not mutable active ink. Preserve line quality and exact visible clips. Avoid
+repeated Boolean work per pointer event; preview once per RAF, never persist intermediate states.
+Chunk/offload measured blocking work with cancellation/generation guards. Never apply stale output
+after cancel/blur/import/read-only/dispose; errors preserve old scene/undo/redo.
+
+Engineering acceptance uses identical before/after fixtures(500/2000-point writing,10k-point long
+stroke,200×50-point notes, dense/complex lasso, near-limit stress), cold and repeat runs. Record
+release/drag-frame/commit/save times and attributable main-thread LongTasks≥50ms, not just helper
+means. Ordinary selection/move fixtures have no attributable long tasks; heavy cases remain
+responsive/cancellable. Disclose workload limits/unperformed hardware checks; no universal zero-lag claim.
+
+### 5.11 Writing and large-note performance — Change10
+
+Owner-approved2026-11-13: retain React/TypeScript/Canvas2D and historical schema2. Process active
+ink incrementally: new points and mutable tail without refiltering the whole prefix. Each prefix
+matches accepted batch geometry, exact tip, legacy profiles, duplicateXY and captureZoom. Retain
+all raw points/pressure/time; speed cannot come from quality loss.
+
+A reproducible stand compares identical production engine/app workloads before/after: continuous
+writing, distributed/dense notes, pan/zoom, selection/move, undo/redo and background save. Record
+frame/operation times, LongTasks≥50ms, memory and environment. Ordinary fixtures:500/2000-point
+writing,10k-point stroke,200×50-point notes; large:2000/10000×50points.20kitems/1Mpoints is stress,
+not a60fps promise. Ordinary operations permit no attributable≥50ms tasks; compare frame
+distributions rather than helper means alone.
+
+Optimize navigation/memory only for measured causes: invisible items, duplicate computation,
+history and cache release. Do not automatically cap undo. Separate useful history from leaks;
+repeated create/dispose cannot retain old engine/documents. Preserve documents/JSON/selection
+regions/clipping/order/AA/save/cancel/error/recovery contracts. Physical Wacom latency and feel
+remain separate hardware acceptance.
+
+### 5.12 Architecture and composition — Change11
+
+Owner-approved2026-11-13 adaptation of applicable infraegev2 architecture/style, including browser
+fixtures/Page Objects. Binding contract: [FRONTEND](FRONTEND.md). Owners: app → widgets/board-workspace
+→ features/board-document → entities/board → shared. Core knows no React/DOM/codec/worker protocol;
+document feature owns DTO/strict validation/recovery, workspace owns native Canvas/DOM. Scoped UI
+snapshots are separate from mutable scene and file DTO. Preserve historical schema2/reads1, IDB1,
+backups, UI, geometry/stabilization and guards.
+
+Refactor types/props/effects/kebab-case/CSS Modules/semantic tokens, explicit factories/public APIs
+and executable policies. Remove moved legacy directories; do not bundle duplicate old engines.
+Baseline main5624f9e; preserve meaning of672native raster cases/408unit assertions. Three paired warm
+runs require median p95≤max(1ms,baseline×1.2), no attributable≥50ms normal tasks. Isolated Playwright
+checks the same Pages artifact on4185; interactive verification uses Playwriter. Automatic local
+ship follows Full Gate/review. New product features and release are separate.
+
+### 5.13 Fractal decomposition — Change13
+
+Owner clarification2026-11-13: retain outer layers; recurse within modules with local components/,
+real hooks/, submodules and scoped *.types.ts/*.utils.ts/*.config.ts. FRONTEND is binding. Decompose
+large components/native orchestration/selection/regions/document lifecycle by real responsibility,
+not just file moves. Public submodule APIs hide internals; dependencies stay acyclic. Preserve UI,
+schemas/backups/pen quality. Baseline4345ce1; preserve416unit/672raster/9browser scenarios. Native
+changes use §5.12 CPU/RAF budget; physical latency remains separate. Local ship after checks and
+independent review; release stays a separate instruction.
 
 ### 5.14 Floating editor UI
 
@@ -1243,3 +1083,115 @@ unchanged geometry; repeated handwriting computed styles/layout; blocked buttons
 recovery; intrinsically disabled/readonly behavior; normal save/reload and existing touch modes.
 Physical Wacom acceptance remains an owner check. Full Gate/review precede immediate local ship;
 release is separate.
+
+
+## 6. Auth & Access Model
+
+No authentication. Access follows computer/browser-profile access. Historical M1 was tab memory;
+M3 and current storage are origin/profile-scoped and not automatically synchronized. Site-data
+clearing may delete notes; persistent-storage permission cannot replace a downloaded backup.
+
+## 7. Infrastructure and Deploy/CI
+
+### 7.1 Local development
+
+Vite SPA without SSR/Docker/external services. Node/npm run in WSL and lockfile pins dependencies.
+The guide explains WSL launch and ordinary Windows Chrome on localhost. Dev server is loopback-only;
+do not expose it to the network unnecessarily.
+
+### 7.2 Verification and publication
+
+Automated checks cover logic/build; Playwriter covers UI/console; the owner checks physical tablet
+behavior. The owner authorized initial GitHub/Pages publication in Change07: public
+`avatarsik6699/penable`, preserved Git history and static assets at
+`https://avatarsik6699.github.io/penable/`. Current delivery is local unless release is requested.
+
+Actions checks PR/main: lint/architecture/format/types/unit/dependency audit/Pages build and isolated
+browser tests. Only successful main can deploy through github-pages; official actions are SHA-pinned.
+Local Full Gate and history secrets scan precede ship --release. Verify the exact run/deployment and
+live page, never infer current production from a local commit. Dev/build use `/`, Pages uses `/penable/`.
+
+Strokes remain in browser IDB, never GitHub. HTTPS/localhost are separate origins; transfer by JSON
+export/import. Pages controls HTTP headers; there is no app API or custom response-header server.
+Offline availability was added in §5.23; IndexedDB alone does not load application assets offline.
+
+## 8. Non-Functional Requirements
+
+| Area | Criterion / limitation |
+|------|------------------------|
+| Writing | Dots/final segment visible; hover/cancel cannot leave stuck input. Owner judges comfort |
+| Performance | No per-point React render. One active path on a separate layer at most once per RAF; no completed-scene traversal per point. No universal latency/scene-size promise |
+| Clarity | Change02: DPR1/2, own zoom100/200/400%, page zoom/native pinch; geometry redraw, seam/live-commit parity. Disclose bitmap limits and unverified hardware |
+| Accessibility | Labeled keyboard controls, visible focus and textual status. Handwriting semantic equivalent/formal WCAG audit were outside M1 |
+| Security headers / CORS | Local assets, no app API; API CORS inapplicable. HTTPS/headers supplied by Pages, no custom response server |
+| Privacy / observability | No analytics, stroke uploads or content logging; input diagnostics stay local |
+| Backup / restore | M1 explicitly did not save. M3/current app require editable copies and restore verification |
+| Errors | Explain unavailable Canvas; write failure cannot appear saved, and completed memory remains exportable |
+| Evidence | Synthetic pen cannot confirm hardware; screenshots/green tests do not replace device checks |
+| Dependencies | Minimal dependencies/lockfile; mandatory secrets and dependency checks before ship |
+| Compliance / SLO | No additional brief requirements; do not invent guarantees |
+
+## 9. Roadmap
+
+### Original milestones — historical
+
+| Stage | Outcome | Acceptance boundary |
+|-------|---------|---------------------|
+| M1 | Input proof, Change01 | Automated/browser checks and explicit owner tablet result; fix observed input issues |
+| M2 | Change02 quality/navigation, then backgrounds/history | Clear zoom, no seams/unwanted ink/drift, physical writing assessment |
+| M3 | Storage/backups | Reload, write failures, export/import round-trip |
+| M4 | Eraser/UX/exact selection, Change08 | Geometry/save/selection checks and owner trial |
+
+Original schedule estimates were preliminary, not commitments. Later §5 contracts record delivered
+work through Change34; local ship and public release are distinct.
+
+### Owner-approved upcoming work — planned
+
+The 2026-11-15 repository plan authorizes English current documentation, ru/en localization and an
+English visual README. Interface language priority will be saved choice, first supported browser
+preference, then English; settings will provide Auto/English/Русский. Switching must be immediate
+without resetting content/history/view; language is an application preference, not document data.
+Both dictionaries must be bundled for offline use. Until Change36 ships, these are planned capabilities.
+
+Public future capability checklist, without delivery-date commitments:
+
+- [ ] PDF import, annotation and export.
+- [ ] Partial-stroke eraser.
+- [ ] Optional cloud synchronization.
+- [ ] Handwriting recognition (OCR).
+
+These four directions are positioning/roadmap intent only. They do not authorize backend, account,
+network-upload or recognition implementation in documentation/localization changes. Future contracts
+must preserve an explicit distinction between local storage and optional network services.
+
+## 10. Out of Scope
+
+The original first-three-stage exclusions were collaboration, accounts, cloud/backend, recognition,
+shapes/stickers/plugins/mobile gestures/WebGL/PDF/PWA/multiple notebooks. They are historical:
+Change05 added erasure,08 selection/PNG,17 transforms/images/boards,23 instruments/templates,
+26 touch and31 offline availability. PDF/partial eraser/optional cloud/OCR are planned, not delivered.
+New implementations require their own approved Backlog/change rather than assumptions from a checkbox.
+
+## 11. Open Questions
+
+- M1 Wacom One/Windows11, writing, pen/mouse and changing pressure were owner-confirmed.
+  Missing browser/driver versions limit diagnostics; do not repeat accepted checks without cause.
+- SPEC and /work01 were approved2026-11-12.
+- Change02 clear board navigation/geometry was authorized; backgrounds/history followed in M2.
+- Change04 format/limits/session history/close/multi-tab behavior is in §5.6.
+- Change05 whole-stroke erasure was authorized with «Продолжай по плану» (“Continue according to
+  the plan”); contract §5.7.
+- Change07 GitHub/Pages was authorized; stable origin/CI are in §7.2. Later releases remain separate.
+- Physical iPad/Pencil, OS install and later Wacom driver behavior need scenario-specific acceptance;
+  do not infer it from automated checks or earlier handwriting approval.
+
+## Technical sources
+
+Checked2026-11-12; React/Vite were also queried through Context7. These sources describe platforms,
+not acceptance of a particular device.
+
+- [Wacom: Pointer Events](https://developer-docs.wacom.com/docs/icbt/web/web-api-basics/).
+- [W3C Pointer Events](https://www.w3.org/TR/pointerevents/): capture, cancellation, coalesced events.
+- [React useRef](https://react.dev/reference/react/useRef) and [useEffect](https://react.dev/reference/react/useEffect): imperative integration/cleanup.
+- [Vite Getting Started](https://vite.dev/guide/): client React/TypeScript setup.
+- [MDN: storage quotas and eviction](https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria).

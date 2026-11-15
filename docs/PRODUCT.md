@@ -18,12 +18,15 @@ comfortable long writing sessions, clear navigation and safe local notes. Second
 
 React/TypeScript/Canvas2D; browser-local storage and JSON recovery copies. Current pen, whole-stroke
 eraser, rectangle/lasso selection, move/copy/edit, undo/redo, pan/zoom and backgrounds exist.
-Change17 extends this with affine selection transforms, immutable PNG/JPEG assets and independent named boards in a dock chooser. There is no backend, collaboration or account. Hardware writing quality is separate
+Implemented extensions include affine selection transforms, immutable PNG/JPEG assets, independent
+named boards with colored/icon covers, pressure pen/highlighter, vector mathematical templates,
+touch navigation and a prepared production offline shell. There is no backend, collaboration or account. Hardware writing quality is separate
 from visual mock acceptance. Source/scene/data behavior stays under SPEC and FRONTEND.
 
 ## Brand commitments
 
-Name: penable. Russian interface. Light paper and compact tools. Miro/Notability inform familiar
+Name: penable. The current interface is Russian; owner-approved ru/en localization is planned in
+Change36, with browser detection and an explicit setting. Light paper and compact tools. Miro/Notability inform familiar
 editing ergonomics. Owner selected a floating horizontal dock for the editor world,
 inline width and click-to-open stabilization. The separate Change14 mock was approved on2026-11-13
 for transfer into the real editor in Change15; acceptance covers visual direction, not hardware behavior.
