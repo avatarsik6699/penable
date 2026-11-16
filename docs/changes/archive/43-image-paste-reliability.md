@@ -7,7 +7,7 @@
 | Change | `43` |
 | Slug | `image-paste-reliability` |
 | Title | Reliable external image paste |
-| Status | `active` |
+| Status | `shipped` |
 | Branch | `feature/43-image-paste-reliability` |
 
 ## Goal
@@ -40,11 +40,11 @@ Penable clipboard data, image validation, document authority, cancellation and o
 
 ## Contracts
 
-See [SPEC](../SPEC.md) §§5.16–5.17 and [FRONTEND](../FRONTEND.md) native ownership and browser-test boundaries. Existing fail-closed own-format/permission rules remain authoritative; F3 clarifies the native image behavior requested by the owner.
+See [SPEC](../../SPEC.md) §§5.16–5.17 and [FRONTEND](../../FRONTEND.md) native ownership and browser-test boundaries. Existing fail-closed own-format/permission rules remain authoritative; F3 clarifies the native image behavior requested by the owner.
 
 ## Gate Checks
 
-Standard [STACK](../STACK.md) Fast/Full gates. Owned Windows Chrome reproduction on strict4221 and controlled smoke on strict4222 with isolated test data; E2E owns4185. Distinguish real clipboard observation from injected failures. No retries or larger test timeouts to conceal a defect. Preserve image bytes, selected insertion, undo/redo/reload and empty/corrupt/permission feedback. Physical OS screenshot acquisition remains separate if not reproduced directly.
+Standard [STACK](../../STACK.md) Fast/Full gates. Owned Windows Chrome reproduction on strict4221 and controlled smoke on strict4222 with isolated test data; E2E owns4185. Distinguish real clipboard observation from injected failures. No retries or larger test timeouts to conceal a defect. Preserve image bytes, selected insertion, undo/redo/reload and empty/corrupt/permission feedback. Physical OS screenshot acquisition remains separate if not reproduced directly.
 
 ### Final acceptance —2026-11-16
 
