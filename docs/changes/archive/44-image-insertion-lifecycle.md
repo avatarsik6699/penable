@@ -7,7 +7,7 @@
 | Change | `44` |
 | Slug | `image-insertion-lifecycle` |
 | Title | Reliable image insertion lifecycle |
-| Status | `active` |
+| Status | `shipped` |
 | Branch | `feature/44-image-insertion-lifecycle` |
 
 ## Goal
@@ -41,11 +41,11 @@ the owner; explicit cancellation and editor authority/generation still prevent s
 
 ## Contracts
 
-See [SPEC](../SPEC.md) §§5.16–5.17 and [FRONTEND](../FRONTEND.md) native/selection/Worker ownership. The approved plan and owner focus-policy choice authorize preserving acquired image processing across blur/hidden, with explicit/generation/authority cancellation remaining decisive.
+See [SPEC](../../SPEC.md) §§5.16–5.17 and [FRONTEND](../../FRONTEND.md) native/selection/Worker ownership. The approved plan and owner focus-policy choice authorize preserving acquired image processing across blur/hidden, with explicit/generation/authority cancellation remaining decisive.
 
 ## Gate Checks
 
-Standard [STACK](../STACK.md) gates. Before-fix reproduction on b4f4e09: deferred real selection validation commits once without events, but pen hover, mouse hover and pointer-up cancel it and resolve false. Joined integration tests must cover that state, not stub insert success. Large noisy PNG base64 must exceed128KiB after clipboard normalization; hold only the terminal response of an actual validate Worker job, leaving ACKs/uploads/native validation intact. Check cold/warm Workers, empty/filled scenes, pen/selection tools and pointer noise. Each of Ctrl+V/menu/file entry gets five repeated insertions, drop a separate case; verify exact bytes, selection, one undo/redo and saved reload.
+Standard [STACK](../../STACK.md) gates. Before-fix reproduction on b4f4e09: deferred real selection validation commits once without events, but pen hover, mouse hover and pointer-up cancel it and resolve false. Joined integration tests must cover that state, not stub insert success. Large noisy PNG base64 must exceed128KiB after clipboard normalization; hold only the terminal response of an actual validate Worker job, leaving ACKs/uploads/native validation intact. Check cold/warm Workers, empty/filled scenes, pen/selection tools and pointer noise. Each of Ctrl+V/menu/file entry gets five repeated insertions, drop a separate case; verify exact bytes, selection, one undo/redo and saved reload.
 
 Separate held-validation scenarios cover Escape/direct cancel/modal/read-only/board generation/disposal, no late commits, canonical/temporary bitmap release and successful retry. Preserve precise localized rejection instead of generic file-retry error. Windows Playwriter uses owned strict4223; E2E owns4185. Manual owner target: five writing/site/screenshot/Alt+Tab/Ctrl+V cycles without selecting a tool, then desktop file insertion. Record manual acceptance separately and honestly.
 
