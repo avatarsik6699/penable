@@ -344,17 +344,25 @@ export const test = base.extend<Fixtures>({
     await use(new BoardClipboardPage(page, board));
   },
 
-  clipboardFailure: async ({ page }, use) => {
+  clipboardFailure: async ({ page, context }, use) => {
     await page.addInitScript(() => {
       const native = navigator.clipboard;
 
-      let mode = "none";
+      let mode = "none",
+        reads = 0,
+        getTypes = 0;
+
+      Object.defineProperty(window, "__clipboardCalls43", {
+        get: () => ({ reads, getTypes }),
+      });
 
       Object.defineProperty(window, "__clipboardFault18", {
         get: () => mode,
 
         set: (next: string) => {
           mode = next;
+          reads = 0;
+          getTypes = 0;
         },
       });
 
@@ -364,12 +372,48 @@ export const test = base.extend<Fixtures>({
           mode === "unavailable"
             ? undefined
             : {
-                read: () =>
-                  mode === "read-denied"
-                    ? Promise.reject(
-                        new DOMException("Test read denied", "NotAllowedError"),
-                      )
-                    : native.read(),
+                read: async () => {
+                  reads++;
+
+                  if (mode === "read-denied")
+                    throw new DOMException(
+                      "Test read denied",
+                      "NotAllowedError",
+                    );
+
+                  if (mode === "read-stale-once" && reads === 1)
+                    throw new DOMException(
+                      "Test clipboard unavailable",
+                      "NotReadableError",
+                    );
+
+                  const items = await native.read();
+
+                  if (mode === "opaque-read")
+                    return items.map(
+                      () => ({ types: [] }) as unknown as ClipboardItem,
+                    );
+
+                  return items.map(
+                    (item) =>
+                      ({
+                        types: item.types,
+
+                        getType: async (type: string) => {
+                          getTypes++;
+
+                          if (mode === "image-stale-once" && getTypes === 1)
+                            throw new DOMException(
+                              "Test clipboard changed",
+                              "InvalidStateError",
+                            );
+
+                          return item.getType(type);
+                        },
+                      }) as ClipboardItem,
+                  );
+                },
+
                 write: (items: ClipboardItem[]) =>
                   mode === "write-denied"
                     ? Promise.reject(
@@ -390,7 +434,20 @@ export const test = base.extend<Fixtures>({
 
     try {
       await board.open();
-      await use(new BoardClipboardPage(page, board));
+
+      await use(
+        new BoardClipboardPage(page, board, async () => {
+          const outside = await context.newPage();
+
+          try {
+            await outside.goto("about:blank");
+            await outside.bringToFront();
+          } finally {
+            await outside.close();
+            await page.bringToFront();
+          }
+        }),
+      );
     } finally {
       verify();
     }

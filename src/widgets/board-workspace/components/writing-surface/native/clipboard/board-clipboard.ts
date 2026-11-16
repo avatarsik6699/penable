@@ -62,21 +62,23 @@ export class BoardClipboard {
 
     event.preventDefault();
 
-    const file = Array.from(event.clipboardData?.items ?? [])
-      .find(
-        (item) =>
-          item.kind === "file" &&
-          ["image/png", "image/jpeg"].includes(item.type),
-      )
-      ?.getAsFile();
-
     const advertised = Array.from(event.clipboardData?.types ?? []);
 
     const ownAdvertised =
       advertised.includes(FragmentCodec.MIME) ||
       advertised.includes(FragmentCodec.MIME.replace(/^web /, ""));
 
-    void this.paste(file ?? undefined, ownAdvertised);
+    const file = ownAdvertised
+      ? undefined
+      : Array.from(event.clipboardData?.items ?? [])
+          .find(
+            (item) =>
+              item.kind === "file" &&
+              ["image/png", "image/jpeg"].includes(item.type),
+          )
+          ?.getAsFile();
+
+    void this.paste(file ?? undefined, ownAdvertised, true);
   };
 
   private begin(message: MessageTypes.Value, writable = false) {
@@ -210,7 +212,7 @@ export class BoardClipboard {
     }
   }
 
-  async paste(fallback?: Blob, ownAdvertised = false) {
+  async paste(fallback?: Blob, ownAdvertised = false, nativePaste = false) {
     if (
       !this.disposed &&
       this.pending &&
@@ -229,31 +231,85 @@ export class BoardClipboard {
 
     try {
       let blob: Blob | undefined,
-        own = false;
+        own = false,
+        unavailableOpaqueFormats = false;
 
-      if (navigator.clipboard?.read) {
-        const items = await navigator.clipboard.read();
+      const read = navigator.clipboard?.read;
 
-        if (!this.current(pending, true)) return;
+      if (read) {
+        let attempt = 0;
 
-        const editable = items.find((item) =>
-          item.types.includes(FragmentCodec.MIME),
-        );
+        while (attempt < 2 && !blob) {
+          attempt++;
 
-        if (editable) {
-          blob = await editable.getType(FragmentCodec.MIME);
-          own = true;
-        } else {
-          const image = items.find(
-            (item) =>
-              item.types.includes("image/png") ||
-              item.types.includes("image/jpeg"),
-          );
+          let opaque = false;
 
-          if (image)
-            blob = await image.getType(
-              image.types.includes("image/png") ? "image/png" : "image/jpeg",
+          try {
+            const items = await read.call(navigator.clipboard);
+
+            if (!this.current(pending, true)) return;
+
+            const editable = items.find((item) =>
+              item.types.includes(FragmentCodec.MIME),
             );
+
+            if (editable) {
+              blob = await editable.getType(FragmentCodec.MIME);
+              own = true;
+            } else {
+              if (ownAdvertised)
+                throw Messages.error(
+                  Messages.create(
+                    "editableFragmentReadingIsUnavailableAllowClipboard",
+                  ),
+                );
+
+              const image = items.find(
+                (item) =>
+                  item.types.includes("image/png") ||
+                  item.types.includes("image/jpeg"),
+              );
+
+              if (image)
+                blob = await image.getType(
+                  image.types.includes("image/png")
+                    ? "image/png"
+                    : "image/jpeg",
+                );
+              else if (
+                items.length > 0 &&
+                items.every((item) => !item.types.length)
+              )
+                opaque = true;
+            }
+
+            if (!this.current(pending, true)) return;
+
+            if (blob) break;
+
+            if (opaque && nativePaste && fallback && attempt === 1) {
+              blob = fallback;
+              break;
+            }
+
+            if (opaque && attempt === 1) continue;
+
+            if (opaque && attempt === 2) unavailableOpaqueFormats = true;
+
+            break;
+          } catch (error) {
+            if (!this.current(pending, true)) return;
+
+            const transient =
+              error instanceof DOMException &&
+              ["DataError", "InvalidStateError", "NotReadableError"].includes(
+                error.name,
+              );
+
+            if (transient && attempt === 1) continue;
+
+            throw error;
+          }
         }
       } else {
         if (ownAdvertised)
@@ -270,9 +326,9 @@ export class BoardClipboard {
 
       if (!blob)
         throw Messages.error(
-          typeof navigator.clipboard?.read === "function"
-            ? Messages.create("theClipboardContainsNoPenableFragmentPng")
-            : Messages.create("clipboardReadingIsUnavailablePasteAPng"),
+          unavailableOpaqueFormats || !read
+            ? Messages.create("clipboardReadingIsUnavailablePasteAPng")
+            : Messages.create("theClipboardContainsNoPenableFragmentPng"),
         );
 
       if (own) {

@@ -182,3 +182,19 @@ For long owned benchmarks, start the promise inside the page without returning/a
 its result/error and `performance.timeOrigin`, then use short read-only polls. Require unchanged
 origin, successful completion and data integrity before acceptance. Never navigate or start another
 mutating scenario while it is pending. Keep physical RAF cadence and CPU-only scheduling distinct.
+
+## Windows native paste can carry a file while async clipboard items expose no formats
+
+During Change43, an actual Windows Chrome Ctrl+V produced a native `Files` paste event, while
+`navigator.clipboard.read()` resolved with one item whose `types` was empty. Successful async
+read alone therefore does not prove that it exposes the native paste payload. Keep any supported
+same-event PNG/JPEG File synchronously; event DataTransfer access cannot be deferred until after
+an await. The narrow opaque-result fallback is governed by SPEC5.17 and is never tab cache.
+Any exposed MIME, own-format advertisement, acquisition rejection/retry or cancellation suppresses
+that fallback. Native read/getType transient errors use at most one fresh negotiation; permission
+and decoding failures do not retry. Menu has no event File and must give Ctrl+V guidance after a
+bounded opaque read. Do not synthesize an event or use deprecated execCommand to bypass access.
+
+The [Clipboard API draft](https://w3c.github.io/clipboard-apis/#clipboarditem) describes lazy
+getType fetching and changed clipboard state rejection. Keep failed-read, opaque-format and
+corrupt-image regressions separate; they are distinct stages of insertion.

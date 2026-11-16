@@ -690,8 +690,13 @@ large JSON/base64 conversion in a keyboard handler. Source/cut capture is genera
 
 Clipboard input prefers a valid Penable representation, then PNG/JPEG. An invalid own format
 shows an error rather than silently changing geometry. New external clipboard content must
-never fall back to stale tab memory. Ordinary native paste can consume an image from its event
-when the async API is absent and no own format is detectable. Explicit read denial fails closed
+never fall back to stale tab memory. Ordinary native paste can consume a PNG/JPEG File captured
+synchronously from that same event when no own format is advertised and the async API is absent,
+or its first successful read returns one or more items exposing no MIME types. Any exposed MIME
+type suppresses this fallback. Native acquisition errors, retries, invalid own payloads and queued
+paste never permit event-image fallback; its File is never retained as tab clipboard memory.
+Native acquisition retries once on a transient read failure or opaque nonempty item collection;
+menu Paste suggests Ctrl+V if the formats remain opaque. Explicit read denial fails closed
 because Chrome may hide the editable representation behind that event's PNG; permission/unsupported/empty/text feedback is
 explicit and the document remains unchanged. Do not add text objects, HTML/SVG/URL ingestion,
 background clipboard reads, permission bypass or automatic lossy vector fallback. Target is

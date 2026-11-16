@@ -98,3 +98,37 @@ test("menu Copy and Paste negotiate the same editable system clipboard", async (
 }) => {
   await clipboard.expectMenuUsesSameClipboard();
 });
+
+test("first keyboard image paste after focus return recovers a stale native image read", async ({
+  clipboardFailure,
+  images,
+}) => {
+  await clipboardFailure.expectExternalImageRecoversOnFirstPaste(
+    images.png,
+    false,
+  );
+});
+
+test("first menu image paste after focus return recovers a transient native clipboard read", async ({
+  clipboardFailure,
+  images,
+}) => {
+  await clipboardFailure.expectExternalImageRecoversOnFirstPaste(
+    images.png,
+    true,
+  );
+});
+
+test("native image paste succeeds when the async clipboard exposes no formats", async ({
+  clipboardFailure,
+  images,
+}) => {
+  await clipboardFailure.expectOpaqueReadUsesNativeImage(images.png, false);
+});
+
+test("opaque menu clipboard suggests native paste which inserts exactly one image", async ({
+  clipboardFailure,
+  images,
+}) => {
+  await clipboardFailure.expectOpaqueReadUsesNativeImage(images.png, true);
+});

@@ -28,19 +28,23 @@ const ink: BoardItem = {
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
 
-  const promise = new Promise<T>((yes) => {
+  const promise = new Promise<T>((yes, no) => {
     resolve = yes;
+    reject = no;
   });
 
-  return { promise, resolve };
+  return { promise, resolve, reject };
 }
 
 function setup(
-  writable = true,
+  writable: boolean | (() => boolean) = true,
   validate: () => void | Promise<void> = () => {},
   allowed: () => boolean = () => true,
 ) {
+  const canWrite = typeof writable === "function" ? writable : () => writable;
+
   vi.stubGlobal("window", new EventTarget());
 
   const data: Record<string, Blob | Promise<Blob>>[] = [];
@@ -74,7 +78,7 @@ function setup(
     scene,
     viewport: () => ({ x: 0, y: 0, zoom: 1 }),
     bounds: () => ({ left: 0, top: 0, width: 800, height: 600 }),
-    writable: () => writable,
+    writable: canWrite,
     validate,
 
     commit: (items) => {
@@ -100,7 +104,7 @@ function setup(
     selection,
     images: cache,
     allowed,
-    writable: () => writable,
+    writable: canWrite,
     insertImage,
 
     activate: () => {},
@@ -120,6 +124,27 @@ function setup(
     insertImage,
     cache,
   };
+}
+
+function dispatchPaste(
+  h: ReturnType<typeof setup>,
+  types = ["image/png"],
+  getAsFile = vi.fn(),
+) {
+  vi.stubGlobal("Element", EventTarget);
+  vi.stubGlobal("document", { body: h.canvas });
+
+  const event = Object.assign(new Event("paste", { cancelable: true }), {
+    clipboardData: {
+      types,
+      items: [{ kind: "file", type: "image/png", getAsFile }],
+    },
+  });
+
+  Object.defineProperty(event, "target", { value: h.canvas });
+  window.dispatchEvent(event);
+
+  return event;
 }
 
 afterEach(() => {
@@ -306,6 +331,32 @@ describe("unified system clipboard ownership", () => {
     h.clipboard.dispose();
   });
 
+  it("does not retry or flatten an invalid acquired own format to the event PNG", async () => {
+    const h = setup(),
+      getType = vi.fn(async () => new Blob(["invalid own payload"])),
+      getAsFile = vi.fn(() => new Blob(["event PNG"], { type: "image/png" }));
+
+    h.read.mockResolvedValue([
+      {
+        types: [FragmentCodec.MIME, "image/png"],
+        getType,
+      } as unknown as ClipboardItem,
+    ]);
+
+    vi.spyOn(FragmentReader, "read").mockRejectedValue(
+      new Error("invalid fragment"),
+    );
+
+    dispatchPaste(h, [FragmentCodec.MIME, "image/png"], getAsFile);
+    await vi.waitFor(() => expect(h.clipboard.busy).toBe(false));
+    expect(h.read).toHaveBeenCalledOnce();
+    expect(getType).toHaveBeenCalledOnce();
+    expect(getType).toHaveBeenCalledWith(FragmentCodec.MIME);
+    expect(getAsFile).not.toHaveBeenCalled();
+    expect(h.insertImage).not.toHaveBeenCalled();
+    h.clipboard.dispose();
+  });
+
   it("consumes the current external image and permits event fallback only without async read", async () => {
     const h = setup(),
       image = new Blob(["new"], { type: "image/png" });
@@ -329,6 +380,354 @@ describe("unified system clipboard ownership", () => {
     vi.stubGlobal("navigator", { clipboard: {} });
     await h.clipboard.paste(image);
     expect(h.insertImage).toHaveBeenCalledOnce();
+    h.clipboard.dispose();
+  });
+
+  it.each(["read", "getType"] as const)(
+    "retries one transient %s acquisition failure using a fresh clipboard snapshot",
+    async (failurePoint) => {
+      const h = setup(),
+        image = new Blob(["fresh image"], { type: "image/png" }),
+        eventImage = new Blob(["stale event image"], { type: "image/png" }),
+        getAsFile = vi.fn(() => eventImage),
+        transient = new DOMException("clipboard changed", "NotReadableError"),
+        getType = vi.fn(async () => image);
+
+      if (failurePoint === "read")
+        h.read
+          .mockRejectedValueOnce(transient)
+          .mockResolvedValueOnce([
+            { types: ["image/png"], getType } as unknown as ClipboardItem,
+          ]);
+      else {
+        h.read.mockResolvedValue([
+          {
+            types: ["image/png"],
+            getType: vi
+              .fn()
+              .mockRejectedValueOnce(transient)
+              .mockResolvedValue(image),
+          } as unknown as ClipboardItem,
+        ]);
+      }
+
+      dispatchPaste(h, ["Files"], getAsFile);
+      await vi.waitFor(() => expect(h.insertImage).toHaveBeenCalledOnce());
+
+      expect(h.read).toHaveBeenCalledTimes(2);
+      expect(h.insertImage).toHaveBeenCalledWith(image);
+      expect(getAsFile).toHaveBeenCalledOnce();
+      expect(h.insertImage).not.toHaveBeenCalledWith(eventImage);
+      h.clipboard.dispose();
+    },
+  );
+
+  it("bounds a failed second acquisition and preserves editable priority on reread", async () => {
+    const h = setup(),
+      ownBlob = new Blob(["own fragment"]),
+      image = new Blob(["fresh png"], { type: "image/png" }),
+      getType = vi.fn(async (type: string) =>
+        type === FragmentCodec.MIME ? ownBlob : image,
+      );
+
+    h.read
+      .mockRejectedValueOnce(new DOMException("changed", "InvalidStateError"))
+      .mockResolvedValueOnce([
+        {
+          types: ["image/png", FragmentCodec.MIME],
+          getType,
+        } as unknown as ClipboardItem,
+      ]);
+
+    const event = dispatchPaste(h, [FragmentCodec.MIME, "image/png"]);
+
+    await vi.waitFor(() => expect(h.clipboard.busy).toBe(false));
+    expect(event.defaultPrevented).toBe(true);
+    expect(h.read).toHaveBeenCalledTimes(2);
+    expect(getType).toHaveBeenCalledOnce();
+    expect(getType).toHaveBeenCalledWith(FragmentCodec.MIME);
+    expect(h.insertImage).not.toHaveBeenCalled();
+    expect(h.scene.strokes).toHaveLength(1);
+    h.clipboard.dispose();
+
+    const failed = setup(),
+      eventImage = new Blob(["stale event image"], { type: "image/png" }),
+      getAsFile = vi.fn(() => eventImage);
+
+    failed.read.mockRejectedValue(
+      new DOMException("still changing", "DataError"),
+    );
+
+    dispatchPaste(failed, ["Files"], getAsFile);
+    await vi.waitFor(() => expect(failed.clipboard.busy).toBe(false));
+    expect(failed.read).toHaveBeenCalledTimes(2);
+    expect(getAsFile).toHaveBeenCalledOnce();
+    expect(failed.insertImage).not.toHaveBeenCalled();
+    failed.clipboard.dispose();
+  });
+
+  it.each(["cancel", "permission", "dispose"] as const)(
+    "does not retry or insert after a transient failure becomes stale via %s",
+    async (staleAction) => {
+      let writable = true;
+
+      const h = setup(() => writable),
+        firstRead = deferred<ClipboardItem[]>();
+
+      h.read.mockReturnValueOnce(firstRead.promise).mockResolvedValue([]);
+
+      const getAsFile = vi.fn(() => new Blob(["stale"], { type: "image/png" }));
+
+      dispatchPaste(h, ["Files"], getAsFile);
+
+      if (staleAction === "cancel") h.clipboard.cancel();
+      else if (staleAction === "permission") {
+        writable = false;
+        h.clipboard.permissionChanged();
+      } else h.clipboard.dispose();
+
+      firstRead.reject(new DOMException("changed", "NotReadableError"));
+      await vi.waitFor(() => expect(h.clipboard.busy).toBe(false));
+      expect(h.read).toHaveBeenCalledOnce();
+      expect(h.insertImage).not.toHaveBeenCalled();
+      expect(getAsFile).toHaveBeenCalledOnce();
+      h.clipboard.dispose();
+    },
+  );
+
+  it("uses the same-event image when the successful native read is opaque", async () => {
+    const h = setup(),
+      image = new Blob(["event image"], { type: "image/png" }),
+      getAsFile = vi.fn(() => image);
+
+    h.read.mockResolvedValue([
+      {
+        types: [],
+        getType: vi.fn(),
+      } as unknown as ClipboardItem,
+    ]);
+
+    dispatchPaste(h, ["Files"], getAsFile);
+    await vi.waitFor(() => expect(h.insertImage).toHaveBeenCalledOnce());
+    expect(h.read).toHaveBeenCalledOnce();
+    expect(getAsFile).toHaveBeenCalledOnce();
+    expect(h.insertImage).toHaveBeenCalledWith(image);
+    h.clipboard.dispose();
+  });
+
+  it("retries a native opaque read without an event File and inserts the fresh PNG", async () => {
+    const h = setup(),
+      image = new Blob(["fresh PNG"], { type: "image/png" }),
+      getAsFile = vi.fn(() => null);
+
+    h.read
+      .mockResolvedValueOnce([
+        { types: [], getType: vi.fn() } as unknown as ClipboardItem,
+      ])
+      .mockResolvedValueOnce([
+        {
+          types: ["image/png"],
+          getType: async () => image,
+        } as unknown as ClipboardItem,
+      ]);
+
+    dispatchPaste(h, ["Files"], getAsFile);
+    await vi.waitFor(() => expect(h.insertImage).toHaveBeenCalledOnce());
+    expect(h.read).toHaveBeenCalledTimes(2);
+    expect(getAsFile).toHaveBeenCalledOnce();
+    expect(h.insertImage).toHaveBeenCalledWith(image);
+    h.clipboard.dispose();
+  });
+
+  it("bounds repeated opaque native reads without an event File and shows the Ctrl+V hint", async () => {
+    const h = setup(),
+      getAsFile = vi.fn(() => null);
+
+    h.read.mockResolvedValue([
+      { types: [], getType: vi.fn() } as unknown as ClipboardItem,
+    ]);
+
+    dispatchPaste(h, ["Files"], getAsFile);
+    await vi.waitFor(() => expect(h.clipboard.busy).toBe(false));
+    expect(h.read).toHaveBeenCalledTimes(2);
+    expect(h.insertImage).not.toHaveBeenCalled();
+    expect(Messages.plain(h.selection.message)).toContain("Ctrl+V");
+    h.clipboard.dispose();
+  });
+
+  it("does not use an event image after retrying opaque menu reads, and gives the Ctrl+V hint", async () => {
+    const h = setup(),
+      image = new Blob(["event image"], { type: "image/png" });
+
+    h.read.mockResolvedValue([
+      { types: [], getType: vi.fn() } as unknown as ClipboardItem,
+    ]);
+
+    await h.clipboard.paste(image);
+    expect(h.read).toHaveBeenCalledTimes(2);
+    expect(h.insertImage).not.toHaveBeenCalled();
+    expect(Messages.plain(h.selection.message)).toContain("Ctrl+V");
+    h.clipboard.dispose();
+  });
+
+  it("retries an opaque menu read once and negotiates the fresh PNG representation", async () => {
+    const h = setup(),
+      image = new Blob(["fresh PNG"], { type: "image/png" });
+
+    h.read
+      .mockResolvedValueOnce([
+        { types: [], getType: vi.fn() } as unknown as ClipboardItem,
+      ])
+      .mockResolvedValueOnce([
+        {
+          types: ["image/png"],
+          getType: async () => image,
+        } as unknown as ClipboardItem,
+      ]);
+
+    await h.clipboard.paste();
+    expect(h.read).toHaveBeenCalledTimes(2);
+    expect(h.insertImage).toHaveBeenCalledOnce();
+    expect(h.insertImage).toHaveBeenCalledWith(image);
+    h.clipboard.dispose();
+  });
+
+  it("does not retain an opaque result after the retry exposes unsupported text", async () => {
+    const h = setup();
+
+    h.read
+      .mockResolvedValueOnce([
+        { types: [], getType: vi.fn() } as unknown as ClipboardItem,
+      ])
+      .mockResolvedValueOnce([
+        {
+          types: ["text/plain"],
+          getType: vi.fn(),
+        } as unknown as ClipboardItem,
+      ]);
+
+    await h.clipboard.paste();
+    expect(h.read).toHaveBeenCalledTimes(2);
+    expect(h.insertImage).not.toHaveBeenCalled();
+
+    expect(Messages.plain(h.selection.message)).not.toContain(
+      "Чтение буфера недоступно",
+    );
+
+    h.clipboard.dispose();
+  });
+
+  it("does not retry ordinary empty clipboard results and uses event fallback only without async read", async () => {
+    const h = setup(),
+      image = new Blob(["event image"], { type: "image/png" }),
+      getAsFile = vi.fn(() => image);
+
+    dispatchPaste(h, ["Files"], getAsFile);
+    await vi.waitFor(() => expect(h.clipboard.busy).toBe(false));
+    expect(h.read).toHaveBeenCalledOnce();
+    expect(h.insertImage).not.toHaveBeenCalled();
+    h.clipboard.dispose();
+
+    const synchronous = setup();
+
+    vi.stubGlobal("navigator", { clipboard: {} });
+
+    const fallbackFile = vi.fn(() => image);
+
+    dispatchPaste(synchronous, ["Files"], fallbackFile);
+    expect(fallbackFile).toHaveBeenCalledOnce();
+
+    await vi.waitFor(() =>
+      expect(synchronous.insertImage).toHaveBeenCalledOnce(),
+    );
+
+    expect(synchronous.insertImage).toHaveBeenCalledWith(image);
+    synchronous.clipboard.dispose();
+  });
+
+  it("does not flatten an advertised own format when async read hides its types", async () => {
+    const h = setup(),
+      getAsFile = vi.fn(() => new Blob(["own preview"], { type: "image/png" }));
+
+    h.read.mockResolvedValue([
+      { types: [], getType: vi.fn() } as unknown as ClipboardItem,
+    ]);
+
+    dispatchPaste(h, [FragmentCodec.MIME, "image/png"], getAsFile);
+    await vi.waitFor(() => expect(h.clipboard.busy).toBe(false));
+    expect(getAsFile).not.toHaveBeenCalled();
+    expect(h.read).toHaveBeenCalledOnce();
+    expect(h.insertImage).not.toHaveBeenCalled();
+
+    expect(Messages.plain(h.selection.message)).toContain(
+      "редактируемого фрагмента",
+    );
+
+    h.clipboard.dispose();
+  });
+
+  it("does not flatten an advertised own format to an async image-only item", async () => {
+    const h = setup(),
+      imageGetType = vi.fn(
+        async () => new Blob(["own preview"], { type: "image/png" }),
+      ),
+      getAsFile = vi.fn(
+        () => new Blob(["own event preview"], { type: "image/png" }),
+      );
+
+    h.read.mockResolvedValue([
+      {
+        types: ["image/png"],
+        getType: imageGetType,
+      } as unknown as ClipboardItem,
+    ]);
+
+    dispatchPaste(h, [FragmentCodec.MIME, "image/png"], getAsFile);
+    await vi.waitFor(() => expect(h.clipboard.busy).toBe(false));
+    expect(imageGetType).not.toHaveBeenCalled();
+    expect(getAsFile).not.toHaveBeenCalled();
+    expect(h.insertImage).not.toHaveBeenCalled();
+
+    expect(Messages.plain(h.selection.message)).toContain(
+      "редактируемого фрагмента",
+    );
+
+    h.clipboard.dispose();
+  });
+
+  it("retains async external image preference over the captured event snapshot", async () => {
+    const h = setup(),
+      image = new Blob(["fresh async image"], { type: "image/png" }),
+      eventImage = new Blob(["same-event fallback"], { type: "image/png" }),
+      getAsFile = vi.fn(() => eventImage);
+
+    h.read.mockResolvedValue([
+      {
+        types: ["image/png"],
+        getType: async () => image,
+      } as unknown as ClipboardItem,
+    ]);
+
+    dispatchPaste(h, ["Files"], getAsFile);
+    await vi.waitFor(() => expect(h.insertImage).toHaveBeenCalledOnce());
+    expect(getAsFile).toHaveBeenCalledOnce();
+    expect(h.insertImage).toHaveBeenCalledWith(image);
+    expect(h.insertImage).not.toHaveBeenCalledWith(eventImage);
+    h.clipboard.dispose();
+  });
+
+  it("keeps clipboard denial fail-closed without retrying into the event image", async () => {
+    const h = setup(),
+      eventImage = new Blob(["event image"], { type: "image/png" }),
+      getAsFile = vi.fn(() => eventImage);
+
+    h.read.mockRejectedValue(new DOMException("denied", "NotAllowedError"));
+    dispatchPaste(h, ["Files"], getAsFile);
+    await vi.waitFor(() => expect(h.clipboard.busy).toBe(false));
+    expect(h.read).toHaveBeenCalledOnce();
+    expect(getAsFile).toHaveBeenCalledOnce();
+    expect(h.insertImage).not.toHaveBeenCalled();
+    expect(Messages.plain(h.selection.message)).toContain("Нет доступа");
     h.clipboard.dispose();
   });
 

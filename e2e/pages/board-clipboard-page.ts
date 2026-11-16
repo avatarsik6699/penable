@@ -10,6 +10,7 @@ export class BoardClipboardPage {
   constructor(
     private readonly page: Page,
     private readonly board: BoardPage,
+    private readonly returnFocus?: () => Promise<void>,
   ) {}
 
   private async all() {
@@ -54,7 +55,14 @@ export class BoardClipboardPage {
   }
 
   private async fault(
-    mode: "none" | "read-denied" | "write-denied" | "unavailable",
+    mode:
+      | "none"
+      | "read-denied"
+      | "write-denied"
+      | "unavailable"
+      | "read-stale-once"
+      | "image-stale-once"
+      | "opaque-read",
   ) {
     await this.page.evaluate((value) => {
       (window as unknown as { __clipboardFault18: string }).__clipboardFault18 =
@@ -385,5 +393,144 @@ export class BoardClipboardPage {
     await this.board.storage.expectStrokeCount(2);
     await this.board.undo();
     await this.board.storage.expectStrokeCount(1);
+  }
+
+  private async writeExternalImage(file: TestImageTypes.File) {
+    return this.page.evaluate(async (base64) => {
+      const bytes = Uint8Array.from(atob(base64), (entry) =>
+        entry.charCodeAt(0),
+      );
+
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          "image/png": new Blob([bytes], { type: "image/png" }),
+        }),
+      ]);
+
+      const item = (await navigator.clipboard.read())[0]!;
+      const image = await item.getType("image/png");
+
+      return btoa(
+        Array.from(new Uint8Array(await image.arrayBuffer()), (byte) =>
+          String.fromCharCode(byte),
+        ).join(""),
+      );
+    }, file.buffer.toString("base64"));
+  }
+
+  async expectExternalImageRecoversOnFirstPaste(
+    file: TestImageTypes.File,
+    menu: boolean,
+  ) {
+    const expected = await this.writeExternalImage(file);
+
+    await this.board.surface.focus();
+
+    if (!this.returnFocus) throw new Error("Focus-return fixture required");
+
+    await this.returnFocus();
+    await this.fault(menu ? "read-stale-once" : "image-stale-once");
+
+    if (menu) {
+      await this.page
+        .getByRole("button", { name: "Выделение", exact: true })
+        .click();
+
+      await this.page
+        .getByRole("button", { name: "Действия", exact: true })
+        .click();
+
+      await this.page
+        .getByRole("button", { name: "Вставить", exact: true })
+        .click();
+    } else await this.page.keyboard.press("Control+v");
+
+    await this.board.storage.expectStrokeCount(1);
+
+    const record = (await this.board.storage.records()).main!;
+
+    expect(record.items.map((item) => item.kind)).toEqual(["image"]);
+    expect(record.assets).toHaveLength(1);
+    expect(record.assets[0]!.base64).toBe(expected);
+
+    const calls = await this.page.evaluate(
+      () =>
+        (
+          window as unknown as {
+            __clipboardCalls43: { reads: number; getTypes: number };
+          }
+        ).__clipboardCalls43,
+    );
+
+    expect(calls).toEqual({ reads: 2, getTypes: menu ? 1 : 2 });
+
+    await expect(
+      this.page.getByTestId("selection-handles"),
+    ).not.toHaveAttribute("d", "");
+
+    await this.board.undo();
+    await this.board.storage.expectStrokeCount(0);
+    await this.board.redo();
+    await this.board.storage.expectStrokeCount(1);
+    await this.board.reopenSavedBoard();
+    await this.board.storage.expectScene(record.items);
+  }
+
+  async expectOpaqueReadUsesNativeImage(
+    file: TestImageTypes.File,
+    menu: boolean,
+  ) {
+    const expected = await this.writeExternalImage(file);
+
+    await this.fault("opaque-read");
+
+    if (menu) {
+      await this.page
+        .getByRole("button", { name: "Выделение", exact: true })
+        .click();
+
+      await this.page
+        .getByRole("button", { name: "Действия", exact: true })
+        .click();
+
+      await this.page
+        .getByRole("button", { name: "Вставить", exact: true })
+        .click();
+
+      await expect(
+        this.page
+          .getByText(
+            "Чтение буфера недоступно. Вставьте PNG или JPEG сочетанием Ctrl+V.",
+            { exact: true },
+          )
+          .first(),
+      ).toBeVisible();
+
+      await this.board.storage.expectStrokeCount(0);
+
+      const reads = await this.page.evaluate(
+        () =>
+          (window as unknown as { __clipboardCalls43: { reads: number } })
+            .__clipboardCalls43.reads,
+      );
+
+      expect(reads).toBe(2);
+    }
+
+    await this.board.surface.focus();
+    await this.page.keyboard.press("Control+v");
+    await this.board.storage.expectStrokeCount(1);
+
+    const record = (await this.board.storage.records()).main!;
+
+    expect(record.items.map((item) => item.kind)).toEqual(["image"]);
+    expect(record.assets).toHaveLength(1);
+    expect(record.assets[0]!.base64).toBe(expected);
+    await this.board.undo();
+    await this.board.storage.expectStrokeCount(0);
+    await this.board.redo();
+    await this.board.storage.expectStrokeCount(1);
+    await this.board.reopenSavedBoard();
+    await this.board.storage.expectScene(record.items);
   }
 }
