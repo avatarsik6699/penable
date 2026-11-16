@@ -1,4 +1,6 @@
 export const EnglishMessages = {
+  selectionIsBusy: "Another selection action is still in progress.",
+  boardIsReadOnly: "This board is read-only.",
   nativeInputEvent: "Native event",
   lastPenContact: "Last pen contact",
   tooManyBoundaryVerticesLimit8192Per:

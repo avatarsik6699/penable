@@ -1,2 +1,6 @@
 export { BoardSelection, BoardSelectionHelpers } from "./selection";
-export type { SelectionPreview, SelectionClipboard } from "./selection.types";
+export type {
+  SelectionCommitResult,
+  SelectionPreview,
+  SelectionClipboard,
+} from "./selection.types";

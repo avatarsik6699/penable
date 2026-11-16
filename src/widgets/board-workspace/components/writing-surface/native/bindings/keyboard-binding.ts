@@ -15,6 +15,8 @@ function create(
     | "selection"
     | "getTool"
     | "interactionsBlocked"
+    | "inputBusy"
+    | "preservePendingInsertion"
     | "cancelPendingInput"
     | "drawingPointerId"
     | "selectionCommand"
@@ -57,7 +59,7 @@ function create(
       return;
     }
 
-    if (interactionsBlocked()) return;
+    if (interactionsBlocked() || options.inputBusy?.()) return;
 
     const boardContext = Boolean(
       target === canvas || target?.closest("[data-board-selection-toolbar]"),
@@ -169,7 +171,10 @@ function create(
   const blur = () => {
     interaction.focused = false;
     interaction.spaceDown = false;
-    pointer.cancel();
+
+    if (options.preservePendingInsertion?.() && !interactionsBlocked())
+      pointer.cancelGestures();
+    else pointer.cancel();
   };
 
   const focus = () => {

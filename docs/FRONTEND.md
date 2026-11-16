@@ -236,3 +236,16 @@ independent from generic mutable replacement APIs. Durable replacement shares th
 separates previous/candidate asset scopes and returns the exact previous recovery Blob only after
 transaction completion. Required previous-source detachment happens in the Worker. Async recovery
 downloads guard editor/session generations and suppress stale results. No document schema changes.
+
+## Image insertion command ownership
+
+ImageInput owns one acquired-image command through bytes, decode and atomic selection insertion.
+External UI blocking and temporary command busy state are separate binding ports. Busy prevents
+new edits; incidental hover/move/up cannot cancel the command that caused busy. Acquired-image
+processing survives blur/hidden visibility, while ordinary pointer gestures retain cancellation.
+Explicit cancellation, authority loss, blocking dialogs, editor replacement and disposal remain
+hard boundaries. An image-owned AbortSignal reaches the exact insertion operation; settled/old
+signals cannot cancel a later operation. Detailed insertion outcomes carry immutable localized
+rejection descriptors rather than recovering errors from mutable selection UI text. Existing
+boolean selection APIs remain compatible for their other consumers. Temporary bitmap claims
+release once and preserve canonical assets already present in the scene.

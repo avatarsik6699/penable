@@ -612,7 +612,12 @@ point/mask limits remain enforced. Validate headers/dimensions before decode and
 size after decode. Corrupt/oversized data leaves scene unchanged with local feedback. Text fields,
 UI overlays, modal, read-only and active input retain ownership of clipboard/drop/shortcuts.
 Explicit clipboard-read fallback reports denial and preserves existing internal-fragment paste.
-Late asynchronous results are bound to board/editor generation and disposed on switch/cancel.
+Once an image has been acquired, decoding and insertion continue across ordinary window blur
+or hidden visibility. Temporary command busy state blocks new edits but incidental pointer
+hover/move/up never cancels that command. Explicit cancellation/Esc, board replacement, blocking
+dialog, write-authority loss and disposal abort its own pending transaction. Insertion reports
+committed, cancelled or rejected with the precise localized reason; cancellation is not a bad-file
+error. Late asynchronous results are bound to board/editor generation and disposed on switch/cancel.
 Native generation-owned bitmap cache releases resources on disposal; no images/points in React.
 
 **Portable schema4.** Read JSON1/2/3, write4. Persist discriminated items and a deduplicated embedded

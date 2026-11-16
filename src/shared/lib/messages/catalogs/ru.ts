@@ -1,4 +1,6 @@
 export const RussianMessages = {
+  selectionIsBusy: "Другое действие с выделением ещё выполняется.",
+  boardIsReadOnly: "Эта доска доступна только для чтения.",
   nativeInputEvent: "Событие ввода",
   lastPenContact: "Касание пера",
   tooManyBoundaryVerticesLimit8192Per:

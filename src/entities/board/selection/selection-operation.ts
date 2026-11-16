@@ -1,4 +1,6 @@
+import { Messages } from "~/shared/lib/messages";
 import type { ClipMask } from "../board.types";
+import type { SelectionCommitResult } from "./selection.types";
 
 export class SelectionOperation {
   private pending: AbortController | null = null;
@@ -31,13 +33,33 @@ export class SelectionOperation {
   run<T>(
     prepare: (signal: AbortSignal) => T | Promise<T>,
     accept: (value: T) => void,
-    finish: (success: boolean) => void = () => {},
+    finish: (result: SelectionCommitResult) => void = () => {},
     outline: ClipMask | null = null,
+    signal?: AbortSignal,
   ) {
+    if (signal?.aborted) {
+      finish({ status: "cancelled" });
+
+      return;
+    }
+
     const pending = new AbortController();
 
+    const abort = () => {
+      if (this.pending !== pending) return;
+
+      this.cancel();
+      this.options.changed();
+    };
+
+    const settle = (result: SelectionCommitResult) => {
+      signal?.removeEventListener("abort", abort);
+      finish(result);
+    };
+
     this.pending = pending;
-    this.cancelled = () => finish(false);
+    this.cancelled = () => settle({ status: "cancelled" });
+    signal?.addEventListener("abort", abort, { once: true });
 
     const complete = (success: boolean, value?: T, error?: unknown) => {
       if (this.pending !== pending || pending.signal.aborted) return;
@@ -55,9 +77,16 @@ export class SelectionOperation {
         }
       }
 
-      finish(success);
+      if (success) settle({ status: "committed" });
+      else {
+        const reason = Messages.from(
+          error,
+          Messages.create("couldNotProcessTheSelection"),
+        );
 
-      if (!success) this.options.report(error);
+        settle({ status: "rejected", reason });
+        this.options.report(reason);
+      }
 
       this.options.changed();
     };
@@ -66,9 +95,11 @@ export class SelectionOperation {
       const result = prepare(pending.signal);
 
       if (result && typeof (result as Promise<T>).then === "function") {
-        this.outline = outline;
-        this.options.pending();
-        this.options.changed();
+        if (this.pending === pending && !pending.signal.aborted) {
+          this.outline = outline;
+          this.options.pending();
+          this.options.changed();
+        }
 
         void Promise.resolve(result).then(
           (value) => complete(true, value),

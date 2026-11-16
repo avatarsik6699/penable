@@ -3,7 +3,7 @@ import { afterEach, describe, it, expect, vi } from "vitest";
 import { ImageInput } from "./image-input";
 import { BitmapCache } from "./bitmap-cache";
 import { ImageAssets } from "~/features/board-document";
-import type { ImageItem, Scene } from "~/entities/board";
+import type { ImageItem, Scene, SelectionCommitResult } from "~/entities/board";
 
 const base64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jMZkAAAAASUVORK5CYII=";
@@ -22,7 +22,9 @@ function setup(
   scene: Scene = { strokes: [], active: null },
   insert: (
     items: import("~/entities/board").BoardItem[],
-  ) => void | Promise<boolean> = () => {},
+  ) => SelectionCommitResult | Promise<SelectionCommitResult> = () => ({
+    status: "committed",
+  }),
 ) {
   const nativeInput = Object.assign(new EventTarget(), {
     setAttribute: vi.fn(),
@@ -79,7 +81,7 @@ describe("pending image insertion ownership", () => {
   it("keeps decode alive across picker blur, reports choosing/cancel, and accepts the same file again", async () => {
     const decoded = deferred<ImageBitmap>(),
       started = deferred<void>(),
-      insert = vi.fn();
+      insert = vi.fn(() => ({ status: "committed" as const }));
 
     vi.stubGlobal("createImageBitmap", () => {
       started.resolve();
@@ -119,7 +121,7 @@ describe("pending image insertion ownership", () => {
   });
 
   it("failed files report a retryable error without inserting", async () => {
-    const insert = vi.fn(),
+    const insert = vi.fn(() => ({ status: "committed" as const })),
       h = setup(undefined, insert);
 
     await h.input.insertFile(new Blob(["broken"]));
@@ -132,7 +134,10 @@ describe("pending image insertion ownership", () => {
 
   it("ends a rejected atomic insertion with retryable error and releases temporary bitmap", async () => {
     const close = vi.fn(),
-      insert = vi.fn(async () => false);
+      insert = vi.fn(async () => ({
+        status: "rejected" as const,
+        reason: Messages.create("couldNotInsertTheImageChooseThe"),
+      }));
 
     vi.stubGlobal("createImageBitmap", async () => ({
       width: 1,
@@ -157,7 +162,7 @@ describe("pending image insertion ownership", () => {
     const started = deferred<void>(),
       decoded = deferred<ImageBitmap>(),
       close = vi.fn(),
-      insert = vi.fn();
+      insert = vi.fn(() => ({ status: "committed" as const }));
 
     vi.stubGlobal("createImageBitmap", () => {
       started.resolve();
@@ -256,7 +261,7 @@ describe("pending image insertion ownership", () => {
         },
       },
       started = deferred<void>(),
-      validation = deferred<boolean>();
+      validation = deferred<SelectionCommitResult>();
 
     const h = setup({ strokes: [image], active: null }, () => {
       started.resolve();
@@ -270,7 +275,7 @@ describe("pending image insertion ownership", () => {
 
     await started.promise;
     h.input.cancel();
-    validation.resolve(false);
+    validation.resolve({ status: "cancelled" });
     await pending;
     expect(h.cache.get(image.asset)).not.toBeNull();
     expect(close).not.toHaveBeenCalled();

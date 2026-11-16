@@ -18,6 +18,7 @@ function create(
     | "getTool"
     | "canWrite"
     | "interactionsBlocked"
+    | "inputBusy"
     | "drawingPointerId"
     | "activeInput"
     | "observeInput"
@@ -54,7 +55,7 @@ function create(
     }
   };
 
-  const cancel = () => {
+  const cancelInteraction = (preserveCommand: boolean) => {
     touch.cancel();
     options.templatePlacement?.cancel();
 
@@ -62,7 +63,9 @@ function create(
 
     input.cancel();
     eraser.cancel();
-    selection.cancel();
+
+    if (!preserveCommand || selection.pointerId !== null) selection.cancel();
+
     navigation.endPan();
     cursor.model.cancel();
     releaseCapture(pointerId);
@@ -71,8 +74,12 @@ function create(
     publishHistoryState();
   };
 
+  const cancelGestures = () => cancelInteraction(true);
+
+  const cancel = () => cancelInteraction(false);
+
   const down = (event: PointerEvent) => {
-    if (interactionsBlocked()) return;
+    if (interactionsBlocked() || options.inputBusy?.()) return;
 
     if (event.pointerType === "touch") {
       touch.down(event);
@@ -142,6 +149,20 @@ function create(
   };
 
   const move = (event: PointerEvent) => {
+    if (
+      interactionsBlocked() ||
+      (!canWrite() &&
+        (input.pointerId !== null ||
+          eraser.pointerId !== null ||
+          selection.pointerId !== null))
+    ) {
+      cancel();
+
+      return;
+    }
+
+    if (options.inputBusy?.()) return;
+
     if (event.pointerType === "touch") {
       touch.move(event);
 
@@ -177,18 +198,6 @@ function create(
     if (event.target === canvas && options.templatePlacement?.active)
       options.templatePlacement.move(event.clientX, event.clientY);
 
-    if (
-      (!canWrite() &&
-        (input.pointerId !== null ||
-          eraser.pointerId !== null ||
-          selection.pointerId !== null)) ||
-      interactionsBlocked()
-    ) {
-      cancel();
-
-      return;
-    }
-
     const panPointer = navigation.pointerId;
 
     if (navigation.movePan(event)) {
@@ -223,6 +232,20 @@ function create(
   };
 
   const up = (event: PointerEvent) => {
+    if (
+      interactionsBlocked() ||
+      (!canWrite() &&
+        (input.pointerId !== null ||
+          eraser.pointerId !== null ||
+          selection.pointerId !== null))
+    ) {
+      cancel();
+
+      return;
+    }
+
+    if (options.inputBusy?.()) return;
+
     if (event.pointerType === "touch") {
       touch.up(event);
 
@@ -232,18 +255,6 @@ function create(
     if (event.pointerType !== "pen") cursor.sample(event);
 
     cursor.model.end(event.pointerId);
-
-    if (
-      (!canWrite() &&
-        (input.pointerId !== null ||
-          eraser.pointerId !== null ||
-          selection.pointerId !== null)) ||
-      interactionsBlocked()
-    ) {
-      cancel();
-
-      return;
-    }
 
     if (navigation.endPan(event.pointerId)) {
       event.preventDefault();
@@ -315,7 +326,7 @@ function create(
 
     event.preventDefault();
 
-    if (interactionsBlocked() || touch.busy) return;
+    if (interactionsBlocked() || options.inputBusy?.() || touch.busy) return;
 
     const bounds = canvas.getBoundingClientRect();
 
@@ -333,6 +344,7 @@ function create(
 
   return {
     cancel,
+    cancelGestures,
     touchActive: () => touch.busy,
     down,
     move,

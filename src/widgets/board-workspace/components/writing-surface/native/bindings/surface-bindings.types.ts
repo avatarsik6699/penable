@@ -22,6 +22,8 @@ export type BindingOptions = {
   getFingerInput?: () => boolean;
   canWrite: () => boolean;
   interactionsBlocked: () => boolean;
+  inputBusy?: () => boolean;
+  preservePendingInsertion?: () => boolean;
   templatePlacement?: import("../templates").TemplatePlacement;
   cancelPendingInput?: () => boolean;
   drawingPointerId: () => number | null;

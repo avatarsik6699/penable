@@ -198,3 +198,20 @@ bounded opaque read. Do not synthesize an event or use deprecated execCommand to
 The [Clipboard API draft](https://w3c.github.io/clipboard-apis/#clipboarditem) describes lazy
 getType fetching and changed clipboard state rejection. Keep failed-read, opaque-format and
 corrupt-image regressions separate; they are distinct stages of insertion.
+
+## Busy image insertion can cancel itself through pointer events
+
+Change44 reproduced the post-decode file-retry error with a real pending selection transaction:
+without pointer events it committed once; pen hover, mouse hover and pointer-up each cancelled
+it. Runtime combined image/clipboard busy with external interactionsBlocked, whose pointer move/up
+handler called the broad selection cancellation routine. The image command was therefore aborted
+by the busy guard it had enabled. Keep temporary input blocking separate from external invalidation
+and reserve command cancellation for its actual owner. Preserve acquired images across blur as
+specified; explicit/generation/authority cancellation still reaches the insertion transaction.
+
+Small image fixtures missed this path: their PNGs were about1.5KiB and validation was synchronous.
+Ordinary screenshots cross the128KiB base64 Worker threshold. Use a deterministic noisy image and
+hold the terminal response of a real validate job, while allowing transfer ACKs and Worker work.
+Joined ImageInput/selection/binding tests must not replace insertion with an always-success mock.
+Carry failure/cancellation outcomes directly so a generic file-retry notice cannot overwrite a
+real validation, authority or scene-change reason.

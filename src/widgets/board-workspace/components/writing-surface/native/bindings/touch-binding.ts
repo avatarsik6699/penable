@@ -19,7 +19,8 @@ function create(options: BindingOptions) {
     },
 
     editing: () => options.getFingerInput?.() ?? false,
-    blocked: options.interactionsBlocked,
+    blocked: () =>
+      options.interactionsBlocked() || Boolean(options.inputBusy?.()),
 
     occupied: (editingPointerId) => {
       const owner = options.drawingPointerId();

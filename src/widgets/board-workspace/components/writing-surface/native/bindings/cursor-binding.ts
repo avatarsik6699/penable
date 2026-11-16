@@ -14,6 +14,7 @@ function create(
     | "selection"
     | "getTool"
     | "interactionsBlocked"
+    | "inputBusy"
     | "drawingPointerId"
     | "paintSelection"
   >,
@@ -88,6 +89,7 @@ function create(
       interaction.focused &&
         document.visibilityState !== "hidden" &&
         !interactionsBlocked() &&
+        !options.inputBusy?.() &&
         overBoard,
     );
 

@@ -330,10 +330,10 @@ function create(
         !touchActive() &&
         !selection.busy,
 
-      insert: (items) => {
+      insert: (items, signal) => {
         onActivateSelection();
 
-        return selection.insertItems(items);
+        return selection.insertItemsDetailed(items, signal);
       },
 
       notice: (message) => {
@@ -379,6 +379,7 @@ function create(
       images,
       allowed: () =>
         !disposed &&
+        !imageInput.busy &&
         !interactionsBlocked() &&
         drawingPointerId() === null &&
         navigation.pointerId === null &&
@@ -460,8 +461,9 @@ function create(
       getTool,
       getFingerInput: allowTouch,
       canWrite,
-      interactionsBlocked: () =>
-        interactionsBlocked() || imageInput.busy || nativeClipboard.busy,
+      interactionsBlocked,
+      inputBusy: () => imageInput.busy || nativeClipboard.busy,
+      preservePendingInsertion: () => imageInput.busy,
       drawingPointerId,
       activeInput,
       observeInput: diagnostics.observe,

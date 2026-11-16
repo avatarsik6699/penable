@@ -14,6 +14,7 @@ export class ImageInput {
   private generation = 0;
   private disposed = false;
   private pending = false;
+  private controller: AbortController | null = null;
   status: {
     phase: "idle" | "choosing" | "processing" | "success" | "error";
     message: MessageTypes.Value;
@@ -117,6 +118,9 @@ export class ImageInput {
     if (!this.options.allowed() || this.pending) return;
 
     const generation = ++this.generation;
+    const controller = new AbortController();
+
+    this.controller = controller;
 
     this.pending = true;
 
@@ -138,10 +142,16 @@ export class ImageInput {
 
       if (
         this.disposed ||
-        generation !== this.generation ||
-        !this.options.allowed()
+        controller.signal.aborted ||
+        generation !== this.generation
       )
         return;
+
+      if (!this.options.allowed()) {
+        this.cancel();
+
+        return;
+      }
 
       const base64 = ImageAssets.encodeBase64(bytes),
         asset = Object.freeze({
@@ -171,14 +181,21 @@ export class ImageInput {
 
       const assetClaim = this.options.images.claim(reconciled.asset);
 
+      let released = false;
+
       claim = {
-        release: () =>
+        release: () => {
+          if (released) return;
+
+          released = true;
+
           assetClaim.release(
             this.options.scene.strokes.some(
               (item) =>
                 item.kind === "image" && item.asset === reconciled.asset,
             ),
-          ),
+          );
+        },
       };
 
       this.pendingClaim = claim;
@@ -186,10 +203,16 @@ export class ImageInput {
 
       if (
         this.disposed ||
-        generation !== this.generation ||
-        !this.options.allowed()
+        controller.signal.aborted ||
+        generation !== this.generation
       )
         return;
+
+      if (!this.options.allowed()) {
+        this.cancel();
+
+        return;
+      }
 
       const rect = this.options.canvas.getBoundingClientRect(),
         viewport = this.options.viewport(),
@@ -228,21 +251,22 @@ export class ImageInput {
         ] as const,
       };
 
-      const insertedSuccessfully = await this.options.insert([inserted]);
+      const result = await this.options.insert([inserted], controller.signal);
 
       if (!this.disposed && generation === this.generation) {
-        this.status =
-          insertedSuccessfully === false
-            ? {
-                phase: "error",
-                message: Messages.create("couldNotInsertTheImageChooseThe"),
-              }
-            : {
-                phase: "success",
-                message: Messages.create("imageInsertedDragItOrResizeWith"),
-              };
+        if (result.status === "cancelled") {
+          this.status = { phase: "idle", message: "" };
+        } else {
+          this.status =
+            result.status === "rejected"
+              ? { phase: "error", message: result.reason }
+              : {
+                  phase: "success",
+                  message: Messages.create("imageInsertedDragItOrResizeWith"),
+                };
 
-        this.options.notice(this.status.message);
+          this.options.notice(this.status.message);
+        }
       }
     } catch (error) {
       if (!this.disposed && generation === this.generation) {
@@ -262,6 +286,7 @@ export class ImageInput {
       if (this.pendingClaim === claim) this.pendingClaim = null;
 
       if (!this.disposed && generation === this.generation) {
+        this.controller = null;
         this.pending = false;
         this.options.changed();
       }
@@ -280,6 +305,8 @@ export class ImageInput {
     const pending = this.pending || this.status.phase === "choosing";
 
     this.generation++;
+    this.controller?.abort();
+    this.controller = null;
     this.pendingClaim?.release();
     this.pendingClaim = null;
     this.pending = false;

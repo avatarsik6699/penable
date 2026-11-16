@@ -1,3 +1,4 @@
+import type { MessageTypes } from "~/shared/lib/messages";
 import {
   type BoardItem,
   type Position,
@@ -7,6 +8,11 @@ import {
   type RegionInput,
 } from "../board.types";
 import { type SelectedPart } from "../regions";
+
+type SelectionCommitResult =
+  | { status: "committed" }
+  | { status: "cancelled" }
+  | { status: "rejected"; reason: MessageTypes.Value };
 
 type SelectionPreview = {
   stationary: readonly BoardItem[];
@@ -52,4 +58,9 @@ type SelectionOptions = {
   setViewport: (viewport: Viewport) => void;
 };
 
-export type { SelectionPreview, SelectionClipboard, SelectionOptions };
+export type {
+  SelectionCommitResult,
+  SelectionPreview,
+  SelectionClipboard,
+  SelectionOptions,
+};

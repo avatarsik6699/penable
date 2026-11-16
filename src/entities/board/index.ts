@@ -13,7 +13,11 @@ export { BoardRegions } from "./regions";
 export type { InkBounds, SelectedPart } from "./regions";
 export { BoardLimits } from "./scene-limits";
 export { BoardSelection, BoardSelectionHelpers } from "./selection";
-export type { SelectionPreview, SelectionClipboard } from "./selection";
+export type {
+  SelectionCommitResult,
+  SelectionPreview,
+  SelectionClipboard,
+} from "./selection";
 export { BoardShortcuts } from "./input";
 export type { HistoryAction } from "./input";
 export { BoardSnapshots } from "./snapshots";

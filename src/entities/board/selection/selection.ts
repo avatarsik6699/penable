@@ -21,6 +21,7 @@ import { type SelectedPart, BoardRegions } from "../regions";
 import { BoardViewport } from "../viewport";
 import { BoardLimits } from "../scene-limits";
 import {
+  type SelectionCommitResult,
   type SelectionPreview,
   type SelectionClipboard,
   type SelectionOptions,
@@ -132,10 +133,10 @@ export class BoardSelection {
   }
 
   private report(error: unknown) {
-    this.message =
-      error instanceof Error
-        ? Messages.from(error)
-        : Messages.create("couldNotProcessTheSelection");
+    this.message = Messages.from(
+      error,
+      Messages.create("couldNotProcessTheSelection"),
+    );
 
     this.options.changed();
   }
@@ -362,23 +363,61 @@ export class BoardSelection {
     }
   }
 
-  insertItems(items: BoardItem[]): Promise<boolean> {
-    if (this.busy || !this.options.writable()) return Promise.resolve(false);
+  async insertItems(items: BoardItem[]): Promise<boolean> {
+    return (await this.insertItemsDetailed(items)).status === "committed";
+  }
 
-    const bounds = BoardRegions.visibleBounds(items);
+  insertItemsDetailed(
+    items: BoardItem[],
+    signal?: AbortSignal,
+  ): Promise<SelectionCommitResult> {
+    if (signal?.aborted) return Promise.resolve({ status: "cancelled" });
 
-    if (!bounds) return Promise.resolve(false);
+    if (this.busy)
+      return Promise.resolve({
+        status: "rejected",
+        reason: Messages.create("selectionIsBusy"),
+      });
 
-    return new Promise((resolve) =>
-      this.apply(
-        { strokes: [...this.options.scene.strokes, ...items], selected: items },
-        BoardRegions.rectangle(
-          { x: bounds.left, y: bounds.top },
-          { x: bounds.right, y: bounds.bottom },
+    if (!this.options.writable())
+      return Promise.resolve({
+        status: "rejected",
+        reason: Messages.create("boardIsReadOnly"),
+      });
+
+    try {
+      const bounds = BoardRegions.visibleBounds(items);
+
+      if (!bounds)
+        return Promise.resolve({
+          status: "rejected",
+          reason: Messages.create("selectionAreaIsEmpty"),
+        });
+
+      return new Promise((resolve) =>
+        this.apply(
+          {
+            strokes: [...this.options.scene.strokes, ...items],
+            selected: items,
+          },
+          BoardRegions.rectangle(
+            { x: bounds.left, y: bounds.top },
+            { x: bounds.right, y: bounds.bottom },
+          ),
+          resolve,
+          signal,
         ),
-        resolve,
-      ),
-    );
+      );
+    } catch (error) {
+      const reason = Messages.from(
+        error,
+        Messages.create("couldNotProcessTheSelection"),
+      );
+
+      this.report(reason);
+
+      return Promise.resolve({ status: "rejected", reason });
+    }
   }
 
   cropImages() {
@@ -484,24 +523,22 @@ export class BoardSelection {
       parts?: SelectedPart[];
     },
     region = this.region,
-    finish: (success: boolean) => void = () => {},
+    finish: (result: SelectionCommitResult) => void = () => {},
+    signal?: AbortSignal,
   ) {
     if (candidate.strokes.length > BoardLimits.SCENE_LIMITS.strokes) {
-      finish(false);
-
       const reason =
         this.options.scene.strokes.length >= BoardLimits.SCENE_LIMITS.strokes
           ? Messages.create("theBoardHasReachedTheLimitOf")
           : Messages.create("thisActionWouldExceedTheLimitOf");
 
-      this.report(
-        Messages.error(
-          Messages.concat(
-            reason,
-            Messages.create("movingPartOfAStrokeCreatesExtra"),
-          ),
-        ),
+      const detail = Messages.concat(
+        reason,
+        Messages.create("movingPartOfAStrokeCreatesExtra"),
       );
+
+      finish({ status: "rejected", reason: detail });
+      this.report(detail);
 
       return;
     }
@@ -511,8 +548,10 @@ export class BoardSelection {
     this.operation.run(
       (signal) => this.options.validate(candidate.strokes, signal),
       () => {
+        if (!this.options.writable())
+          throw Messages.error(Messages.create("boardIsReadOnly"));
+
         if (
-          !this.options.writable() ||
           before.length !== this.options.scene.strokes.length ||
           before.some(
             (stroke, index) => stroke !== this.options.scene.strokes[index],
@@ -536,13 +575,20 @@ export class BoardSelection {
         this.previewBase = null;
         this.message = "";
       },
-      finish,
+      (result) => {
+        if (result.status === "cancelled") this.message = "";
+
+        finish(result);
+      },
+      null,
+      signal,
     );
   }
 
   private finishMove(viewport?: Viewport) {
-    const finish = (success: boolean) => {
-      if (!success && viewport) this.options.setViewport(viewport);
+    const finish = (result: SelectionCommitResult) => {
+      if (result.status !== "committed" && viewport)
+        this.options.setViewport(viewport);
 
       this.rollbackViewport = null;
       this.delta = { ...SelectionConfig.ZERO };
@@ -564,7 +610,7 @@ export class BoardSelection {
         BoardRegions.translateMask(this.region, this.delta),
         finish,
       );
-    } else finish(true);
+    } else finish({ status: "committed" });
   }
 
   cancel(): boolean {
@@ -641,7 +687,11 @@ export class BoardSelection {
         true,
       );
 
-      return new Promise((resolve) => this.apply(candidate, [], resolve));
+      return new Promise((resolve) =>
+        this.apply(candidate, [], (result) =>
+          resolve(result.status === "committed"),
+        ),
+      );
     } catch (error) {
       this.report(error);
 
@@ -665,7 +715,9 @@ export class BoardSelection {
       if (!insertion) return Promise.resolve(false);
 
       return new Promise((resolve) =>
-        this.apply(insertion.candidate, insertion.region, resolve),
+        this.apply(insertion.candidate, insertion.region, (result) =>
+          resolve(result.status === "committed"),
+        ),
       );
     } catch (error) {
       this.report(error);
@@ -697,8 +749,8 @@ export class BoardSelection {
       const buffer = cut ? SelectionUtils.copy(this.selected) : null;
       const region = BoardRegions.cloneMask(this.outline);
 
-      this.apply(candidate, [], (success) => {
-        if (success && buffer) {
+      this.apply(candidate, [], (result) => {
+        if (result.status === "committed" && buffer) {
           this.clipboard.strokes = buffer;
           this.clipboard.region = region;
         }
