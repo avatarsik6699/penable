@@ -7,7 +7,7 @@
 | Change | `42` |
 | Slug | `bounded-document-transfer` |
 | Title | Bounded document transfer and replacement |
-| Status | `active` |
+| Status | `shipped` |
 | Branch | `feature/42-bounded-document-transfer` |
 
 ## Goal
@@ -103,7 +103,7 @@ the default one-argument serializer and all descriptor/type/cycle validation rem
 
 ## Gate Checks
 
-Standard [STACK.md](../STACK.md) gates plus owned native/application measurements. Baseline source
+Standard [STACK.md](../../STACK.md) gates plus owned native/application measurements. Baseline source
 in `.artifacts/change-42/baseline/src`; benchmark4180, own application4220, E2E4185. Exact1M-point
 roundtrip;20k×50 sources require489 point packets and max2 unacknowledged data packets. Exercise
 stalled/duplicate/stale/future ACKs, full-credit cancellation, constructor/post/message/worker

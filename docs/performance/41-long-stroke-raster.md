@@ -65,7 +65,7 @@ These artifacts are local evidence, not portable production assets.
 
 Future renderer work requires another architecture decision. Further arbitrary padding,
 sentinel placement, sampling or raster tolerance changes are not authorized by this experiment.
-The independent [document-transfer change](../changes/42-bounded-document-transfer.md) may
+The independent [document-transfer change](../changes/archive/42-bounded-document-transfer.md) may
 proceed without this prototype. Physical Wacom latency and GPU retained memory remain separate
 acceptance questions.
 
