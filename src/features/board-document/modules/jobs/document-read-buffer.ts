@@ -17,18 +17,25 @@ export class DocumentReadBuffer {
   accept(message: JobRequest): BoardDocument | null {
     if (message.type === "start") this.root = message.root;
 
-    if (message.type === "points") {
-      let points = this.geometries.get(message.geometry);
+    if (message.type === "points-batch") {
+      for (const range of message.ranges) {
+        let points = this.geometries.get(range.geometry);
 
-      if (!points) {
-        points = new Array<Point>(message.length);
-        this.geometries.set(message.geometry, points);
+        if (!points) {
+          points = new Array<Point>(range.length);
+          this.geometries.set(range.geometry, points);
+        }
+
+        const chunk = DocumentProtocol.pointsFromChunk(
+          message.values.subarray(
+            range.start * 4,
+            (range.start + range.count) * 4,
+          ),
+        );
+
+        for (let i = 0; i < chunk.length; i++)
+          points[range.offset + i] = chunk[i]!;
       }
-
-      const chunk = DocumentProtocol.pointsFromChunk(message.values);
-
-      for (let i = 0; i < chunk.length; i++)
-        points[message.offset + i] = chunk[i]!;
     }
 
     if (message.type === "asset") {
@@ -57,9 +64,13 @@ export class DocumentReadBuffer {
 
       if (entry.kind === "template") return entry;
 
-      const { geometry, kind: _kind, ...stroke } = entry;
+      const { geometry, kind: _kind, ownKind, ...stroke } = entry;
 
-      return { ...stroke, points: this.geometries.get(geometry)! };
+      return {
+        ...stroke,
+        ...(ownKind ? { kind: "ink" as const } : {}),
+        points: this.geometries.get(geometry)!,
+      };
     });
 
     return { ...this.root, strokes };

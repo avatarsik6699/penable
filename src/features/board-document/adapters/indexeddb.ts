@@ -334,6 +334,55 @@ function openRepository(
         };
       }
 
+      function replaceDocument(
+        previous: unknown,
+        candidate: BoardDocument,
+        fromStored = false,
+      ): Promise<void> {
+        return transaction<void>("readwrite", (store, result) => {
+          preserveSchema5(store, candidate);
+          preserveSchema4(store, candidate);
+          preserveSchema1(store, candidate);
+          preserveSchema3(store, candidate);
+
+          const savePrevious = (value: unknown) =>
+            store.put(value, backupKeyFor("before-import"));
+
+          if (fromStored) {
+            const current = store.get(boardKey);
+
+            current.onsuccess = () => {
+              try {
+                savePrevious(current.result as unknown);
+              } catch {
+                store.transaction.abort();
+              }
+            };
+          } else
+            savePrevious(
+              previous &&
+                typeof previous === "object" &&
+                "strokes" in previous &&
+                "schemaVersion" in previous &&
+                (previous.schemaVersion === 4 || previous.schemaVersion === 5)
+                ? DocumentCodec.encodeDocument(previous as BoardDocument)
+                : previous,
+            );
+
+          store.put(
+            candidate.schemaVersion === 4 || candidate.schemaVersion === 5
+              ? DocumentCodec.encodeDocument(candidate)
+              : candidate,
+            boardKey,
+          );
+
+          result(undefined);
+        }).then(() => {
+          schema2Preserved = candidate.schemaVersion === 2;
+          schema3Preserved = candidate.schemaVersion === 3;
+        });
+      }
+
       resolve({
         read: () =>
           transaction("readonly", (store, result) => {
@@ -430,37 +479,9 @@ function openRepository(
           });
         },
 
-        replace: (previous: unknown, candidate: BoardDocument) => {
-          return transaction<void>("readwrite", (store, result) => {
-            preserveSchema5(store, candidate);
-            preserveSchema4(store, candidate);
-            preserveSchema1(store, candidate);
-            preserveSchema3(store, candidate);
-
-            store.put(
-              previous &&
-                typeof previous === "object" &&
-                "strokes" in previous &&
-                "schemaVersion" in previous &&
-                (previous.schemaVersion === 4 || previous.schemaVersion === 5)
-                ? DocumentCodec.encodeDocument(previous as BoardDocument)
-                : previous,
-              backupKeyFor("before-import"),
-            );
-
-            store.put(
-              candidate.schemaVersion === 4 || candidate.schemaVersion === 5
-                ? DocumentCodec.encodeDocument(candidate)
-                : candidate,
-              boardKey,
-            );
-
-            result(undefined);
-          }).then(() => {
-            schema2Preserved = candidate.schemaVersion === 2;
-            schema3Preserved = candidate.schemaVersion === 3;
-          });
-        },
+        replace: (previous, candidate) => replaceDocument(previous, candidate),
+        replaceStored: (candidate) =>
+          replaceDocument(undefined, candidate, true),
 
         close: async () => {
           closed = true;

@@ -1,3 +1,5 @@
+import { RecordCopies } from "../record-copies";
+import { DocumentCapture } from "./document-capture";
 import { Messages } from "~/shared/lib/messages";
 import type { RegionInput, BoardItem, SelectedPart } from "~/entities/board";
 import { DocumentCodec } from "../codec";
@@ -91,21 +93,7 @@ export class DocumentJobs implements DocumentPersistence {
         Messages.error(Messages.create("documentProcessingIsClosing")),
       );
 
-    const captured = {
-      ...document,
-      strokes: [...document.strokes],
-      viewport: { ...document.viewport },
-      tools: { ...document.tools },
-      backgroundSettings: {
-        ...(document.backgroundSettings ?? { contrast: 45, spacing: 24 }),
-      },
-      lastWritingView: document.lastWritingView
-        ? {
-            center: { ...document.lastWritingView.center },
-            zoom: document.lastWritingView.zoom,
-          }
-        : null,
-    };
+    const captured = DocumentCapture.completed(document);
 
     const operation = this.tail.then(() =>
       this.transport.execute("save", captured),
@@ -114,6 +102,57 @@ export class DocumentJobs implements DocumentPersistence {
     this.tail = operation.catch(() => {});
 
     return operation.then(() => {});
+  }
+
+  replace(
+    previous: import("../../board-document.types").ReplacementPrevious,
+    candidate: BoardDocument,
+  ): Promise<void> {
+    return this.replaceQueued(previous, candidate, false).then(() => {});
+  }
+
+  // Production persistence port only: Session has already completed strict preparation.
+  replaceValidated(
+    previous: import("../../board-document.types").ReplacementPrevious,
+    candidate: BoardDocument,
+  ): Promise<import("../../board-document.types").StoredRecord | void> {
+    return this.replaceQueued(previous, candidate, true);
+  }
+
+  private replaceQueued(
+    previous: import("../../board-document.types").ReplacementPrevious,
+    candidate: BoardDocument,
+    trusted: boolean,
+  ): Promise<import("../../board-document.types").StoredRecord | void> {
+    if (this.closing)
+      return Promise.reject(
+        Messages.error(Messages.create("documentProcessingIsClosing")),
+      );
+
+    const before =
+      "kind" in previous ? previous : DocumentCapture.completed(previous);
+
+    const captured = DocumentCapture.completed(candidate);
+
+    const operation = this.tail.then(() =>
+      this.transport.execute(
+        "replace",
+        captured,
+        undefined,
+        undefined,
+        undefined,
+        before,
+        trusted,
+      ),
+    );
+
+    this.tail = operation.catch(() => {});
+
+    return operation.then((result) =>
+      result.previousCopy
+        ? RecordCopies.capture(result.previousCopy)
+        : undefined,
+    );
   }
 
   overview(
@@ -170,6 +209,20 @@ export class DocumentJobs implements DocumentPersistence {
       throw Messages.error(Messages.create("documentProcessingFailed"));
 
     return result.exported;
+  }
+
+  async exportRaw(document: BoardDocument, signal: AbortSignal): Promise<Blob> {
+    const result = await this.transport.execute(
+      "raw-export",
+      document,
+      undefined,
+      signal,
+    );
+
+    if (!result.rawExport)
+      throw Messages.error(Messages.create("documentProcessingFailed"));
+
+    return result.rawExport;
   }
 
   cancel() {

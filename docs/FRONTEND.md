@@ -218,3 +218,21 @@ stored titles are never translated. Locale changes cannot remount editor/session
 per-pointer rendering. App composes a languageSettings slot into the existing gear View section;
 readonly board authority does not disable this application preference. Both catalogs are offline
 assets. Tests fix ordinary legacy UI scenarios to ru-RU and add isolated EN/RU locale acceptance.
+
+## Bounded document ownership
+
+Production document loading owns a native storage Worker. It reads the immutable record/recovery
+snapshot, strictly decodes once, and streams the validated DTO through packed credit-limited
+messages. Recovery values become private captured Blob/error copies with coarse schema flags;
+views never receive raw records or point arrays. They preserve the snapshot after another writer
+changes storage and after loader termination. The library reads catalog metadata first, preflights
+the prepared board before switching, and passes that same load into its Session. Initial bootstrap
+runs over retained raw/validated data inside the loader. Started transactions drain before Worker
+termination and lease release. Generic injected adapters retain their direct detached-value
+behavior; blocked-Worker startup/emergency recovery retain strict fallback.
+
+Validated import candidates are private capabilities with frozen summaries and explicit disposal,
+independent from generic mutable replacement APIs. Durable replacement shares the writer tail,
+separates previous/candidate asset scopes and returns the exact previous recovery Blob only after
+transaction completion. Required previous-source detachment happens in the Worker. Async recovery
+downloads guard editor/session generations and suppress stale results. No document schema changes.

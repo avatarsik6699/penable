@@ -160,6 +160,10 @@ function open(
       const key = (id: string) => (id === "main" ? "main" : `board:${id}`);
 
       resolve({
+        readCatalog: () =>
+          transaction("readonly", (store, result) =>
+            result(readRecord(store, "library")),
+          ),
         read: () =>
           transaction("readonly", (store, result) =>
             result({

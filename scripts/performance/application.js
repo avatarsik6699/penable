@@ -11,6 +11,9 @@ import {
 import * as Document from "@document";
 import { BoardSelection } from "@board";
 import { EditorLifecycleBenchmark } from "./editor-lifecycle.js";
+import { WorkerProbe } from "./worker-probe.js";
+import { DocumentPipeline } from "./document-pipeline.js";
+import { OpenProbe } from "./open-probe.js";
 
 let storageOwned = false;
 
@@ -119,61 +122,6 @@ async function measure(operation) {
   };
 }
 
-function workerProbe() {
-  const NativeWorker = window.Worker;
-
-  const state = {
-    created: 0,
-    terminated: 0,
-    points: 0,
-    pointMessages: 0,
-    metadata: 0,
-    assetCharacters: 0,
-    maximumPointChunk: 0,
-  };
-
-  const InstrumentedWorker = class extends NativeWorker {
-    constructor(...args) {
-      super(...args);
-      state.created++;
-    }
-
-    postMessage(message, ...rest) {
-      if (message.type === "points") {
-        state.points += message.values.length / 4;
-        state.pointMessages++;
-
-        state.maximumPointChunk = Math.max(
-          state.maximumPointChunk,
-          message.values.length / 4,
-        );
-      }
-
-      if (message.type === "strokes") state.metadata += message.values.length;
-
-      if (message.type === "asset")
-        state.assetCharacters += message.value.length;
-
-      super.postMessage(message, ...rest);
-    }
-
-    terminate() {
-      state.terminated++;
-      super.terminate();
-    }
-  };
-
-  window.Worker = InstrumentedWorker;
-
-  return {
-    snapshot: () => ({ ...state }),
-
-    stop: () => {
-      if (window.Worker === InstrumentedWorker) window.Worker = NativeWorker;
-    },
-  };
-}
-
 async function claimStorage() {
   if (location.origin !== "http://127.0.0.1:4180")
     throw new Error("Owned benchmark origin required");
@@ -257,7 +205,7 @@ async function fileIO(count = 200, points = 50, styled = false) {
   const document = fixture(count, points, styled);
   const json = JSON.stringify(DocumentCodec.encodeDocument(document));
   const file = new Blob([json], { type: "application/json" });
-  const probe = workerProbe();
+  const probe = WorkerProbe.start();
   let parsed, exported;
   const results = [];
 
@@ -333,7 +281,7 @@ async function jobs(count = 200, points = 50, styled = false) {
   const document = fixture(count, points, styled);
   const jobs = new DocumentJobs({ boardId: "performance40" });
   const results = [];
-  const probe = workerProbe();
+  const probe = WorkerProbe.start();
 
   try {
     for (const phase of [
@@ -342,7 +290,7 @@ async function jobs(count = 200, points = 50, styled = false) {
       "warm-select",
       "warm-overview",
     ]) {
-      const before = probe.snapshot();
+      const before = probe.mark();
 
       results.push(
         await measure(async () => {
@@ -376,11 +324,7 @@ async function jobs(count = 200, points = 50, styled = false) {
         }),
       );
 
-      const after = probe.snapshot();
-
-      results.at(-1).transfer = Object.fromEntries(
-        Object.keys(after).map((key) => [key, after[key] - before[key]]),
-      );
+      results.at(-1).transfer = probe.since(before);
     }
 
     const repository = await DocumentRepositoryAdapter.openRepository(
@@ -601,5 +545,18 @@ export const ApplicationBenchmark = {
   session,
   cancellation,
   selectionState,
+
+  documentPipeline: (count, replacementOnly) => {
+    requireStorage();
+
+    return DocumentPipeline.run(measure, count, replacementOnly);
+  },
+
+  openProbe: (cycles, retain) => {
+    requireStorage();
+
+    return OpenProbe.run(measure, stats, cycles, retain);
+  },
+
   editorLifecycle: (cycles) => EditorLifecycleBenchmark.run(fixture, cycles),
 };

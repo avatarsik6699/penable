@@ -189,11 +189,15 @@ at50/100%, proportionally smaller below50. First/last positions remain exact; re
 last position rather than adding a backward tail. Repeated XY with different pressure/time does
 not advance filtering. These are geometry limits, not measured latency or a guarantee of Miro parity.
 
-Completed scene and active ink use separate layers. Clear/draw the active layer once per frame
-as one path; do not traverse completed ink per movement. Commit transfer must not leave tails,
+Completed scene and active ink use separate layers. Draw the active layer at most once per frame
+as one path; an accepted retained-raster implementation may clear/repaint only conservatively
+bounded dirty device-pixel regions with byte-identical output. Do not traverse completed ink per movement. Commit transfer must not leave tails,
 seams or jumps. Viewport/DPR/native pinch redraw geometry instead of CSS-stretching a bitmap.
 Use visualViewport.scale with devicePixelRatio. Total two-layer budget16,777,216pixels (~64MiB
 raw RGBA excluding overhead), max side8192; expose effective-resolution capping in diagnostics.
+Owner-approved performance follow-up allows up to16MiB of additional editor-owned raster cache,
+allocated only when needed and released with its generation. This ceiling does not reduce the
+existing layers' resolution or permit changing stored samples, stroke geometry or opacity.
 
 Acceptance: own zoom100/200/400%, DPR1/2, page zoom/native pinch; no post-commit raster enlargement,
 gaps, artificial reverse segments, dark seams or pointerup shape change in dots/loops/diagonals/

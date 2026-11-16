@@ -9,7 +9,7 @@ import {
 import { DocumentCodec } from "../../../modules/codec";
 import { DocumentReader } from "../../../modules/jobs";
 import { DocumentErrors } from "../../../modules/session";
-import type { BoardDocument } from "../../../board-document.types";
+import type { ImportCandidate } from "../../../modules/import-candidates";
 import type { StoragePanelTypes } from "../storage-panel.types";
 
 export function useImportDialog(
@@ -20,7 +20,7 @@ export function useImportDialog(
   onClosed: () => void,
 ) {
   const [open, setOpen] = useState(false);
-  const [candidate, setCandidate] = useState<BoardDocument | null>(null);
+  const [candidate, setCandidate] = useState<ImportCandidate | null>(null);
   const [reading, setReading] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<MessageTypes.Value>("");
@@ -28,6 +28,14 @@ export function useImportDialog(
   const lifetime = useRef({ mounted: false, readGeneration: 0 });
   const wasOpen = useRef(false);
   const reader = useRef<AbortController | null>(null);
+  const retainedCandidate = useRef<ImportCandidate | null>(null);
+
+  const disposeCandidate = () => {
+    if (retainedCandidate.current)
+      DocumentReader.disposeCandidate(retainedCandidate.current);
+
+    retainedCandidate.current = null;
+  };
 
   useEffect(
     function importReturnFocusFx() {
@@ -47,6 +55,11 @@ export function useImportDialog(
       current.mounted = false;
       current.readGeneration++;
       reader.current?.abort();
+
+      if (retainedCandidate.current)
+        DocumentReader.disposeCandidate(retainedCandidate.current);
+
+      retainedCandidate.current = null;
     };
   }, []);
 
@@ -65,6 +78,7 @@ export function useImportDialog(
     lifetime.current.readGeneration++;
     reader.current?.abort();
     setOpen(false);
+    disposeCandidate();
     setCandidate(null);
     setReading(false);
     setError("");
@@ -82,6 +96,7 @@ export function useImportDialog(
 
     beforeOpen();
     setError("");
+    disposeCandidate();
     setCandidate(null);
     setOpen(true);
   };
@@ -95,6 +110,7 @@ export function useImportDialog(
 
     reader.current = operation;
 
+    disposeCandidate();
     setCandidate(null);
     setError("");
 
@@ -108,13 +124,18 @@ export function useImportDialog(
     setReading(true);
 
     try {
-      const document = await DocumentReader.read(file, operation.signal);
+      const document = await DocumentReader.readCandidate(
+        file,
+        operation.signal,
+      );
 
       if (
         lifetime.current.mounted &&
         generation === lifetime.current.readGeneration
-      )
+      ) {
+        retainedCandidate.current = document;
         setCandidate(document);
+      } else DocumentReader.disposeCandidate(document);
     } catch (error) {
       if (
         lifetime.current.mounted &&
@@ -142,6 +163,7 @@ export function useImportDialog(
       if (!lifetime.current.mounted) return;
 
       setOpen(false);
+      disposeCandidate();
       setCandidate(null);
       props.onEndImport();
       imported();

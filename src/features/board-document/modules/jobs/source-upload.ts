@@ -1,3 +1,4 @@
+import { CreditWindow } from "./credit-window";
 import { DocumentJobConfig } from "./document-jobs.config";
 import {
   BoardRegions,
@@ -14,10 +15,12 @@ export class SourceUpload {
   private known = new Set<number>();
   private nextSource = 0;
   private knownAssets = new Set<ImageAsset>();
+  private uploadedAssets = new Set<ImageAsset>();
 
   reset() {
     this.known.clear();
     this.knownAssets.clear();
+    this.uploadedAssets.clear();
     this.sourceIDs = new WeakMap();
     this.nextSource = 0;
   }
@@ -31,6 +34,10 @@ export class SourceUpload {
       [...this.knownAssets].filter((a) => current.has(a)),
     );
 
+    for (const asset of this.uploadedAssets)
+      if (current.has(asset)) this.knownAssets.add(asset);
+
+    this.uploadedAssets.clear();
     this.known = used;
   }
 
@@ -41,25 +48,73 @@ export class SourceUpload {
     current: () => void,
     checkpoint: () => Promise<void>,
     uploadAssets = true,
+    credit: CreditWindow,
   ): Promise<Set<number>> {
     const used = new Set<number>(),
       metadata: StrokeMetadata[] = [];
 
     let vertices = 0;
+    let pointCount = 0;
+    let values = new Float64Array(DocumentJobConfig.pointChunk * 4);
 
-    const sendMetadata = () => {
-      if (metadata.length) {
+    let ranges: Array<{
+      geometry: number;
+      length: number;
+      offset: number;
+      start: number;
+      count: number;
+    }> = [];
+
+    const uploadedAssets = new Set<ImageAsset>();
+
+    const sendPoints = async () => {
+      if (!pointCount) return;
+
+      const packed = values.subarray(0, pointCount * 4),
+        packedRanges = ranges;
+
+      await credit.send((seq) =>
         worker.postMessage(
           {
-            type: "strokes",
+            type: "points-batch",
             id,
-            values: metadata.splice(0),
+            seq,
+            ranges: packedRanges,
+            values: packed,
           },
-          [],
+          [packed.buffer],
+        ),
+      );
+
+      pointCount = 0;
+      ranges = [];
+      values = new Float64Array(DocumentJobConfig.pointChunk * 4);
+    };
+
+    const sendMetadata = async () => {
+      if (metadata.length) {
+        const entries = metadata.splice(0);
+
+        await credit.send((seq) =>
+          worker.postMessage({ type: "strokes", id, seq, values: entries }, []),
         );
 
         vertices = 0;
       }
+    };
+
+    const queueMetadata = async (entry: StrokeMetadata, count: number) => {
+      if (metadata.length && vertices + count > DocumentJobConfig.vertexChunk)
+        await sendMetadata();
+
+      metadata.push(entry);
+      vertices += count;
+
+      if (
+        metadata.length >= DocumentJobConfig.metadataChunk ||
+        vertices >= DocumentJobConfig.vertexChunk
+      )
+        await sendMetadata();
     };
 
     for (const stroke of document.strokes) {
@@ -68,50 +123,49 @@ export class SourceUpload {
       if (stroke.kind === "image") {
         const { base64, ...asset } = stroke.asset;
 
-        if (uploadAssets && !this.knownAssets.has(stroke.asset)) {
+        if (
+          uploadAssets &&
+          !this.knownAssets.has(stroke.asset) &&
+          !uploadedAssets.has(stroke.asset)
+        ) {
           for (let offset = 0; offset < base64.length; offset += 65536) {
-            worker.postMessage(
-              {
-                type: "asset",
-                id,
-                asset,
-                offset,
-                length: base64.length,
-                value: base64.slice(offset, offset + 65536),
-              },
-              [],
+            await credit.send((seq) =>
+              worker.postMessage(
+                {
+                  type: "asset",
+                  id,
+                  seq,
+                  asset,
+                  offset,
+                  length: base64.length,
+                  value: base64.slice(offset, offset + 65536),
+                },
+                [],
+              ),
             );
 
             await checkpoint();
           }
 
-          this.knownAssets.add(stroke.asset);
+          uploadedAssets.add(stroke.asset);
         }
 
         const { asset: _asset, ...entry } = stroke;
 
-        metadata.push({ ...entry, asset });
-        vertices += stroke.clip ? BoardRegions.vertexCount(stroke.clip) : 0;
-
-        if (
-          metadata.length >= DocumentJobConfig.metadataChunk ||
-          vertices >= DocumentJobConfig.vertexChunk
-        )
-          sendMetadata();
+        await queueMetadata(
+          { ...entry, asset },
+          stroke.clip ? BoardRegions.vertexCount(stroke.clip) : 0,
+        );
 
         await checkpoint();
         continue;
       }
 
       if (stroke.kind === "template") {
-        metadata.push(stroke);
-        vertices += stroke.clip ? BoardRegions.vertexCount(stroke.clip) : 0;
-
-        if (
-          metadata.length >= DocumentJobConfig.metadataChunk ||
-          vertices >= DocumentJobConfig.vertexChunk
-        )
-          sendMetadata();
+        await queueMetadata(
+          stroke,
+          stroke.clip ? BoardRegions.vertexCount(stroke.clip) : 0,
+        );
 
         await checkpoint();
         continue;
@@ -125,37 +179,49 @@ export class SourceUpload {
       }
 
       if (!this.known.has(geometry) && !used.has(geometry)) {
-        for (
-          let offset = 0;
-          offset < stroke.points.length;
-          offset += DocumentJobConfig.pointChunk
-        ) {
+        let offset = 0;
+
+        while (offset < stroke.points.length) {
           const count = Math.min(
-              DocumentJobConfig.pointChunk,
-              stroke.points.length - offset,
-            ),
-            values = new Float64Array(count * 4);
+            DocumentJobConfig.pointChunk - pointCount,
+            stroke.points.length - offset,
+          );
+
+          ranges.push({
+            geometry,
+            length: stroke.points.length,
+            offset,
+            start: pointCount,
+            count,
+          });
 
           for (let i = 0; i < count; i++) {
             const point = stroke.points[offset + i]!;
 
-            values[i * 4] = point.x;
-            values[i * 4 + 1] = point.y;
-            values[i * 4 + 2] = point.pressure;
-            values[i * 4 + 3] = point.time;
+            if (
+              !point ||
+              [point.x, point.y, point.pressure, point.time].some(
+                (value) => typeof value !== "number",
+              )
+            )
+              throw new Error("Invalid raw document point");
+
+            const at = (pointCount + i) * 4;
+
+            values[at] = point.x;
+            values[at + 1] = point.y;
+            values[at + 2] = point.pressure;
+            values[at + 3] = point.time;
           }
 
-          worker.postMessage(
-            {
-              type: "points",
-              id,
-              geometry,
-              length: stroke.points.length,
-              offset,
-              values,
-            },
-            [values.buffer],
-          );
+          pointCount += count;
+          offset += count;
+
+          if (
+            pointCount === DocumentJobConfig.pointChunk ||
+            ranges.length === 64
+          )
+            await sendPoints();
 
           await checkpoint();
         }
@@ -165,19 +231,24 @@ export class SourceUpload {
 
       const { points: _points, ...entry } = stroke;
 
-      metadata.push({ ...entry, kind: "ink", geometry });
-      vertices += stroke.clip ? BoardRegions.vertexCount(stroke.clip) : 0;
-
-      if (
-        metadata.length >= DocumentJobConfig.metadataChunk ||
-        vertices >= DocumentJobConfig.vertexChunk
-      )
-        sendMetadata();
+      await queueMetadata(
+        {
+          ...entry,
+          kind: "ink",
+          geometry,
+          ownKind: Object.hasOwn(stroke, "kind"),
+        },
+        stroke.clip ? BoardRegions.vertexCount(stroke.clip) : 0,
+      );
 
       await checkpoint();
     }
 
-    sendMetadata();
+    await sendPoints();
+    await sendMetadata();
+    await credit.drain();
+
+    this.uploadedAssets = uploadedAssets;
 
     return used;
   }

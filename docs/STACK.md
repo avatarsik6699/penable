@@ -600,3 +600,31 @@ Run `scripts/performance/audit.js` through one owned Playwriter session with sta
 state.pair and state.suite. Native timing stays local; CI runs the ordinary unit/E2E suite,
 including bounded transfer, exact100k-point import/export/reload and export-worker cleanup.
 Keep default/full/release gates unchanged. Hardware/GPU acceptance remains separate.
+
+## Change42 — Bounded document pipeline
+
+The separate benchmark artifact includes `applicationBench.documentPipeline(20000)` for1M points
+across20k sources. It uses actual production file, Session and Library factories, including
+existing-catalog open, readonly open and switching back to a large board. Run
+`scripts/performance/document-audit.js` in one owned Playwriter session:
+`state.documentAudit={action:"start",label:"baseline"|"candidate",pair:1}` starts an in-page
+promise; `action:"collect"` performs a short poll and saves a completed receipt. Do not navigate
+while pending. Capture the first3 valid warmed alternating pairs without concurrent heavy checks.
+Timing includes two settled RAFs; exact hashes run outside latency windows. Packet/queue and
+logical recovery-Blob byte counts are observed on actual Workers, not a simulated transport.
+
+The1M-point E2E uses hashes computed in the owning realm to avoid transferring full IDB graphs
+or emitting tens of thousands of individual assertion events. Every raw value remains checked.
+CI verifies exact roundtrip/recovery,489 point packets, max2 outstanding packets, atomic abort
+and retry, readonly snapshot stability and collection of terminated Worker wrappers. Native
+latency belongs to local paired measurements; CI has no hardware performance threshold.
+The multi-stage1M-point test has a90s aggregate workload budget; individual action/assertion
+timeouts stay unchanged. Its final controlled-GC heap check allows16MiB of idle UI growth,
+detecting retention of the old million-point graph while recovery remains a Blob. The fixture
+owns its isolated Chromium CDP session and attaches heap samples; this is not GPU memory proof.
+
+Production loading, raw recovery serialization and atomic replacement run in owned Workers.
+Raw recovery Blobs preserve detached snapshot semantics. Worker-blocked startup and emergency
+exports remain intentional synchronous exceptions. The rejected dirty-raster prototype is
+documented in [change41's feasibility record](performance/41-long-stroke-raster.md); it is not
+part of production. Standard Fast/Full/Release Gates remain unchanged.

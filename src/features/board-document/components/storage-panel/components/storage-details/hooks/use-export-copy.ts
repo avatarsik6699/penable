@@ -1,3 +1,4 @@
+import type { MessageTypes } from "~/shared/lib/messages";
 import { useEffect, useRef, useState } from "react";
 import { DocumentErrors } from "../../../../../modules/session";
 import type { StorageDetailsTypes } from "../storage-details.types";
@@ -16,7 +17,10 @@ export function useExportCopy(props: StorageDetailsTypes.Props) {
     };
   }, []);
 
-  const download = async () => {
+  const download = async (
+    action: () =>
+      MessageTypes.Value | Promise<MessageTypes.Value> = props.onExport,
+  ) => {
     const current = lifetime.current;
 
     if (current.pending) return;
@@ -25,7 +29,7 @@ export function useExportCopy(props: StorageDetailsTypes.Props) {
     setBusy(true);
 
     try {
-      const message = await props.onExport();
+      const message = await action();
 
       if (current.mounted) props.onFeedback(message);
     } catch (error) {

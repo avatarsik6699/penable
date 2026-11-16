@@ -1,3 +1,4 @@
+import type { ImportCandidate } from "../import-candidates";
 import type { MessageTypes } from "~/shared/lib/messages";
 import { Messages } from "~/shared/lib/messages";
 import { DocumentCodec } from "../codec";
@@ -22,6 +23,7 @@ export class BoardLibrarySession {
   private lease: WriterLease | null = null;
   private repository: LibraryRepository | null = null;
   private active: DocumentSession | null = null;
+  private preparing: import("../jobs").OwnedPreparedBoard | null = null;
   private catalog: BoardCatalog;
   private startup: Promise<void> | null = null;
   private closing: Promise<void> | null = null;
@@ -160,7 +162,15 @@ export class BoardLibrarySession {
 
       if (this.disposed) return;
 
-      const records = await this.repository.read();
+      let records =
+        this.options.prepareOwned && this.repository.readCatalog
+          ? {
+              catalog: await this.repository.readCatalog(),
+              main: { exists: false, value: undefined as unknown },
+            }
+          : await this.repository.read();
+
+      let initialLoad: import("../jobs").OwnedPreparedBoard | undefined;
 
       if (this.disposed) return;
 
@@ -169,7 +179,16 @@ export class BoardLibrarySession {
       if (records.catalog.exists) {
         this.catalog = LibraryCatalog.decode(records.catalog.value);
 
-        const selected = await this.repository.board(this.catalog.activeId);
+        const owned = await this.options.prepareOwned?.(
+          this.catalog.activeId,
+          this.validationAbort.signal,
+        );
+
+        if (owned) this.preparing = owned;
+
+        const selected =
+          owned?.records.main ??
+          (await this.repository.board(this.catalog.activeId));
 
         this.raw = selected.exists ? selected : records.catalog;
 
@@ -178,7 +197,11 @@ export class BoardLibrarySession {
             Messages.create("aCatalogBoardIsMissingFromStorage"),
           );
 
-        const document = await this.decode(selected.value);
+        if (owned?.error) throw Messages.error(owned.error);
+
+        const document = owned?.document ?? (await this.decode(selected.value));
+
+        initialLoad = owned ?? undefined;
 
         await this.options.preflight?.(document, this.validationAbort.signal);
 
@@ -194,23 +217,50 @@ export class BoardLibrarySession {
         )
           await this.repository.migrate(this.catalog, records.catalog);
       } else {
-        const document = records.main.exists
-          ? await this.decode(records.main.value)
-          : DocumentCodec.emptyDocument();
+        const owned = await this.options.prepareOwned?.(
+          "main",
+          this.validationAbort.signal,
+        );
+
+        if (owned) {
+          this.preparing = owned;
+          this.raw = owned.records.main;
+        } else if (this.options.prepareOwned && this.repository.readCatalog) {
+          records = await this.repository.read();
+          this.raw = records.main;
+        }
+
+        if (owned?.error) throw Messages.error(owned.error);
+
+        const document =
+          owned?.document ??
+          (records.main.exists
+            ? await this.decode(records.main.value)
+            : DocumentCodec.emptyDocument());
+
+        await this.options.preflight?.(document, this.validationAbort.signal);
 
         if (this.disposed) return;
 
-        if (this.lease.acquired)
-          await this.repository.bootstrap(
-            this.catalog,
-            { ...document, schemaVersion: 5 },
-            records.main,
-          );
+        if (this.lease.acquired) {
+          if (owned) await owned.bootstrap(this.catalog);
+          else
+            await this.repository.bootstrap(
+              this.catalog,
+              { ...document, schemaVersion: 5 },
+              records.main,
+            );
+        }
+
+        initialLoad = owned ?? undefined;
       }
 
-      await this.activate(this.catalog.activeId);
+      await this.activate(this.catalog.activeId, initialLoad);
       this.publish();
     } catch (error) {
+      await this.preparing?.close().catch(() => {});
+      this.preparing = null;
+
       if (this.disposed) return;
 
       this.fatal = DocumentErrors.messageOf(error);
@@ -232,7 +282,10 @@ export class BoardLibrarySession {
     }
   }
 
-  private async activate(id: string) {
+  private async activate(
+    id: string,
+    initialLoad?: import("../jobs").OwnedPreparedBoard,
+  ) {
     if (this.disposed) return;
 
     if (!this.lease)
@@ -246,6 +299,7 @@ export class BoardLibrarySession {
         release: async () => {},
       },
       {
+        ...(initialLoad ? { initialLoad } : {}),
         snapshot: this.options.snapshot,
         onHydrate: this.options.onHydrate,
 
@@ -261,6 +315,9 @@ export class BoardLibrarySession {
     );
 
     this.active = session;
+
+    if (initialLoad === this.preparing) this.preparing = null;
+
     await session.start();
 
     if (!session.state.loaded)
@@ -301,21 +358,34 @@ export class BoardLibrarySession {
   }
 
   private async load(id: string) {
-    const record = await this.repository!.board(id);
+    const owned = await this.options.prepareOwned?.(
+      id,
+      this.validationAbort.signal,
+    );
 
-    if (!record.exists)
-      throw Messages.error(
-        Messages.create("boardIsMissingFromStorageCurrentNotes"),
-      );
+    try {
+      const record = owned?.records.main ?? (await this.repository!.board(id));
 
-    const document = await this.decode(record.value);
+      if (!record.exists)
+        throw Messages.error(
+          Messages.create("boardIsMissingFromStorageCurrentNotes"),
+        );
 
-    await this.options.preflight?.(document, this.validationAbort.signal);
+      if (owned?.error) throw Messages.error(owned.error);
 
-    if (this.disposed)
-      throw Messages.error(Messages.create("boardSwitchCancelled"));
+      const document = owned?.document ?? (await this.decode(record.value));
 
-    return document;
+      await this.options.preflight?.(document, this.validationAbort.signal);
+
+      if (this.disposed)
+        throw Messages.error(Messages.create("boardSwitchCancelled"));
+
+      return owned;
+    } catch (error) {
+      await owned?.close().catch(() => {});
+
+      throw error;
+    }
   }
 
   private async transition(
@@ -323,14 +393,20 @@ export class BoardLibrarySession {
     change?: Parameters<LibraryRepository["update"]>[1],
   ) {
     await this.active!.flushOrThrow();
-    await this.load(catalog.activeId);
-    await this.repository!.update(catalog, change);
-    await this.active!.dispose();
 
-    if (this.disposed) return;
+    const prepared = await this.load(catalog.activeId);
 
-    this.catalog = catalog;
-    await this.activate(catalog.activeId);
+    try {
+      await this.repository!.update(catalog, change);
+      await this.active!.dispose();
+
+      if (this.disposed) return;
+
+      this.catalog = catalog;
+      await this.activate(catalog.activeId, prepared ?? undefined);
+    } finally {
+      await prepared?.close().catch(() => {});
+    }
   }
 
   async switchBoard(id: string) {
@@ -482,6 +558,15 @@ export class BoardLibrarySession {
     return this.active!.replace(document, isBusy);
   }
 
+  replaceCandidate(candidate: ImportCandidate, isBusy: () => boolean) {
+    if (!this.canImport)
+      return Promise.reject(
+        Messages.error(Messages.create("boardReplacementIsUnavailable")),
+      );
+
+    return this.active!.replaceCandidate(candidate, isBusy);
+  }
+
   dispose() {
     if (this.closing) return this.closing;
 
@@ -497,6 +582,7 @@ export class BoardLibrarySession {
         activeDisposal,
       ]);
 
+      await this.preparing?.close();
       await this.repository?.close();
       await this.lease?.release();
     })();

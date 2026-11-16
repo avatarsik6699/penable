@@ -51,3 +51,7 @@ export { FragmentCodec } from "./modules/fragments";
 export { FragmentReader } from "./adapters/fragment-reader";
 
 export { DocumentExports } from "./adapters/document-exports";
+
+export type { ImportCandidate } from "./modules/import-candidates";
+
+export { DocumentRecordExports } from "./adapters/record-exports";

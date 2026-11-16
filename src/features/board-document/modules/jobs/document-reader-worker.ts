@@ -1,5 +1,7 @@
 import { Messages } from "~/shared/lib/messages";
 import { DocumentCodec } from "../codec";
+import { OwnedRecordBuffer } from "./owned-record-buffer";
+import { CreditWindow } from "./credit-window";
 import { SourceUpload } from "./source-upload";
 import type {
   DocumentReadResponse,
@@ -14,24 +16,56 @@ const host = self as unknown as {
   ) => void;
 };
 
+const credit = new CreditWindow();
+const raw = new OwnedRecordBuffer();
+
 host.onmessage = ({ data }) => {
+  if (data.type === "ack") {
+    try {
+      credit.acknowledge(data.seq);
+    } catch (error) {
+      credit.fail(error);
+      host.postMessage({ type: "error", message: Messages.from(error) });
+    }
+
+    return;
+  }
+
+  if (data.type.startsWith("raw-")) {
+    const value = raw.accept(
+      data as import("./document-reader.types").OwnedRecordPacket,
+    );
+
+    if ("seq" in data)
+      host.postMessage({ type: "ack", id: data.id, seq: data.seq });
+
+    if (data.type !== "raw-finish") return;
+
+    data = { type: "stored", value };
+  }
+
+  if (data.type !== "stored" && data.type !== "file" && data.type !== "runtime")
+    return;
+
+  const request = data;
+
   void (async () => {
     try {
       if (
-        data.type === "file" &&
-        data.blob.size > DocumentCodec.DOCUMENT_LIMITS.bytes
+        request.type === "file" &&
+        request.blob.size > DocumentCodec.DOCUMENT_LIMITS.bytes
       )
         throw Messages.error(Messages.create("fileExceeds64Mib"));
 
       const document =
-        data.type === "file"
-          ? DocumentCodec.parseDocumentJSON(await data.blob.text())
+        request.type === "file"
+          ? DocumentCodec.parseDocumentJSON(await request.blob.text())
           : DocumentCodec.decodeDocument(
-              data.type === "runtime" &&
-                (data.value.schemaVersion === 4 ||
-                  data.value.schemaVersion === 5)
-                ? DocumentCodec.encodeDocument(data.value)
-                : data.value,
+              request.type === "runtime" &&
+                (request.value.schemaVersion === 4 ||
+                  request.value.schemaVersion === 5)
+                ? DocumentCodec.encodeDocument(request.value)
+                : request.value,
             );
 
       const upload = new SourceUpload(),
@@ -45,10 +79,13 @@ host.onmessage = ({ data }) => {
         1,
         () => {},
         async () => {},
+        true,
+        credit,
       );
 
       host.postMessage({ type: "finish", id: 1 });
     } catch (error) {
+      credit.fail(error);
       host.postMessage({ type: "error", message: Messages.from(error) });
     }
   })();

@@ -13,7 +13,14 @@ import type {
 } from "~/entities/board";
 
 export type DocumentJobKind =
-  "select" | "validate" | "save" | "overview" | "fragment" | "export";
+  | "select"
+  | "validate"
+  | "save"
+  | "overview"
+  | "fragment"
+  | "export"
+  | "replace"
+  | "raw-export";
 
 export type FragmentMetadata =
   Omit<Stroke, "points"> | Omit<ImageItem, "asset"> | TemplateItem;
@@ -23,6 +30,7 @@ export type StrokeMetadata =
   | (Omit<Stroke, "points"> & {
       kind: "ink";
       geometry: number;
+      ownKind?: boolean;
     })
   | (Omit<ImageItem, "asset"> & {
       asset: Omit<ImageAsset, "base64">;
@@ -38,26 +46,37 @@ export type SelectionResult = {
   }>;
 };
 
+export type TransferAck = { type: "ack"; id: number; seq: number };
+
 export type JobRequest =
+  | TransferAck
   | {
       type: "start";
       id: number;
       kind: DocumentJobKind;
       root: Omit<BoardDocument, "strokes">;
       boardId?: string;
+      previousStored?: boolean;
+      trustedReplacement?: boolean;
       region?: RegionInput;
       fragmentRegion?: ClipMask;
     }
   | {
-      type: "points";
+      type: "points-batch";
+      seq: number;
+      ranges: Array<{
+        geometry: number;
+        length: number;
+        offset: number;
+        start: number;
+        count: number;
+      }>;
       id: number;
-      geometry: number;
-      length: number;
-      offset: number;
       values: Float64Array;
     }
   | {
       type: "asset";
+      seq: number;
       id: number;
       asset: Omit<ImageAsset, "base64">;
       offset: number;
@@ -66,8 +85,14 @@ export type JobRequest =
     }
   | {
       type: "strokes";
+      seq: number;
       id: number;
       values: StrokeMetadata[];
+    }
+  | {
+      type: "replacement-candidate";
+      id: number;
+      root: Omit<BoardDocument, "strokes">;
     }
   | {
       type: "finish";
@@ -80,6 +105,10 @@ export type JobRequest =
 
 export type JobResponse = {
   id: number;
+  ack?: number;
+  seq?: number;
+  previousCopy?: import("../record-copies").SerializedRecordCopy;
+  rawExport?: Blob;
   error?: MessageTypes.Value;
   selection?: SelectionResult;
   overview?: OverviewResult;

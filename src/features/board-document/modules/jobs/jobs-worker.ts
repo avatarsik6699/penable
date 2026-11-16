@@ -1,5 +1,7 @@
+import { RecoveryCopy } from "./recovery-copy";
 import type { MessageTypes } from "~/shared/lib/messages";
 import { Messages } from "~/shared/lib/messages";
+import { CreditWindow } from "./credit-window";
 import { FragmentCodec } from "../fragments";
 import { DocumentOverview } from "./modules/overview";
 import { DocumentCodec } from "../codec";
@@ -13,7 +15,10 @@ import {
   type SelectionResult,
   DocumentProtocol,
 } from "./jobs-protocol";
-import type { DocumentRepository } from "../../board-document.types";
+import type {
+  BoardDocument,
+  DocumentRepository,
+} from "../../board-document.types";
 import type { BoardItem, Point, ImageAsset } from "~/entities/board";
 
 const host = self as unknown as {
@@ -63,6 +68,28 @@ const assetChunks = new Map<
 >();
 
 let boardId: string | null = null;
+let credit = new CreditWindow();
+let previousDocument: BoardDocument | null = null;
+
+function capturedItems(): BoardItem[] {
+  return strokes.map((entry) => {
+    if (entry.kind === "image")
+      return {
+        ...entry,
+        asset: assets.get(entry.asset.id) ?? { ...entry.asset, base64: "" },
+      };
+
+    if (entry.kind === "template") return entry;
+
+    const { geometry, kind: _kind, ownKind, ...stroke } = entry;
+
+    return {
+      ...stroke,
+      ...(ownKind ? { kind: "ink" as const } : {}),
+      points: geometries.get(geometry)!,
+    };
+  });
+}
 
 async function finish(id: number) {
   const job = pending;
@@ -70,24 +97,13 @@ async function finish(id: number) {
   if (!job || job.id !== id) return;
 
   try {
-    const items: BoardItem[] = strokes.map((entry) => {
-      if (entry.kind === "image")
-        return {
-          ...entry,
-          asset: assets.get(entry.asset.id) ?? { ...entry.asset, base64: "" },
-        };
-
-      if (entry.kind === "template") return entry;
-
-      const { geometry, ...stroke } = entry;
-
-      return { ...stroke, points: geometries.get(geometry)! };
-    });
-
+    const items = capturedItems();
     const captured = { ...job.root, strokes: items };
 
     const document =
-      job.kind === "export"
+      job.kind === "export" ||
+      job.kind === "raw-export" ||
+      (job.kind === "replace" && job.trustedReplacement)
         ? captured
         : DocumentCodec.decodeDocument(
             DocumentCodec.encodeDocument(
@@ -151,7 +167,14 @@ async function finish(id: number) {
       };
     }
 
-    if (job.kind === "save") {
+    const normalizedPrevious =
+      job.kind === "replace" && !job.previousStored
+        ? DocumentCodec.cloneDocument(previousDocument!)
+        : null;
+
+    if (normalizedPrevious) previousDocument = null;
+
+    if (job.kind === "save" || job.kind === "replace") {
       if (invalidated) throw Messages.error(invalidated);
 
       repository ??= DocumentRepositoryAdapter.openRepository(
@@ -162,7 +185,17 @@ async function finish(id: number) {
         boardId ?? "main",
       );
 
-      await (await repository).write({ ...document, schemaVersion: 5 });
+      const target = await repository;
+      const candidate = { ...document, schemaVersion: 5 as const };
+
+      if (job.kind === "replace") {
+        if (job.previousStored) {
+          if (!target.replaceStored)
+            throw Messages.error(Messages.create("documentProcessingFailed"));
+
+          await target.replaceStored(candidate);
+        } else await target.replace(normalizedPrevious, candidate);
+      } else await target.write(candidate);
     }
 
     if (selection) {
@@ -170,9 +203,7 @@ async function finish(id: number) {
         vertices = 0;
 
       for (const part of selection.parts) {
-        batch.push(part);
-
-        vertices +=
+        const count =
           (part.selected.clip
             ? BoardRegions.vertexCount(part.selected.clip)
             : 0) +
@@ -180,14 +211,30 @@ async function finish(id: number) {
             ? BoardRegions.vertexCount(part.remainder.clip)
             : 0);
 
+        if (batch.length && vertices + count > 2048) {
+          const chunk = batch;
+
+          await credit.send((seq) => host.postMessage({ id, seq, chunk }));
+          batch = [];
+          vertices = 0;
+        }
+
+        batch.push(part);
+        vertices += count;
+
         if (batch.length >= 64 || vertices >= 2048) {
-          host.postMessage({ id, chunk: batch });
+          const chunk = batch;
+
+          await credit.send((seq) => host.postMessage({ id, seq, chunk }));
           batch = [];
           vertices = 0;
         }
       }
 
-      if (batch.length) host.postMessage({ id, chunk: batch });
+      if (batch.length)
+        await credit.send((seq) => host.postMessage({ id, seq, chunk: batch }));
+
+      await credit.drain();
 
       selection.parts = [];
     }
@@ -212,7 +259,16 @@ async function finish(id: number) {
     for (const key of geometries.keys())
       if (!used.has(key)) geometries.delete(key);
 
+    const previousCopy =
+      job.kind === "replace" && !job.previousStored
+        ? RecoveryCopy.serialize({
+            exists: true,
+            value: normalizedPrevious,
+          })
+        : undefined;
+
     pending = null;
+    previousDocument = null;
     strokes = [];
 
     const exported =
@@ -220,6 +276,14 @@ async function finish(id: number) {
 
     host.postMessage({
       id,
+      ...(previousCopy ? { previousCopy } : {}),
+      ...(job.kind === "raw-export"
+        ? {
+            rawExport: new Blob([DocumentCodec.serializeRawBackup(captured)], {
+              type: "application/json",
+            }),
+          }
+        : {}),
       ...(exported
         ? {
             exported: {
@@ -248,6 +312,7 @@ async function finish(id: number) {
     });
   } catch (error) {
     pending = null;
+    previousDocument = null;
     strokes = [];
 
     host.postMessage({
@@ -261,6 +326,21 @@ async function finish(id: number) {
 }
 
 host.onmessage = ({ data }) => {
+  if (data.type === "ack") {
+    if (data.id === pending?.id) {
+      try {
+        credit.acknowledge(data.seq);
+      } catch (error) {
+        credit.fail(error);
+        pending = null;
+        strokes = [];
+        host.postMessage({ id: data.id, error: Messages.from(error) });
+      }
+    }
+
+    return;
+  }
+
   if (data.type === "close") {
     void (async () => {
       try {
@@ -289,6 +369,8 @@ host.onmessage = ({ data }) => {
       return;
     }
 
+    credit = new CreditWindow();
+    previousDocument = null;
     boardId = target;
     pending = data;
     assetChunks.clear();
@@ -298,6 +380,17 @@ host.onmessage = ({ data }) => {
   }
 
   if (!pending || data.id !== pending.id) return;
+
+  if (data.type === "replacement-candidate") {
+    previousDocument = { ...pending.root, strokes: capturedItems() };
+    pending = { ...pending, root: data.root };
+    strokes = [];
+    geometries.clear();
+    assets.clear();
+    assetChunks.clear();
+
+    return;
+  }
 
   if (data.type === "asset") {
     let upload = assetChunks.get(data.asset.id);
@@ -343,20 +436,27 @@ host.onmessage = ({ data }) => {
     }
   }
 
-  if (data.type === "points") {
-    let points = geometries.get(data.geometry);
+  if (data.type === "points-batch") {
+    for (const range of data.ranges) {
+      let points = geometries.get(range.geometry);
 
-    if (!points || points.length !== data.length) {
-      points = new Array<Point>(data.length);
-      geometries.set(data.geometry, points);
+      if (!points || points.length !== range.length) {
+        points = new Array<Point>(range.length);
+        geometries.set(range.geometry, points);
+      }
+
+      const chunk = DocumentProtocol.pointsFromChunk(
+        data.values.subarray(range.start * 4, (range.start + range.count) * 4),
+      );
+
+      for (let i = 0; i < chunk.length; i++)
+        points[range.offset + i] = chunk[i]!;
     }
-
-    const chunk = DocumentProtocol.pointsFromChunk(data.values);
-
-    for (let i = 0; i < chunk.length; i++) points[data.offset + i] = chunk[i]!;
   }
 
   if (data.type === "strokes") strokes.push(...data.values);
+
+  if ("seq" in data) host.postMessage({ id: data.id, ack: data.seq });
 
   if (data.type === "finish") void finish(data.id);
 };

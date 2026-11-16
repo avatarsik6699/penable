@@ -14,3 +14,9 @@ export type {
 export type { OverviewResult } from "./modules/overview";
 
 export { DocumentReader } from "./document-reader";
+
+export { DocumentStorage } from "./document-storage";
+export type {
+  OwnedPreparedBoard,
+  DocumentRecords,
+} from "./document-storage.types";

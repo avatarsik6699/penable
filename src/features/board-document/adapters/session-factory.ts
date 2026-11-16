@@ -1,18 +1,21 @@
+import { DocumentStorageLoader } from "./storage-loader";
+import { DocumentPersistenceAdapter } from "./document-persistence";
 import { ImagePreflight } from "./image-preflight";
 import { DocumentSession, type SessionOptions } from "../modules/session";
 import { DocumentRepositoryAdapter } from "./indexeddb";
 import { DocumentWriterLease } from "./writer-lock";
-import { DocumentJobs, DocumentReader } from "../modules/jobs";
+import { DocumentReader } from "../modules/jobs";
 
 function create(
   options: Omit<SessionOptions, "persistence" | "acquire" | "open">,
 ): DocumentSession {
   return new DocumentSession({
     ...options,
+    loadOwned: (signal) => DocumentStorageLoader.load("main", signal),
     preflight: ImagePreflight.validate,
-    decode: DocumentReader.decode,
+    decode: DocumentReader.decodeOwned,
     prepare: DocumentReader.prepare,
-    persistence: new DocumentJobs(),
+    persistence: DocumentPersistenceAdapter.create(),
     acquire: DocumentWriterLease.acquireWriterLease,
     open: DocumentRepositoryAdapter.openRepository,
   });

@@ -29,6 +29,7 @@ import {
   type DocumentSession,
   type BoardLibrarySession,
   type BoardDocument,
+  type ImportCandidate,
   type BoardAppearance,
   DocumentErrors,
   DocumentCodec,
@@ -40,6 +41,7 @@ export class WorkspaceModel {
   readonly controls = { current: null as SurfaceControls | null };
   readonly clipboard: SelectionClipboard = { strokes: [] };
   private exportOperation: AbortController | null = null;
+  private recoveryOperation: AbortController | null = null;
   private initialBoard: BoardSnapshot | null = null;
   private session: DocumentSession | BoardLibrarySession | null = null;
   private listeners = new Set<() => void>();
@@ -270,6 +272,7 @@ export class WorkspaceModel {
 
     lifetime.active = false;
     this.exportOperation?.abort();
+    this.recoveryOperation?.abort();
 
     this.priorDisposal = Promise.allSettled([
       lifetime.starting,
@@ -453,14 +456,22 @@ export class WorkspaceModel {
 
   readonly endImport = () => this.patch({ dialogOpen: false });
 
-  readonly confirmImport = async (candidate: BoardDocument) => {
+  readonly confirmImport = async (
+    candidate: BoardDocument | ImportCandidate,
+  ) => {
     if (!this.session)
       throw Messages.error(Messages.create("storageIsNotOpenYet"));
 
-    await this.session.replace(
-      candidate,
-      () => this.controls.current?.isBusy() ?? false,
-    );
+    if ("summary" in candidate)
+      await this.session.replaceCandidate(
+        candidate,
+        () => this.controls.current?.isBusy() ?? false,
+      );
+    else
+      await this.session.replace(
+        candidate,
+        () => this.controls.current?.isBusy() ?? false,
+      );
   };
 
   readonly exportCurrent = async () => {
@@ -490,72 +501,80 @@ export class WorkspaceModel {
     }
   };
 
-  private backup(upgrade: boolean): MessageTypes.Value {
-    try {
-      const record = upgrade
-        ? this.session?.upgradeRecord
-        : this.session?.previousRecord;
-
-      if (!record?.exists)
-        throw Messages.error(
-          upgrade
-            ? Messages.create("noCopyBeforeUpdateYet")
-            : Messages.create("noCopyBeforeReplacementYet"),
-        );
-
-      this.dependencies.download(
-        DocumentCodec.serializeRawBackup(record.value),
-        upgrade ? "penable-before-schema2.json" : "penable-before-import.json",
-      );
-
-      return upgrade
-        ? Messages.create("copyBeforeUpdateSentToTheBrowser")
-        : Messages.create("copyBeforeReplacementSentToTheBrowser");
-    } catch (error) {
-      return DocumentErrors.messageOf(error);
-    }
-  }
-
-  readonly exportPrevious = () => this.backup(false);
-
-  readonly exportUpgrade = () => this.backup(true);
-
-  readonly exportSchema3 = () => {
-    try {
-      const record = this.session?.schema3Record;
-
-      if (!record?.exists)
-        throw Messages.error(Messages.create("noCopyBeforeUpdateYet"));
-
-      this.dependencies.download(
-        DocumentCodec.serializeRawBackup(record.value),
-        "penable-before-schema3.json",
-      );
-
-      return Messages.create("copyBeforeUpdateSentToTheBrowser");
-    } catch (error) {
-      return DocumentErrors.messageOf(error);
-    }
-  };
-
   private exportRecord(
     record: import("~/features/board-document").StoredRecord | undefined,
     name: string,
-  ): MessageTypes.Value {
+    success: MessageTypes.Value = Messages.create(
+      "copySentToTheBrowserCheckThe",
+    ),
+  ): MessageTypes.Value | Promise<MessageTypes.Value> {
     try {
       if (!record?.exists)
         throw Messages.error(Messages.create("noOriginalCopyYet"));
 
-      this.dependencies.download(
-        DocumentCodec.serializeRawBackup(record.value),
-        name,
-      );
+      if (!this.dependencies.exportRecord) {
+        this.dependencies.download(
+          DocumentCodec.serializeRawBackup(record.value),
+          name,
+        );
 
-      return Messages.create("copySentToTheBrowserCheckThe");
+        return success;
+      }
+
+      const generation = this.state.generation,
+        session = this.session;
+
+      this.recoveryOperation?.abort();
+
+      const operation = new AbortController();
+
+      this.recoveryOperation = operation;
+
+      return this.dependencies
+        .exportRecord(record.value, operation.signal)
+        .then((contents) => {
+          if (
+            operation.signal.aborted ||
+            this.state.generation !== generation ||
+            this.session !== session ||
+            !this.lifetime?.active
+          )
+            return Messages.create("actionCancelled");
+
+          this.dependencies.download(contents, name);
+
+          return success;
+        })
+        .catch(DocumentErrors.messageOf)
+        .finally(() => {
+          if (this.recoveryOperation === operation)
+            this.recoveryOperation = null;
+        });
     } catch (error) {
       return DocumentErrors.messageOf(error);
     }
   }
+
+  readonly exportPrevious = () =>
+    this.exportRecord(
+      this.session?.previousRecord,
+      "penable-before-import.json",
+      Messages.create("copyBeforeReplacementSentToTheBrowser"),
+    );
+
+  readonly exportUpgrade = () =>
+    this.exportRecord(
+      this.session?.upgradeRecord,
+      "penable-before-schema2.json",
+      Messages.create("copyBeforeUpdateSentToTheBrowser"),
+    );
+
+  readonly exportSchema3 = () =>
+    this.exportRecord(
+      this.session?.schema3Record,
+      "penable-before-schema3.json",
+      Messages.create("copyBeforeUpdateSentToTheBrowser"),
+    );
 
   readonly exportSchema5 = () =>
     this.exportRecord(

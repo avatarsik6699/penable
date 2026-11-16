@@ -4,6 +4,7 @@ import type { SessionOptions } from "./document-session.types";
 import { DocumentErrors, SessionUtils } from "./document-session.utils";
 import { SessionConfig } from "./document-session.config";
 import { TaskClock } from "~/shared/lib/task-clock";
+import { ImportCandidates, type ImportCandidate } from "../import-candidates";
 import { DocumentSnapshots, DocumentCodec } from "../codec";
 import type {
   BoardDocument,
@@ -16,6 +17,7 @@ import type {
 
 export class DocumentSession {
   private repository: DocumentRepository | null = null;
+  private ownedLoad: import("../jobs").OwnedPreparedBoard | null = null;
   private lease: WriterLease | null = null;
   private startup: Promise<void> | null = null;
   private disposal: Promise<void> | null = null;
@@ -45,7 +47,15 @@ export class DocumentSession {
   private maxTimer: ReturnType<typeof TaskClock.schedule> | undefined;
   private lastPublished: StorageState | null = null;
 
-  constructor(private readonly options: SessionOptions) {}
+  private readonly options: SessionOptions;
+  private initialLoad: import("../jobs").OwnedPreparedBoard | undefined;
+
+  constructor(options: SessionOptions) {
+    const { initialLoad, ...sessionOptions } = options;
+
+    this.options = sessionOptions;
+    this.initialLoad = initialLoad;
+  }
 
   get canWrite(): boolean {
     return (
@@ -170,7 +180,16 @@ export class DocumentSession {
 
       if (this.disposed) return;
 
-      const records = await this.repository.read();
+      const initial = this.initialLoad;
+
+      this.initialLoad = undefined;
+
+      const owned =
+        initial ?? (await this.options.loadOwned?.(this.loadingAbort.signal));
+
+      this.ownedLoad = owned ?? null;
+
+      const records = owned?.records ?? (await this.repository.read());
 
       if (this.disposed || this.fatal) return;
 
@@ -204,14 +223,26 @@ export class DocumentSession {
 
       this.rawLoaded = true;
 
-      const document = records.main.exists
-        ? this.options.decode
-          ? await this.options.decode(
-              records.main.value,
-              this.loadingAbort.signal,
-            )
-          : DocumentCodec.decodeDocument(records.main.value)
-        : DocumentCodec.emptyDocument();
+      if (owned?.error) throw Messages.error(owned.error);
+
+      const document =
+        owned?.document ??
+        (records.main.exists
+          ? this.options.decode
+            ? await this.options.decode(
+                records.main.value,
+                this.loadingAbort.signal,
+              )
+            : DocumentCodec.decodeDocument(records.main.value)
+          : DocumentCodec.emptyDocument());
+
+      if (this.disposed || this.fatal) return;
+
+      if (owned && !initial)
+        await this.options.preflight?.(document, this.loadingAbort.signal);
+
+      await owned?.close();
+      this.ownedLoad = null;
 
       if (this.disposed || this.fatal) return;
 
@@ -220,6 +251,8 @@ export class DocumentSession {
       this.phase = "saved";
       this.publish();
     } catch (error) {
+      await this.ownedLoad?.close().catch(() => {});
+      this.ownedLoad = null;
       this.phase = "error";
       this.message = DocumentErrors.messageOf(error);
       this.publish();
@@ -362,6 +395,31 @@ export class DocumentSession {
   }
 
   replace(candidate: BoardDocument, isBusy: () => boolean): Promise<void> {
+    return this.replacePrepared(candidate, isBusy, false);
+  }
+
+  replaceCandidate(
+    candidate: ImportCandidate,
+    isBusy: () => boolean,
+  ): Promise<void> {
+    let document: BoardDocument;
+
+    try {
+      document = ImportCandidates.document(candidate);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+
+    return this.replacePrepared(document, isBusy, true).then(() => {
+      ImportCandidates.dispose(candidate);
+    });
+  }
+
+  private replacePrepared(
+    candidate: BoardDocument,
+    isBusy: () => boolean,
+    validated: boolean,
+  ): Promise<void> {
     if (!this.canImport || isBusy())
       return Promise.reject(
         Messages.error(
@@ -373,16 +431,18 @@ export class DocumentSession {
     let prepared: Promise<BoardDocument>;
 
     try {
-      prepared = this.options.prepare
-        ? this.options.prepare(candidate, controller.signal)
-        : Promise.resolve({
-            ...DocumentCodec.decodeDocument(
-              candidate.schemaVersion === 4 || candidate.schemaVersion === 5
-                ? DocumentCodec.encodeDocument(candidate)
-                : candidate,
-            ),
-            schemaVersion: 5,
-          });
+      prepared = validated
+        ? Promise.resolve(candidate)
+        : this.options.prepare
+          ? this.options.prepare(candidate, controller.signal)
+          : Promise.resolve({
+              ...DocumentCodec.decodeDocument(
+                candidate.schemaVersion === 4 || candidate.schemaVersion === 5
+                  ? DocumentCodec.encodeDocument(candidate)
+                  : candidate,
+              ),
+              schemaVersion: 5,
+            });
     } catch (error) {
       return Promise.reject(error);
     }
@@ -435,14 +495,29 @@ export class DocumentSession {
             Messages.create("replacementCancelledTheCurrentBoardIsRetained"),
           );
 
+        const durableReplace = this.options.persistence?.replace;
+
         const previous = this.loaded
-          ? DocumentCodec.cloneDocument(
-              DocumentSnapshots.fromSnapshot(this.options.snapshot()),
-            )
+          ? durableReplace
+            ? DocumentSnapshots.fromSnapshot(this.options.snapshot())
+            : DocumentCodec.cloneDocument(
+                DocumentSnapshots.fromSnapshot(this.options.snapshot()),
+              )
           : this.rawMain.value;
 
         writeAttempted = true;
-        await this.repository.replace(previous, document);
+
+        let recovery: StoredRecord | void = undefined;
+
+        if (durableReplace)
+          recovery = await durableReplace.call(
+            this.options.persistence,
+            this.loaded
+              ? (previous as BoardDocument)
+              : { kind: "stored-current" },
+            document,
+          );
+        else await this.repository.replace(previous, document);
 
         if (this.disposed || this.fatal) return;
 
@@ -463,7 +538,7 @@ export class DocumentSession {
         )
           this.schema5 = this.rawMain;
 
-        this.previous = { exists: true, value: previous };
+        this.previous = recovery ?? { exists: true, value: previous };
         this.rawMain = { exists: true, value: document };
         this.loaded = true;
         this.rawLoaded = true;
@@ -531,6 +606,10 @@ export class DocumentSession {
         this.repository?.close(),
       ]);
 
+      await this.ownedLoad?.close();
+      await this.initialLoad?.close();
+      this.ownedLoad = null;
+      this.initialLoad = undefined;
       await this.lease?.release();
     })();
 

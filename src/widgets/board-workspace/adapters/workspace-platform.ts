@@ -3,6 +3,7 @@ import { BoardCoordinates } from "~/entities/board";
 import {
   DocumentDownloads,
   DocumentExports,
+  DocumentRecordExports,
   BoardLibraries,
 } from "~/features/board-document";
 import { WorkspaceModel } from "../model/workspace-model";
@@ -13,6 +14,7 @@ function create(): WorkspaceModel {
     defaultBoardTitle: I18n.t("myBoard"),
     download: DocumentDownloads.download,
     exportDocument: DocumentExports.serialize,
+    exportRecord: DocumentRecordExports.serialize,
     diagnostics: {
       pointerType: null,
       inputEvent: null,

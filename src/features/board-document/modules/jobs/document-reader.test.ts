@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Stroke, ImageItem } from "~/entities/board";
 import { DocumentCodec } from "../codec";
 import { DocumentReader } from "./document-reader";
+import { ImportCandidates } from "../import-candidates";
 import type {
   DocumentReadResponse,
   DocumentReadRequest,
@@ -27,7 +28,13 @@ async function stream(input: Blob | DocumentReadRequest) {
     postMessage: (message: DocumentReadResponse, transfer?: Transferable[]) => {
       messages.push(message);
 
-      if (message.type === "points") transfers.push(transfer?.length ?? 0);
+      if ("seq" in message && message.type !== "ack")
+        host.onmessage!({
+          data: { type: "ack", id: message.id, seq: message.seq },
+        } as MessageEvent<DocumentReadRequest>);
+
+      if (message.type === "points-batch")
+        transfers.push(transfer?.length ?? 0);
 
       if (message.type === "finish" || message.type === "error") resolve();
     },
@@ -112,7 +119,7 @@ describe("document file processing boundary", () => {
 
       if (message.type !== "error") decoded = buffer.accept(message) ?? decoded;
 
-      if (message.type === "points")
+      if (message.type === "points-batch")
         expect(message.values.length).toBeLessThanOrEqual(2048 * 4);
 
       if (message.type === "strokes")
@@ -279,4 +286,168 @@ describe("stored document startup fallback", () => {
       if (instances[0]) expect(instances[0].terminate).toHaveBeenCalledOnce();
     },
   );
+});
+
+async function linkedReader() {
+  vi.resetModules();
+
+  const instances: Probe[] = [];
+  const requests: DocumentReadRequest[] = [];
+
+  const host = {
+    onmessage: null as
+      ((event: MessageEvent<DocumentReadRequest>) => void) | null,
+
+    postMessage(message: DocumentReadResponse, transfer?: Transferable[]) {
+      const data = structuredClone(message, { transfer: transfer ?? [] });
+
+      queueMicrotask(() => {
+        const active = instances.at(-1)!;
+
+        if (!active.closed)
+          active.onmessage?.(new MessageEvent("message", { data }));
+      });
+    },
+  };
+
+  class Probe {
+    onmessage: ((event: MessageEvent<DocumentReadResponse>) => void) | null =
+      null;
+    onerror: ((event: ErrorEvent) => void) | null = null;
+    onmessageerror: (() => void) | null = null;
+    closed = false;
+    terminate = vi.fn(() => {
+      this.closed = true;
+    });
+
+    constructor() {
+      instances.push(this);
+    }
+
+    postMessage(message: DocumentReadRequest) {
+      requests.push(message);
+
+      const data = structuredClone(message);
+
+      queueMicrotask(() => {
+        if (!this.closed)
+          host.onmessage?.(new MessageEvent("message", { data }));
+      });
+    }
+  }
+
+  vi.stubGlobal("self", host);
+  vi.stubGlobal("Worker", Probe);
+  await import("./document-reader-worker");
+
+  return { requests, worker: () => instances.at(-1)! };
+}
+
+describe("owned record and candidate production boundaries", () => {
+  it("decodes storage-owned raw pieces through the real strict reader without a whole stored message", async () => {
+    const h = await linkedReader(),
+      source = DocumentCodec.emptyDocument();
+
+    source.strokes.push({
+      id: 1,
+      color: "#182230",
+      width: 3,
+      points: [{ x: 7, y: 8, pressure: 0.2, time: 9 }],
+    });
+
+    const stored = DocumentCodec.encodeDocument(source);
+
+    const result = await DocumentReader.decodeOwned(
+      stored,
+      new AbortController().signal,
+    );
+
+    expect(result).toEqual(DocumentCodec.decodeDocument(stored));
+    expect(h.requests.some((request) => request.type === "stored")).toBe(false);
+
+    expect(h.requests.some((request) => request.type === "raw-points")).toBe(
+      true,
+    );
+
+    expect(h.worker().terminate).toHaveBeenCalledOnce();
+  });
+
+  it("uses strict owned fallback for unsupported metadata without losing the raw original", async () => {
+    const h = await linkedReader(),
+      source = {
+        ...DocumentCodec.encodeDocument(DocumentCodec.emptyDocument()),
+        extra: new Date(),
+      };
+
+    const result = await DocumentReader.decodeOwned(
+      source,
+      new AbortController().signal,
+    );
+
+    expect(result).toEqual(DocumentCodec.decodeDocument(source));
+    expect(h.requests).toHaveLength(0);
+    expect(h.worker().terminate).toHaveBeenCalledOnce();
+  });
+
+  it("retains a generic mutable decode snapshot after asynchronous worker failure", async () => {
+    const instances = workers(),
+      value = DocumentCodec.encodeDocument(DocumentCodec.emptyDocument());
+
+    const reading = DocumentReader.decode(value, new AbortController().signal);
+
+    value.viewport.x = 987;
+    instances[0]!.onerror!({ preventDefault() {} } as ErrorEvent);
+    expect((await reading).viewport.x).toBe(0);
+  });
+
+  it("retains the native synchronous snapshot for generic mutable prepare", async () => {
+    await linkedReader();
+
+    const source = DocumentCodec.emptyDocument();
+
+    source.strokes.push({
+      id: 1,
+      color: "#182230",
+      width: 3,
+      points: [{ x: 7, y: 8, pressure: 0.2, time: 9 }],
+    });
+
+    const reading = DocumentReader.prepare(
+      source,
+      new AbortController().signal,
+    );
+
+    (source.strokes[0] as Stroke).points[0]!.x = 99;
+    source.viewport.x = 987;
+
+    const result = await reading;
+
+    expect((result.strokes[0] as Stroke).points[0]!.x).toBe(7);
+    expect(result.viewport.x).toBe(0);
+  });
+
+  it("returns only a frozen summary capability and revokes it explicitly", async () => {
+    const h = await linkedReader();
+    const document = DocumentCodec.emptyDocument();
+
+    document.strokes.push({
+      id: 1,
+      color: "#182230",
+      width: 3,
+      points: [{ x: 7, y: 8, pressure: 0.2, time: 9 }],
+    });
+
+    const candidate = await DocumentReader.readCandidate(
+      new Blob([DocumentCodec.serializeDocument(document).json]),
+      new AbortController().signal,
+    );
+
+    expect(candidate).toEqual({ summary: { strokes: 1, points: 1 } });
+    expect(Object.isFrozen(candidate)).toBe(true);
+    expect(Object.isFrozen(candidate.summary)).toBe(true);
+    expect(ImportCandidates.document(candidate).strokes).toHaveLength(1);
+    DocumentReader.disposeCandidate(candidate);
+    expect(() => ImportCandidates.document(candidate)).toThrow();
+    expect(h.worker().terminate).toHaveBeenCalledOnce();
+  });
 });

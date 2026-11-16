@@ -33,6 +33,11 @@ await build({
       "@board": resolve(source, "entities/board/index.ts"),
       "@workspace": resolve(source, "widgets/board-workspace/index.ts"),
       "@document": resolve(source, "features/board-document/index.ts"),
+      "@benchmark-locale": existsSync(
+        resolve(source, "shared/lib/i18n/index.ts"),
+      )
+        ? resolve(source, "shared/lib/i18n/index.ts")
+        : resolve("scripts/performance/locale-unavailable.js"),
       "@application": resolve(
         "scripts/performance",
         legacy ? "application-unavailable.js" : "application.js",

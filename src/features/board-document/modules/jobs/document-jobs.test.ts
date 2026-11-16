@@ -32,13 +32,14 @@ function ink(id: number, count = 1): Stroke {
   };
 }
 
-function factory(auto = true) {
+function factory(auto = true, acknowledge = true) {
   const instances: Array<{
     worker: JobWorker;
     messages: JobRequest[];
     terminated: boolean;
     finish: () => void;
     waitForFinish: () => Promise<void>;
+    waitForWindow: () => Promise<void>;
   }> = [];
 
   return {
@@ -49,7 +50,9 @@ function factory(auto = true) {
 
       let lastStrokes: StrokeMetadata[] = [],
         id = 0,
-        uploadFinished = deferred<void>();
+        uploadFinished = deferred<void>(),
+        windowFull = deferred<void>(),
+        packets = 0;
 
       const record = {
         messages,
@@ -59,6 +62,7 @@ function factory(auto = true) {
         finish: () => {},
 
         waitForFinish: () => uploadFinished.promise,
+        waitForWindow: () => windowFull.promise,
       };
 
       const worker: JobWorker = {
@@ -73,10 +77,25 @@ function factory(auto = true) {
         postMessage: ((message: JobRequest) => {
           messages.push(message);
 
+          if ("seq" in message && message.type !== "ack") {
+            if (++packets === 2) windowFull.resolve();
+          }
+
+          if (acknowledge && "seq" in message && message.type !== "ack")
+            worker.onmessage?.call(
+              worker as Worker,
+              {
+                data: { id: message.id, ack: message.seq },
+              } as MessageEvent<JobResponse>,
+            );
+
           if (message.type === "start") {
             id = message.id;
             lastStrokes = [];
+
             uploadFinished = deferred<void>();
+            windowFull = deferred<void>();
+            packets = 0;
           }
 
           if (message.type === "strokes") lastStrokes.push(...message.values);
@@ -140,7 +159,7 @@ describe("bounded document jobs", () => {
     await jobs.write(document);
 
     const messages = f.instances[0]!.messages,
-      chunks = messages.filter((message) => message.type === "points");
+      chunks = messages.filter((message) => message.type === "points-batch");
 
     expect(
       chunks.reduce((sum, message) => sum + message.values.length / 4, 0),
@@ -175,8 +194,9 @@ describe("bounded document jobs", () => {
     await jobs.write({ ...DocumentCodec.emptyDocument(), strokes: [a] });
 
     const count = () =>
-      f.instances[0]!.messages.filter((message) => message.type === "points")
-        .length;
+      f.instances[0]!.messages.filter(
+        (message) => message.type === "points-batch",
+      ).length;
 
     expect(count()).toBe(1);
 
@@ -222,11 +242,12 @@ describe("bounded document jobs", () => {
     });
 
     await Promise.resolve();
-    await Promise.resolve();
-    await Promise.resolve();
+    await f.instances[1]!.waitForFinish();
 
     expect(
-      f.instances[1]!.messages.some((message) => message.type === "points"),
+      f.instances[1]!.messages.some(
+        (message) => message.type === "points-batch",
+      ),
     ).toBe(true);
 
     let closed = false;
@@ -238,6 +259,7 @@ describe("bounded document jobs", () => {
     await Promise.resolve();
     expect(closed).toBe(false);
     expect(f.instances[1]!.terminated).toBe(false);
+    await f.instances[1]!.waitForFinish();
     f.instances[1]!.finish();
     await retry;
     await close;
@@ -333,7 +355,7 @@ describe("private background result assembly", () => {
         return value;
       });
 
-    for (let i = 0; i < 8; i++) await Promise.resolve();
+    await f.instances[0]!.waitForFinish();
 
     const worker = f.instances[0]!.worker,
       start = f.instances[0]!.messages.find(
@@ -359,6 +381,7 @@ describe("private background result assembly", () => {
       {
         data: {
           id: start.id,
+          seq: 1,
           chunk: [
             {
               index: 0,
@@ -649,4 +672,95 @@ it("routes a large compressed image through worker validation even with no ink p
   };
 
   expect(DocumentWorkload.heavyDocument([image])).toBe(true);
+});
+
+describe("credit failure cleanup", () => {
+  it("rejects an upload blocked on a full credit window when the worker rejects data", async () => {
+    const f = factory(false, false),
+      jobs = new DocumentJobs({ worker: f.create });
+
+    const pending = jobs.validate(
+      [ink(1, 10000)],
+      new AbortController().signal,
+    );
+
+    const failed = expect(pending).rejects.toThrow();
+    const record = f.instances[0]!;
+
+    await record.waitForWindow();
+
+    const start = record.messages.find((message) => message.type === "start")!;
+
+    expect(record.messages.filter((message) => "seq" in message)).toHaveLength(
+      2,
+    );
+
+    record.worker.onmessage?.call(
+      record.worker as Worker,
+      {
+        data: { id: start.id, error: "invalid image transfer" },
+      } as MessageEvent<JobResponse>,
+    );
+
+    await failed;
+    expect(record.terminated).toBe(true);
+    await jobs.close();
+  });
+
+  it("rejects and terminates when a reverse chunk acknowledgement cannot be posted", async () => {
+    const f = factory(false),
+      jobs = new DocumentJobs({ worker: f.create });
+
+    const pending = jobs.select(
+      [ink(1)],
+      { shape: "all", points: [] },
+      new AbortController().signal,
+    );
+
+    const failed = expect(pending).rejects.toThrow("ACK failed");
+    const record = f.instances[0]!;
+
+    await record.waitForFinish();
+
+    const post = record.worker.postMessage;
+
+    record.worker.postMessage = ((message: JobRequest) => {
+      if (message.type === "ack") throw new Error("ACK failed");
+
+      post.call(record.worker, message);
+    }) as JobWorker["postMessage"];
+
+    const start = record.messages.find((message) => message.type === "start")!;
+
+    record.worker.onmessage?.call(
+      record.worker as Worker,
+      {
+        data: { id: start.id, seq: 1, chunk: [] },
+      } as unknown as MessageEvent<JobResponse>,
+    );
+
+    await failed;
+    expect(record.terminated).toBe(true);
+    await jobs.close();
+  });
+
+  it("terminates and rejects a failed close post after draining durable work", async () => {
+    const f = factory(),
+      jobs = new DocumentJobs({ worker: f.create });
+
+    await jobs.write({ ...DocumentCodec.emptyDocument(), strokes: [ink(1)] });
+
+    const record = f.instances[0]!,
+      post = record.worker.postMessage;
+
+    record.worker.postMessage = ((message: JobRequest) => {
+      if (message.type === "close") throw new Error("close failed");
+
+      post.call(record.worker, message);
+    }) as JobWorker["postMessage"];
+
+    await expect(jobs.close()).rejects.toThrow("close failed");
+    expect(record.terminated).toBe(true);
+    await expect(jobs.write(DocumentCodec.emptyDocument())).rejects.toThrow();
+  });
 });

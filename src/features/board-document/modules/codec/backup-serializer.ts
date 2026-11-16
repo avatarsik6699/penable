@@ -1,6 +1,9 @@
 import { Messages } from "~/shared/lib/messages";
 
-function serializeRawBackup(value: unknown): string {
+function serializeRawBackup(
+  value: unknown,
+  identities?: WeakMap<object, object>,
+): string {
   const seen = new Set<object>();
 
   const compatible = (entry: unknown): boolean => {
@@ -13,9 +16,13 @@ function serializeRawBackup(value: unknown): string {
 
     if (typeof entry === "number") return Number.isFinite(entry);
 
-    if (typeof entry !== "object" || seen.has(entry)) return false;
+    if (typeof entry !== "object") return false;
 
-    seen.add(entry);
+    const identity = identities?.get(entry) ?? entry;
+
+    if (seen.has(identity)) return false;
+
+    seen.add(identity);
 
     const array = Array.isArray(entry);
     const prototype = Object.getPrototypeOf(entry);

@@ -123,6 +123,10 @@ export type WorkspaceDependencies = {
     json: import("~/features/board-document").DownloadContents,
     name: string,
   ) => void;
+  exportRecord?: (
+    value: unknown,
+    signal: AbortSignal,
+  ) => Promise<import("~/features/board-document").DownloadContents>;
   exportDocument: (
     document: import("~/features/board-document").BoardDocument,
     signal: AbortSignal,

@@ -1,3 +1,6 @@
+import { ImportCandidates, type ImportCandidate } from "../import-candidates";
+import { CreditWindow } from "./credit-window";
+import { OwnedRecordTransfer } from "./owned-record-transfer";
 import { Messages } from "~/shared/lib/messages";
 import { DocumentCodec } from "../codec";
 import type { BoardDocument } from "../../board-document.types";
@@ -13,6 +16,7 @@ function requestDocument(
   request: DocumentReadRequest,
   signal: AbortSignal,
   factory?: () => JobWorker,
+  owned?: unknown,
 ): Promise<BoardDocument> {
   if (signal.aborted) return Promise.reject(JobScheduling.abortError());
 
@@ -22,7 +26,8 @@ function requestDocument(
         : new Worker(new URL("./document-reader-worker.ts", import.meta.url), {
             type: "module",
           }),
-      buffer = new DocumentReadBuffer();
+      buffer = new DocumentReadBuffer(),
+      credit = new CreditWindow();
 
     let settled = false;
 
@@ -30,6 +35,9 @@ function requestDocument(
       if (settled) return;
 
       settled = true;
+
+      if (error) credit.fail(error);
+
       signal.removeEventListener("abort", abort);
       worker.terminate();
 
@@ -61,7 +69,16 @@ function requestDocument(
       }
 
       try {
+        if (data.type === "ack") {
+          credit.acknowledge(data.seq);
+
+          return;
+        }
+
         const document = buffer.accept(data);
+
+        if ("seq" in data)
+          worker.postMessage({ type: "ack", id: data.id, seq: data.seq });
 
         if (document) finish(undefined, document);
       } catch (error) {
@@ -70,7 +87,23 @@ function requestDocument(
     };
 
     try {
-      worker.postMessage(request);
+      if (owned !== undefined) {
+        let budgetStart = performance.now();
+
+        void OwnedRecordTransfer.send(
+          owned,
+          credit,
+          (packet) => worker.postMessage(packet),
+          async () => {
+            if (signal.aborted || settled) throw JobScheduling.abortError();
+
+            if (performance.now() - budgetStart >= 4) {
+              await JobScheduling.yieldTask();
+              budgetStart = performance.now();
+            }
+          },
+        ).catch((error) => finish(error));
+      } else worker.postMessage(request);
     } catch (error) {
       finish(error);
     }
@@ -78,6 +111,20 @@ function requestDocument(
 }
 
 export const DocumentReader = {
+  async readCandidate(
+    blob: Blob,
+    signal: AbortSignal,
+    factory?: () => JobWorker,
+  ): Promise<ImportCandidate> {
+    const document = await DocumentReader.read(blob, signal, factory);
+
+    if (signal.aborted) throw JobScheduling.abortError();
+
+    return ImportCandidates.capture(document);
+  },
+
+  disposeCandidate: ImportCandidates.dispose,
+
   read(blob: Blob, signal: AbortSignal, factory?: () => JobWorker) {
     if (blob.size > DocumentCodec.DOCUMENT_LIMITS.bytes)
       return Promise.reject(
@@ -88,15 +135,45 @@ export const DocumentReader = {
   },
 
   decode(value: unknown, signal: AbortSignal) {
-    return requestDocument({ type: "stored", value }, signal).catch((error) => {
+    if (signal.aborted) return Promise.reject(JobScheduling.abortError());
+
+    let captured: unknown;
+
+    try {
+      captured = structuredClone(value);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+
+    return requestDocument({ type: "stored", value: captured }, signal).catch(
+      (error) => {
+        if (
+          signal.aborted ||
+          (error instanceof Error && error.name === "AbortError")
+        )
+          throw error;
+
+        // Startup must retain the independent recovery path when Worker assets are
+        // unavailable. Stored records still pass through the same strict decoder.
+        return DocumentCodec.decodeDocument(captured);
+      },
+    );
+  },
+
+  // Only storage-owned detached records may use this path. Caller must retain immutability until completion.
+  decodeOwned(value: unknown, signal: AbortSignal) {
+    return requestDocument(
+      { type: "stored", value: undefined },
+      signal,
+      undefined,
+      value,
+    ).catch((error) => {
       if (
         signal.aborted ||
         (error instanceof Error && error.name === "AbortError")
       )
         throw error;
 
-      // Startup must retain the independent recovery path when Worker assets are
-      // unavailable. Stored records still pass through the same strict decoder.
       return DocumentCodec.decodeDocument(value);
     });
   },

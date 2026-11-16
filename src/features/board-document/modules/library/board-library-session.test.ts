@@ -27,6 +27,7 @@ function setup(
     legacy?: boolean;
     missingCatalog?: boolean;
     decode?: import("../session").SessionOptions["decode"];
+    prepareOwned?: import("./library.types").LibraryOptions["prepareOwned"];
   } = {},
 ) {
   const original = {
@@ -118,6 +119,7 @@ function setup(
   const onLibrary = vi.fn();
 
   const session = new BoardLibrarySession({
+    prepareOwned: options.prepareOwned,
     snapshot: () => live,
 
     onHydrate: (document) => {
@@ -566,4 +568,78 @@ it("aborts the active session decode before waiting for library startup and drai
   );
 
   expect(h.release).toHaveBeenCalledOnce();
+});
+
+it("passes the exact prevalidated owned board to activation without another read or decode", async () => {
+  const document = DocumentCodec.emptyDocument();
+
+  document.viewport.x = 543;
+
+  const close = vi.fn(async () => {});
+
+  const prepared: import("../jobs").OwnedPreparedBoard = {
+    id: "main",
+    records: {
+      main: { exists: true, value: Object.freeze({ schemaVersion: 5 }) },
+      beforeImport: { exists: false, value: undefined },
+    },
+    document,
+    close,
+    bootstrap: vi.fn(),
+  };
+
+  const prepareOwned = vi.fn(async () => prepared),
+    decode = vi.fn(async () => {
+      throw new Error("must not decode again");
+    });
+
+  const h = setup({ prepareOwned, decode });
+
+  h.repository.readCatalog = vi.fn(async () => ({
+    exists: true,
+    value: h.catalog,
+  }));
+
+  await h.session.start();
+  expect(h.repository.read).not.toHaveBeenCalled();
+  expect(h.repository.board).not.toHaveBeenCalled();
+  expect(prepareOwned).toHaveBeenCalledOnce();
+  expect(decode).not.toHaveBeenCalled();
+  expect(h.live.viewport.x).toBe(543);
+  expect(close).toHaveBeenCalledOnce();
+  await h.session.dispose();
+  expect(close).toHaveBeenCalledOnce();
+});
+
+it("closes a prepared target after a failed catalog switch while retaining the active board", async () => {
+  const close = vi.fn(async () => {});
+
+  const prepareOwned = vi.fn(async (id: string) => ({
+    id,
+    records: {
+      main: { exists: true, value: Object.freeze({ schemaVersion: 5 }) },
+      beforeImport: { exists: false, value: undefined },
+    },
+    document: DocumentCodec.emptyDocument(),
+    close,
+    bootstrap: vi.fn(),
+  }));
+
+  const h = setup({ prepareOwned });
+
+  await h.session.start();
+  close.mockClear();
+
+  vi.mocked(h.repository.update).mockRejectedValueOnce(
+    new Error("catalog transaction failed"),
+  );
+
+  await expect(h.session.switchBoard("other")).rejects.toThrow(
+    "catalog transaction failed",
+  );
+
+  expect(close).toHaveBeenCalledOnce();
+  expect(h.session.canWrite).toBe(true);
+  expect(h.catalog.activeId).toBe("main");
+  await h.session.dispose();
 });

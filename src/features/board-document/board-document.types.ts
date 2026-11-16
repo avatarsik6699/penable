@@ -60,6 +60,7 @@ export type BoardCatalog = {
 };
 
 export type LibraryRepository = {
+  readCatalog?: () => Promise<StoredRecord>;
   read: () => Promise<{
     catalog: StoredRecord;
     main: StoredRecord;
@@ -96,6 +97,7 @@ export type DocumentRepository = {
   }>;
   write: (document: BoardDocument) => Promise<void>;
   replace: (previous: unknown, candidate: BoardDocument) => Promise<void>;
+  replaceStored?: (candidate: BoardDocument) => Promise<void>;
   close: () => Promise<void>;
 };
 
@@ -130,7 +132,14 @@ export type StorageState = {
   message: MessageTypes.Value;
 };
 
+export type ReplacementPrevious = BoardDocument | { kind: "stored-current" };
+
+// Internal completed-source port: replacement candidates have passed strict Session preparation.
 export type DocumentPersistence = {
+  replace?: (
+    previous: ReplacementPrevious,
+    candidate: BoardDocument,
+  ) => Promise<StoredRecord | void>;
   write: (document: BoardDocument) => Promise<void>;
   close: () => Promise<void>;
 };

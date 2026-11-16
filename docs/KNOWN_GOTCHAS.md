@@ -153,6 +153,24 @@ actual preview redraw and history, and separate hit-test time from paint time. G
 conservative world bounds must reject distant items before masks/clipping/inverses; exact pressure
 segments also need bounds before edge tests. Do not remove coalesced samples or relax hit accuracy.
 
+## Bounded Worker messages do not bound main-thread IndexedDB reads
+
+Native retrieval materializes stored values in the requesting realm. Change42's first packed
+transport passed1M-point import/replacement/export with16–19ms UI gaps, yet opening still caused
+668ms and584ms tasks while reading main and its backup. Move production read/decode into its
+storage Worker and reuse the prepared load across Library/Session. Capture recovery Blob/error
+snapshots there; a later key lookup would change readonly recovery semantics. Drain started
+bootstrap transactions even after a logical storage invalidation, before terminating the Worker.
+
+## A narrow Canvas clip can change full-path raster output
+
+Change41's same-Path2D control reproduced alpha255 versus114 inside the dirty region, with
+identical geometry/state and only the clip changed. A full-bounds sentinel removed that large
+error but left changes outside geometric dirty bounds and100k framep95117.2ms. Bounds padding,
+unit geometry checks and short JavaScript paint calls did not establish native raster parity or
+speed. Keep the rejected prototype disabled and consult its feasibility record before retrying
+retained partial replay. Exact output and settled native frames remain separate gates.
+
 ## Playwriter has a separate per-CDP-request deadline
 
 A long `page.evaluate` can fail near30seconds with “Execution context was destroyed” even when

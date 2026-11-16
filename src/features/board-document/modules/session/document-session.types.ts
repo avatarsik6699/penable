@@ -8,6 +8,10 @@ import type {
 } from "../../board-document.types";
 
 export type SessionOptions = {
+  initialLoad?: import("../jobs").OwnedPreparedBoard;
+  loadOwned?: (
+    signal: AbortSignal,
+  ) => Promise<import("../jobs").OwnedPreparedBoard | null>;
   snapshot: () => BoardSnapshot;
   decode?: (
     value: unknown,

@@ -4,7 +4,6 @@ import type React from "react";
 import type { ImportDialogTypes } from "./import-dialog.types";
 import styles from "./import-dialog.module.css";
 import { Button } from "~/shared/ui/button";
-import { DocumentCodec } from "../../../../modules/codec";
 
 export const ImportDialog: React.FC<ImportDialogTypes.Props> = (props) => (
   <dialog
@@ -33,8 +32,8 @@ export const ImportDialog: React.FC<ImportDialogTypes.Props> = (props) => (
     {props.dialog.candidate && (
       <p>
         {I18n.t("backupSummary", {
-          strokes: DocumentCodec.documentStats(props.dialog.candidate).strokes,
-          points: DocumentCodec.documentStats(props.dialog.candidate).points,
+          strokes: props.dialog.candidate.summary.strokes,
+          points: props.dialog.candidate.summary.points,
         })}
       </p>
     )}

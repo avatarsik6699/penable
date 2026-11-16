@@ -33,6 +33,10 @@ export type LibraryOptions = Pick<
   onLibrary?: (state: LibraryState) => void;
   initialTitle?: string;
   decode?: SessionOptions["decode"];
+  prepareOwned?: (
+    id: string,
+    signal: AbortSignal,
+  ) => Promise<import("../jobs").OwnedPreparedBoard | null>;
   preflight?: (document: BoardDocument, signal: AbortSignal) => Promise<void>;
   acquire: () => Promise<WriterLease>;
   open: (
@@ -41,7 +45,10 @@ export type LibraryOptions = Pick<
   session: (
     id: string,
     lease: WriterLease,
-    options: Pick<SessionOptions, "snapshot" | "onHydrate" | "onState">,
+    options: Pick<
+      SessionOptions,
+      "snapshot" | "onHydrate" | "onState" | "initialLoad"
+    >,
   ) => DocumentSession;
   id: () => string;
 };

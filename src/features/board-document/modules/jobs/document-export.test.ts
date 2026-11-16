@@ -30,7 +30,7 @@ async function setup() {
     postMessage: ((data: JobRequest, transfer?: Transferable[]) => {
       requests.push(data);
 
-      if (data.type === "points") transfers.push(transfer?.length ?? 0);
+      if (data.type === "points-batch") transfers.push(transfer?.length ?? 0);
 
       host.onmessage!({ data } as MessageEvent<JobRequest>);
     }) as JobWorker["postMessage"],
@@ -106,3 +106,31 @@ describe("background recovery export", () => {
     await h.jobs.close();
   });
 });
+
+it.each([false, true])(
+  "preserves runtime raw own kind=%s without leaking transport metadata",
+  async (ownKind) => {
+    const h = await setup(),
+      document = DocumentCodec.emptyDocument();
+
+    document.strokes.push({
+      ...(ownKind ? { kind: "ink" as const } : {}),
+      id: 1,
+      width: 3,
+      color: "#182230",
+      points: [{ x: 1, y: 2, pressure: 0.5, time: 0 }],
+    });
+
+    const raw = await h.jobs.exportRaw(document, new AbortController().signal);
+
+    expect(JSON.parse(await raw.text())).toEqual(
+      JSON.parse(DocumentCodec.serializeRawBackup(document)),
+    );
+
+    expect(JSON.parse(await raw.text())).not.toHaveProperty(
+      "strokes.0.ownKind",
+    );
+
+    await h.jobs.close();
+  },
+);

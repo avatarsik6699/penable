@@ -125,61 +125,97 @@ export class StoragePage {
     );
   }
 
-  async sceneFingerprint(): Promise<string> {
-    return this.page.evaluate(async () => {
-      const strokes = await new Promise<unknown>((resolve, reject) => {
-        const request = indexedDB.open("penable");
+  private async recordFingerprint(
+    kind: "main" | "previous",
+    scene: boolean,
+  ): Promise<string> {
+    return this.page.evaluate(
+      async ({ kind, scene }) => {
+        const strokes = await new Promise<unknown>((resolve, reject) => {
+          const request = indexedDB.open("penable");
 
-        request.onerror = () => reject(request.error);
+          request.onerror = () => reject(request.error);
 
-        request.onsuccess = () => {
-          const db = request.result;
-          const transaction = db.transaction("documents", "readonly");
-          const store = transaction.objectStore("documents");
-          const catalog = store.get("library");
-          let document: TestBoardTypes.StoredDocument | undefined;
+          request.onsuccess = () => {
+            const db = request.result;
+            const transaction = db.transaction("documents", "readonly");
+            const store = transaction.objectStore("documents");
+            const catalog = store.get("library");
+            let document: TestBoardTypes.StoredDocument | undefined;
 
-          catalog.onsuccess = () => {
-            const id = catalog.result?.activeId ?? "main";
-            const read = store.get(id === "main" ? "main" : `board:${id}`);
+            catalog.onsuccess = () => {
+              const id = catalog.result?.activeId ?? "main";
+              const key = id === "main" ? "main" : `board:${id}`;
+              const prefix = id === "main" ? "" : `${key}:`;
 
-            read.onsuccess = () => {
-              document = read.result;
+              const read = store.get(
+                kind === "main" ? key : `${prefix}before-import`,
+              );
+
+              read.onsuccess = () => {
+                document = read.result;
+              };
+            };
+
+            transaction.oncomplete = () => {
+              db.close();
+              resolve(scene ? (document?.items ?? []) : document);
+            };
+
+            transaction.onabort = () => {
+              db.close();
+              reject(transaction.error);
             };
           };
+        });
 
-          transaction.oncomplete = () => {
-            db.close();
-            resolve(document?.items ?? []);
-          };
+        const canonical = (value: unknown): unknown =>
+          Array.isArray(value)
+            ? value.map(canonical)
+            : value && typeof value === "object"
+              ? Object.fromEntries(
+                  Object.entries(value)
+                    .sort(([a], [b]) => a.localeCompare(b))
+                    .map(([key, entry]) => [key, canonical(entry)]),
+                )
+              : value;
 
-          transaction.onabort = () => {
-            db.close();
-            reject(transaction.error);
-          };
-        };
-      });
+        const digest = await crypto.subtle.digest(
+          "SHA-256",
+          new TextEncoder().encode(JSON.stringify(canonical(strokes))),
+        );
 
-      const canonical = (value: unknown): unknown =>
-        Array.isArray(value)
-          ? value.map(canonical)
-          : value && typeof value === "object"
-            ? Object.fromEntries(
-                Object.entries(value)
-                  .sort(([a], [b]) => a.localeCompare(b))
-                  .map(([key, entry]) => [key, canonical(entry)]),
-              )
-            : value;
+        return [...new Uint8Array(digest)]
+          .map((byte) => byte.toString(16).padStart(2, "0"))
+          .join("");
+      },
+      { kind, scene },
+    );
+  }
 
-      const digest = await crypto.subtle.digest(
-        "SHA-256",
-        new TextEncoder().encode(JSON.stringify(canonical(strokes))),
-      );
+  async sceneFingerprint(): Promise<string> {
+    return this.recordFingerprint("main", true);
+  }
 
-      return [...new Uint8Array(digest)]
-        .map((byte) => byte.toString(16).padStart(2, "0"))
-        .join("");
-    });
+  async expectPreviousFingerprint(document: TestBoardTypes.StoredDocument) {
+    const canonical = (value: unknown): unknown =>
+      Array.isArray(value)
+        ? value.map(canonical)
+        : value && typeof value === "object"
+          ? Object.fromEntries(
+              Object.entries(value)
+                .sort(([a], [b]) => a.localeCompare(b))
+                .map(([key, value]) => [key, canonical(value)]),
+            )
+          : value;
+
+    const expected = createHash("sha256")
+      .update(JSON.stringify(canonical(document)))
+      .digest("hex");
+
+    await expect
+      .poll(() => this.recordFingerprint("previous", false))
+      .toBe(expected);
   }
 
   async expectFingerprint(fingerprint: string) {

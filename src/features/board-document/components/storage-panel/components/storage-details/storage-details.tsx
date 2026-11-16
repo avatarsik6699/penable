@@ -58,42 +58,42 @@ export const StorageDetails: React.FC<StorageDetailsTypes.Props> = (props) => {
       <div className={styles.recovery}>
         <h3>{I18n.t("recoveryCopies")}</h3>
         {props.state.hasRawCopy && (
-          <Button onClick={() => props.onFeedback(props.onRaw())}>
+          <Button onClick={() => void exported.download(props.onRaw)}>
             <EditorIcon name="history" />
             {I18n.t("originalRecord")}
           </Button>
         )}
         {props.state.hasSchema5Copy && props.onSchema5 && (
-          <Button onClick={() => props.onFeedback(props.onSchema5!())}>
+          <Button onClick={() => void exported.download(props.onSchema5!)}>
             {I18n.t("beforeTheToolsUpdate")}
           </Button>
         )}
         {props.state.hasSchema4Copy && (
-          <Button onClick={() => props.onFeedback(props.onSchema4())}>
+          <Button onClick={() => void exported.download(props.onSchema4)}>
             <EditorIcon name="history" />
             {I18n.t("copyBeforeV4Update")}
           </Button>
         )}
         {props.state.hasLibraryCopy && (
-          <Button onClick={() => props.onFeedback(props.onLibrary())}>
+          <Button onClick={() => void exported.download(props.onLibrary)}>
             <EditorIcon name="history" />
             {I18n.t("copyBeforeBoardLibrary")}
           </Button>
         )}
         {props.state.hasPrevious && (
-          <Button onClick={() => props.onFeedback(props.onPrevious())}>
+          <Button onClick={() => void exported.download(props.onPrevious)}>
             <EditorIcon name="history" />
             {I18n.t("copyBeforeReplacement")}
           </Button>
         )}
         {props.state.hasSchema3Copy && (
-          <Button onClick={() => props.onFeedback(props.onSchema3())}>
+          <Button onClick={() => void exported.download(props.onSchema3)}>
             <EditorIcon name="history" />
             {I18n.t("copyBeforeUpdate")}
           </Button>
         )}
         {props.state.hasUpgradeCopy && (
-          <Button onClick={() => props.onFeedback(props.onUpgrade())}>
+          <Button onClick={() => void exported.download(props.onUpgrade)}>
             <EditorIcon name="history" />
             {I18n.text(
               props.state.hasSchema3Copy

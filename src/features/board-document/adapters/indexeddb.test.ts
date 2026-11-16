@@ -516,3 +516,50 @@ describe("atomic schema5 backup", () => {
     await repository.close();
   });
 });
+
+it("backs up the raw current stored record in the same replacement transaction and resolves only on completion", async () => {
+  const h = fakeDatabase();
+
+  h.opening.onsuccess?.();
+
+  const repository = await h.opened,
+    raw = { corrupt: new Uint8Array([1, 2, 3]) };
+
+  let settled = false;
+
+  const replacing = repository.replaceStored!(
+    DocumentCodec.emptyDocument(),
+  ).then(() => {
+    settled = true;
+  });
+
+  const tx = h.transactions.at(-1)!;
+
+  for (const { key, request } of tx.requests) {
+    request.result = key === "value:main" ? raw : undefined;
+    request.onsuccess?.();
+  }
+
+  expect(tx.puts.find(([, key]) => key === "before-import")?.[0]).toBe(raw);
+  expect(tx.puts.some(([, key]) => key === "main")).toBe(true);
+  await Promise.resolve();
+  expect(settled).toBe(false);
+  tx.oncomplete?.();
+  await replacing;
+  await repository.close();
+});
+
+it("rejects atomic raw backup replacement on transaction abort", async () => {
+  const h = fakeDatabase();
+
+  h.opening.onsuccess?.();
+
+  const repository = await h.opened;
+  const replacing = repository.replaceStored!(DocumentCodec.emptyDocument());
+  const rejected = expect(replacing).rejects.toThrow();
+  const tx = h.transactions.at(-1)!;
+
+  tx.onabort?.();
+  await rejected;
+  await repository.close();
+});

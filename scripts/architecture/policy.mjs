@@ -4,6 +4,7 @@ export const platformOwners = {
   "src/features/app-availability/adapters/app-platform.ts": ["dom"],
   "src/features/board-document/modules/jobs/document-jobs.ts": ["files"],
   "src/features/board-document/modules/jobs/document-reader.ts": [
+    "clock",
     "files",
     "worker",
     "url",
@@ -13,6 +14,23 @@ export const platformOwners = {
     "files",
     "worker-scope",
     "messaging",
+  ],
+  "src/features/board-document/modules/jobs/document-storage.ts": [
+    "worker",
+    "url",
+    "messaging",
+  ],
+  "src/features/board-document/modules/jobs/document-storage-worker.ts": [
+    "worker-scope",
+    "messaging",
+  ],
+  "src/features/board-document/modules/jobs/recovery-copy.ts": ["files"],
+  "src/features/board-document/adapters/record-exports.ts": ["files"],
+  "src/features/board-document/modules/record-copies/record-copies.ts": [
+    "files",
+  ],
+  "src/features/board-document/modules/record-copies/record-copies.types.ts": [
+    "files",
   ],
   "src/features/board-document/modules/jobs/jobs-protocol.ts": ["files"],
   "src/features/board-document/modules/jobs/source-upload.types.ts": [

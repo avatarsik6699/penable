@@ -30,7 +30,7 @@ function setup(
   preflight?: import("./document-session.types").SessionOptions["preflight"],
   processing: Pick<
     import("./document-session.types").SessionOptions,
-    "decode" | "prepare"
+    "decode" | "prepare" | "initialLoad" | "loadOwned"
   > = {},
 ) {
   if (
@@ -853,4 +853,177 @@ describe("asynchronous document processing ownership", () => {
     expect(h.repository.replace).not.toHaveBeenCalled();
     expect(h.lease.release).toHaveBeenCalledOnce();
   });
+});
+
+it("keeps a validated import capability private and reusable after failed confirmation, then disposes on success", async () => {
+  const { ImportCandidates } = await import("../import-candidates");
+
+  const preflight = vi.fn(async () => {}),
+    prepare = vi.fn(
+      async (document: import("../../board-document.types").BoardDocument) =>
+        document,
+    );
+
+  const h = setup(undefined, true, undefined, preflight, { prepare });
+
+  await h.session.start();
+
+  const document = DocumentCodec.emptyDocument();
+  const candidate = ImportCandidates.capture(document);
+
+  expect(Object.keys(candidate)).toEqual(["summary"]);
+  expect(Object.isFrozen(candidate)).toBe(true);
+  expect(Object.isFrozen(candidate.summary)).toBe(true);
+  preflight.mockRejectedValueOnce(new Error("image decode failed"));
+
+  await expect(
+    h.session.replaceCandidate(candidate, () => false),
+  ).rejects.toThrow("image decode failed");
+
+  expect(prepare).not.toHaveBeenCalled();
+  expect(h.repository.replace).not.toHaveBeenCalled();
+  await h.session.replaceCandidate(candidate, () => false);
+  expect(preflight).toHaveBeenCalledTimes(2);
+  expect(h.repository.replace).toHaveBeenCalledOnce();
+
+  await expect(
+    h.session.replaceCandidate(candidate, () => false),
+  ).rejects.toThrow();
+
+  const forged = { summary: candidate.summary } as typeof candidate;
+
+  await expect(
+    h.session.replaceCandidate(forged, () => false),
+  ).rejects.toThrow();
+
+  await h.session.dispose();
+});
+
+it("uses the optional immutable replacement writer and drains it before closing or releasing authority", async () => {
+  const complete = deferred<void>(),
+    started = deferred<void>();
+
+  const persistence = {
+    write: vi.fn(async () => {}),
+    replace: vi.fn(
+      async (
+        _previous: import("../../board-document.types").ReplacementPrevious,
+        _candidate: import("../../board-document.types").BoardDocument,
+      ) => {
+        started.resolve();
+        await complete.promise;
+      },
+    ),
+    close: vi.fn(async () => {}),
+  };
+
+  const h = setup(undefined, true, persistence);
+
+  await h.session.start();
+
+  const replacing = h.session.replace(
+    DocumentCodec.emptyDocument(),
+    () => false,
+  );
+
+  await started.promise;
+  expect(h.repository.replace).not.toHaveBeenCalled();
+
+  const disposal = h.session.dispose();
+
+  expect(persistence.close).not.toHaveBeenCalled();
+  expect(h.lease.release).not.toHaveBeenCalled();
+  complete.resolve();
+  await replacing;
+  await disposal;
+  expect(persistence.close).toHaveBeenCalledOnce();
+  expect(h.lease.release).toHaveBeenCalledOnce();
+});
+
+it("uses a stored-record marker for production replacement of an unloaded corrupt document", async () => {
+  const persistence = {
+    write: vi.fn(async () => {}),
+    replace: vi.fn(async () => {}),
+    close: vi.fn(async () => {}),
+  };
+
+  const h = setup(
+    { exists: true, value: { corrupt: true } },
+    true,
+    persistence,
+  );
+
+  await h.session.start();
+  await h.session.replace(DocumentCodec.emptyDocument(), () => false);
+
+  expect(persistence.replace).toHaveBeenCalledWith(
+    { kind: "stored-current" },
+    expect.objectContaining({ schemaVersion: 5 }),
+  );
+
+  expect(h.repository.replace).not.toHaveBeenCalled();
+  await h.session.dispose();
+});
+
+it("consumes a prepared owned load once without rereading or decoding and releases its owner after hydration", async () => {
+  const document = DocumentCodec.emptyDocument();
+
+  document.viewport.x = 432;
+
+  const close = vi.fn(async () => {}),
+    decode = vi.fn(async () => document);
+
+  const initialLoad: import("../jobs").OwnedPreparedBoard = {
+    id: "main",
+    records: {
+      main: { exists: true, value: Object.freeze({ schemaVersion: 5 }) },
+      beforeImport: { exists: false, value: undefined },
+    },
+    document,
+    close,
+    bootstrap: vi.fn(),
+  };
+
+  const h = setup(undefined, true, undefined, undefined, {
+    initialLoad,
+    decode,
+  });
+
+  await h.session.start();
+  expect(h.repository.read).not.toHaveBeenCalled();
+  expect(decode).not.toHaveBeenCalled();
+  expect(h.live.viewport.x).toBe(432);
+  expect(close).toHaveBeenCalledOnce();
+  await h.session.replace(DocumentCodec.emptyDocument(), () => false);
+  expect(h.live.viewport.x).toBe(0);
+  await h.session.dispose();
+  expect(close).toHaveBeenCalledOnce();
+});
+
+it("retains owned raw recovery on strict load failure while closing the snapshot worker", async () => {
+  const value = Object.freeze({}),
+    close = vi.fn(async () => {});
+
+  const owned: import("../jobs").OwnedPreparedBoard = {
+    id: "main",
+    records: {
+      main: { exists: true, value },
+      beforeImport: { exists: false, value: undefined },
+    },
+    error: "invalid stored record",
+    close,
+    bootstrap: vi.fn(),
+  };
+
+  const h = setup(undefined, true, undefined, undefined, {
+    loadOwned: async () => owned,
+  });
+
+  await h.session.start();
+  expect(h.session.state.hasRawCopy).toBe(true);
+  expect(h.session.rawRecord.value).toBe(value);
+  expect(h.repository.read).not.toHaveBeenCalled();
+  expect(close).toHaveBeenCalledOnce();
+  await h.session.dispose();
+  expect(close).toHaveBeenCalledOnce();
 });
