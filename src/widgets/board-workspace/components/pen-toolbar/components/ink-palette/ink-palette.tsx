@@ -1,3 +1,4 @@
+import { Theme } from "~/shared/lib/theme";
 import { Messages } from "~/shared/lib/messages";
 import { I18n } from "~/shared/lib/i18n";
 import type React from "react";
@@ -29,7 +30,7 @@ export const InkPalette: React.FC<InkPaletteTypes.Props> = (props) => (
         disabled={props.disabled}
         onClick={() => props.onChange(entry.color)}
       >
-        <span style={{ background: entry.color }} />
+        <span style={{ background: Theme.cssColor(entry.color) }} />
         {props.color === entry.color && (
           <span className={styles.selected} aria-hidden="true">
             <EditorIcon name="check" />

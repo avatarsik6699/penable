@@ -1,10 +1,21 @@
 :root {
   font-family: "Segoe UI", system-ui, sans-serif;
-  color: #182230;
-  background: #fff;
+  color: var(--ink);
+  background: var(--board-paper);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+  --board-paper: #fff;
+  --preview-paper: #f7f9fc;
+  --background-dot: #bdc8d9;
+  --background-grid: #e1e7ef;
+  --text-selection: #dce9ff;
+  --primary-hover: #124cb1;
+  --saved: #36724c;
+  --pending: #b77916;
+  --idle: #7a8798;
+  --status-border: #18223018;
+  --delete-backdrop: rgb(24 34 48 / 24%);
   --text-muted: #526176;
   --control-selected-border: #c5d8fb;
   --control-selected-bg: #eaf1ff;
@@ -25,6 +36,39 @@
   --popover-shadow:
     0 6px 24px rgb(24 34 48 / 12%), 0 1px 4px rgb(24 34 48 / 5%);
 }
+
+:root[data-theme="dark"] {
+  --board-paper: #181c24;
+  --paper: #222936;
+  --panel: #222936;
+  --preview-paper: #1b212c;
+  --ink: #e8edf4;
+  --text-muted: #a8b4c6;
+  --divider: #465268;
+  --focus: #84adff;
+  --control-selected-text: #a9c7ff;
+  --control-selected-bg: #2a3e5c;
+  --control-selected-border: #5876a6;
+  --control-hover: #303b4d;
+  --control-disabled: #7f8ca1;
+  --primary-hover: #adc9ff;
+  --panel-shadow: #00000055;
+  --dialog-backdrop: #080b12aa;
+  --delete-backdrop: #080b1299;
+  --selection-fill: #84adff1f;
+  --cursor-halo: #181c24;
+  --background-dot: #76859b;
+  --background-grid: #526176;
+  --text-selection: #354f76;
+  --error: #ffaaa1;
+  --saved: #81ce89;
+  --pending: #f4d35e;
+  --idle: #a8b4c6;
+  --status-border: #e8edf426;
+  --chrome-shadow: 0 3px 14px rgb(0 0 0 / 30%), 0 1px 3px rgb(0 0 0 / 24%);
+  --popover-shadow: 0 6px 24px rgb(0 0 0 / 38%), 0 1px 4px rgb(0 0 0 / 28%);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -63,7 +107,7 @@ button[aria-pressed="true"] {
 }
 ::selection {
   color: var(--ink);
-  background: #dce9ff;
+  background: var(--text-selection);
 }
 input[type="range"] {
   appearance: none;
@@ -86,7 +130,7 @@ input[type="range"]::-webkit-slider-thumb {
   margin-top: -5px;
   border-radius: 50%;
   background: var(--focus);
-  box-shadow: 0 0 0 2px #fff;
+  box-shadow: 0 0 0 2px var(--paper);
 }
 input[type="range"]::-moz-range-track {
   height: 3px;
@@ -99,7 +143,7 @@ input[type="range"]::-moz-range-progress {
 input[type="range"]::-moz-range-thumb {
   width: 13px;
   height: 13px;
-  border: 2px solid #fff;
+  border: 2px solid var(--paper);
   border-radius: 50%;
   background: var(--focus);
 }

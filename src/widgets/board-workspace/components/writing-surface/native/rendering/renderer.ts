@@ -1,3 +1,4 @@
+import type { ThemeTypes } from "~/shared/lib/theme";
 import { BoardCoordinates } from "~/entities/board";
 import { LayerPainter } from "./layer-painter";
 import type {
@@ -15,6 +16,7 @@ const browserFrames: FrameScheduler = {
 };
 
 export class CanvasRenderer {
+  private theme: ThemeTypes.Effective = "light";
   private width = -1;
   private height = -1;
   private dpr = -1;
@@ -51,6 +53,16 @@ export class CanvasRenderer {
 
   get resolution() {
     return this.raster;
+  }
+
+  setTheme(theme: ThemeTypes.Effective) {
+    if (this.theme === theme) return;
+
+    this.theme = theme;
+    this.painter.setTheme(theme);
+    this.fullDirty = true;
+    this.liveDirty = true;
+    this.schedule();
   }
 
   needsResize(

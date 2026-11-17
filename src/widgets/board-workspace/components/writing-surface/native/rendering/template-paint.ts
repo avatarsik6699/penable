@@ -1,9 +1,14 @@
+import { Theme, type ThemeTypes } from "~/shared/lib/theme";
 import { BoardTemplates, type TemplateItem } from "~/entities/board";
 import type { RenderingContext } from "./rendering-context.types";
 
 const glyphPaths = new Map<string, Path2D>();
 
-function paint(ctx: RenderingContext, item: TemplateItem) {
+function paint(
+  ctx: RenderingContext,
+  item: TemplateItem,
+  theme: ThemeTypes.Effective = "light",
+) {
   ctx.save();
 
   try {
@@ -16,7 +21,7 @@ function paint(ctx: RenderingContext, item: TemplateItem) {
       item.generatorVersion,
     ).primitives) {
       if (primitive.kind === "label") {
-        ctx.fillStyle = primitive.color;
+        ctx.fillStyle = Theme.color(primitive.color, theme);
 
         for (const glyph of primitive.glyphs) {
           let path = glyphPaths.get(glyph.path);
@@ -41,7 +46,7 @@ function paint(ctx: RenderingContext, item: TemplateItem) {
           ctx.restore();
         }
       } else if (primitive.kind === "text") {
-        ctx.fillStyle = primitive.color;
+        ctx.fillStyle = Theme.color(primitive.color, theme);
         ctx.font = `${primitive.size}px Arial, sans-serif`;
         ctx.textAlign = "left";
         ctx.textBaseline = "top";
@@ -71,11 +76,11 @@ function paint(ctx: RenderingContext, item: TemplateItem) {
         }
 
         if (primitive.fill) {
-          ctx.fillStyle = primitive.fill;
+          ctx.fillStyle = Theme.color(primitive.fill, theme);
           ctx.fill();
         }
 
-        ctx.strokeStyle = primitive.color;
+        ctx.strokeStyle = Theme.color(primitive.color, theme);
         ctx.lineWidth = primitive.width;
 
         ctx.setLineDash(

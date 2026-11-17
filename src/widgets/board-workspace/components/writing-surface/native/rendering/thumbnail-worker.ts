@@ -47,7 +47,7 @@ host.onmessage = ({ data }) => {
       context.setTransform(2, 0, 0, 2, -bounds.left * 2, -bounds.top * 2);
       BoardPaths.traceMask(context, fragment.region ?? []);
       context.clip("nonzero");
-      BoardPaint.paintStrokes(context, fragment.strokes, images.get);
+      BoardPaint.paintStrokes(context, fragment.strokes, images.get, "light");
 
       const blob = await canvas.convertToBlob({ type: "image/png" });
 

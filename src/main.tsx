@@ -3,9 +3,11 @@ import { createRoot } from "react-dom/client";
 import { I18n } from "~/shared/lib/i18n";
 import { App } from "./app/app";
 import { LocalePreferences } from "./app/adapters/locale-platform";
+import { ThemePreferences } from "./app/adapters/theme-platform";
 import "./app/styles.css";
 
 const locale = new LocalePreferences();
+const theme = new ThemePreferences();
 
 void I18n.initialize(locale.getSnapshot().language).then(() => {
   const root = document.getElementById("root");
@@ -14,7 +16,7 @@ void I18n.initialize(locale.getSnapshot().language).then(() => {
 
   createRoot(root).render(
     <StrictMode>
-      <App locale={locale} />
+      <App locale={locale} theme={theme} />
     </StrictMode>,
   );
 });

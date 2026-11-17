@@ -51,7 +51,7 @@ async function selectionPNG(
       context.clip("nonzero");
     }
 
-    BoardPaint.paintStrokes(context, strokes, images?.get);
+    BoardPaint.paintStrokes(context, strokes, images?.get, "light");
 
     return await new Promise<Blob>((resolve, reject) =>
       canvas.toBlob(

@@ -232,3 +232,18 @@ The existing gear View section ends with a labelled native Language select (Auto
 Русский) and a short profile-wide preference hint. It reuses the light field/focus tokens and
 40px minimum target. Both translations preserve dock/panel geometry; existing board titles
 are user content and retain their language. Preference remains available in readonly.
+
+## Application theme (Change45)
+
+Preserve the Writing-First Notebook's typography, geometry, compact dock and interaction states.
+Light remains the default and retains the original paper/ink palette. A labelled native Theme
+select beside Language offers Light, Dark and System, with one browser-wide preference.
+Dark uses a muted graphite writing surface, slightly raised panels, light neutral text and clear
+blue focus/selection states. Text, disabled/error/status colors, fields, overlays and navigation
+remain legible without increasing visual noise or adding layout wrappers.
+
+Pair all ten vector ink colors across themes, preserving hue identity and alpha. Match swatches,
+stroke samples, SVG/template previews, native ink, mathematical glyphs, cursor/selection,
+grid/dots and overview coverage. Images retain their colors; PNG/clipboard imagery keeps light
+colors and transparency. The stored palette stays independent of presentation. Theme changes
+preserve active input, editor identity, selection, camera and history.

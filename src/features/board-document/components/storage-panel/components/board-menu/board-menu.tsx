@@ -62,6 +62,7 @@ export const BoardMenu: React.FC<BoardMenuTypes.Props> = (props) => {
           aria-labelledby="board-view-tab"
         >
           {props.backgroundControl}
+          {props.themeSettings}
           {props.languageSettings}
         </div>
       ) : (

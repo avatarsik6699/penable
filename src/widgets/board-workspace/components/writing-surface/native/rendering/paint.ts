@@ -1,3 +1,4 @@
+import { Theme, type ThemeTypes } from "~/shared/lib/theme";
 import { TemplatePaint } from "./template-paint";
 import { PressurePaint } from "./pressure-paint";
 import type { RenderingContext } from "./rendering-context.types";
@@ -15,7 +16,7 @@ import type { BoardItem } from "~/entities/board";
 const paths = new WeakMap<StrokeGeometry, Path2D>();
 
 export type StrokePaintState = {
-  color?: Stroke["color"];
+  color?: string;
   width?: number;
   configured?: boolean;
   opacity?: number;
@@ -25,12 +26,15 @@ function style(
   ctx: RenderingContext,
   stroke: Stroke,
   state?: StrokePaintState,
+  theme: ThemeTypes.Effective = "light",
 ) {
-  if (!state || state.color !== stroke.color) {
-    ctx.strokeStyle = stroke.color;
-    ctx.fillStyle = stroke.color;
+  const color = Theme.color(stroke.color, theme);
 
-    if (state) state.color = stroke.color;
+  if (!state || state.color !== color) {
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+
+    if (state) state.color = color;
   }
 
   if (!state || state.width !== stroke.width) {
@@ -62,6 +66,7 @@ function paintStroke(
   state?: StrokePaintState,
   translationHandled = false,
   imageSource?: (asset: ImageAsset) => CanvasImageSource | null,
+  theme: ThemeTypes.Effective = "light",
 ): void {
   if (stroke.kind === "image") {
     const image = imageSource?.(stroke.asset);
@@ -99,7 +104,7 @@ function paintStroke(
         ctx.clip("nonzero");
       }
 
-      TemplatePaint.paint(ctx, stroke);
+      TemplatePaint.paint(ctx, stroke, theme);
     } finally {
       ctx.restore();
     }
@@ -109,7 +114,7 @@ function paintStroke(
 
   // Renderer styles sit outside save/restore so the next stroke can reuse them.
   // Standalone callers retain the original Canvas state behavior.
-  if (state) style(ctx, stroke, state);
+  if (state) style(ctx, stroke, state, theme);
 
   const transformed = Boolean(
     stroke.clip ||
@@ -129,7 +134,7 @@ function paintStroke(
       ctx.clip("nonzero");
     }
 
-    if (!state) style(ctx, stroke);
+    if (!state) style(ctx, stroke, undefined, theme);
 
     if (stroke.style?.instrument === "pressure") {
       PressurePaint.paint(ctx, stroke, active);
@@ -176,9 +181,10 @@ function paintStrokes(
   ctx: RenderingContext,
   strokes: readonly BoardItem[],
   imageSource?: (asset: ImageAsset) => CanvasImageSource | null,
+  theme: ThemeTypes.Effective = "light",
 ): void {
   for (const stroke of BoardRegions.groupedStrokes(strokes))
-    paintStroke(ctx, stroke, false, undefined, false, imageSource);
+    paintStroke(ctx, stroke, false, undefined, false, imageSource, theme);
 }
 
 export const BoardPaint = { paintStroke, paintStrokes };

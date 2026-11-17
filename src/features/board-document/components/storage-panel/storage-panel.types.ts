@@ -5,6 +5,7 @@ import type { StorageState } from "../../board-document.types";
 export namespace StoragePanelTypes {
   export type Props = {
     languageSettings?: import("react").ReactNode;
+    themeSettings?: import("react").ReactNode;
     openPanel: "board" | "save" | null;
     onPanelChange: (panel: "board" | "save" | null) => void;
     backgroundControl: import("react").ReactNode;

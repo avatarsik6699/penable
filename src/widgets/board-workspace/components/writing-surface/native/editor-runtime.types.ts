@@ -12,6 +12,7 @@ export type SurfaceElements = MinimapElements & {
 
 export type EditorHandle = {
   refresh: () => void;
+  setTheme: (theme: import("~/shared/lib/theme").ThemeTypes.Effective) => void;
   cancel: () => void;
   dispose: () => void;
 };

@@ -9,5 +9,9 @@ export namespace BoardWorkspaceTypes {
     | "library"
     | null;
 
-  export type Props = { languageSettings?: import("react").ReactNode };
+  export type Props = {
+    languageSettings?: import("react").ReactNode;
+    themeSettings?: import("react").ReactNode;
+    theme?: import("~/shared/lib/theme").ThemeTypes.Effective;
+  };
 }

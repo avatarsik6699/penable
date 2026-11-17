@@ -8,7 +8,7 @@
   box-shadow: var(--popover-shadow);
 }
 .dialog::backdrop {
-  background: rgb(24 34 48 / 24%);
+  background: var(--delete-backdrop);
 }
 .dialog h2 {
   font-size: 18px;

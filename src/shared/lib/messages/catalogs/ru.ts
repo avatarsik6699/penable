@@ -1,4 +1,12 @@
 export const RussianMessages = {
+  theme: "Тема",
+  themeLight: "Светлая",
+  themeDark: "Тёмная",
+  themeSystem: "Как в системе",
+  themeHint: "Для всех досок. PNG-копии сохраняют цвета для светлого фона.",
+  themeStorageUnavailable:
+    "Тема изменена до закрытия приложения. Браузеру не удалось сохранить настройку.",
+
   selectionIsBusy: "Другое действие с выделением ещё выполняется.",
   boardIsReadOnly: "Эта доска доступна только для чтения.",
   nativeInputEvent: "Событие ввода",

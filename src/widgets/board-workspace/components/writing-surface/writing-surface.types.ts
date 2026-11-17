@@ -17,6 +17,7 @@ import type {
 
 export namespace WritingSurfaceTypes {
   export type Props = {
+    theme?: import("~/shared/lib/theme").ThemeTypes.Effective;
     clipboard: SelectionClipboard;
     tool: DrawingTool;
     onActivateSelection: () => void;

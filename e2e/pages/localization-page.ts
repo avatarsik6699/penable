@@ -301,6 +301,70 @@ export class LocalizationPage {
     ).toBe(image);
   }
 
+  async retrySaveThemeContrast() {
+    await this.open("en");
+    await this.draw();
+
+    await expect(
+      this.page.getByText(copy.en.failed, { exact: true }).first(),
+    ).toBeVisible();
+
+    for (const theme of ["light", "dark"]) {
+      await this.settings();
+
+      await this.page
+        .getByRole("combobox", { name: "Theme", exact: true })
+        .selectOption(theme);
+
+      await this.page
+        .getByRole("tab", { name: copy.en.files, exact: true })
+        .click();
+
+      const retry = this.page.getByRole("button", {
+        name: "Retry save",
+        exact: true,
+      });
+
+      await retry.hover();
+
+      const contrast = await retry.evaluate((node) => {
+        const style = getComputedStyle(node);
+
+        const luminance = (color: string) => {
+          const values = color
+            .match(/[\d.]+/g)!
+            .slice(0, 3)
+            .map((value) => {
+              const channel = Number(value) / 255;
+
+              return channel <= 0.04045
+                ? channel / 12.92
+                : ((channel + 0.055) / 1.055) ** 2.4;
+            });
+
+          return (
+            values[0]! * 0.2126 + values[1]! * 0.7152 + values[2]! * 0.0722
+          );
+        };
+
+        const foreground = luminance(style.color);
+        const background = luminance(style.backgroundColor);
+
+        return (
+          (Math.max(foreground, background) + 0.05) /
+          (Math.min(foreground, background) + 0.05)
+        );
+      });
+
+      expect(
+        contrast,
+        `Retry save hovered contrast in ${theme}`,
+      ).toBeGreaterThanOrEqual(4.5);
+
+      await this.closeSettings();
+    }
+  }
+
   async narrowKeyboardAndOfflineReload() {
     await this.open("en");
     await this.draw();

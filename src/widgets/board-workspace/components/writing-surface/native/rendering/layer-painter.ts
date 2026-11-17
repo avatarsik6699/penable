@@ -1,3 +1,4 @@
+import type { ThemeTypes } from "~/shared/lib/theme";
 import {
   BoardCoordinates,
   BoardTransforms,
@@ -19,6 +20,7 @@ type PaintState = StrokePaintState & {
 const ZERO = { x: 0, y: 0 };
 
 export class LayerPainter {
+  private theme: ThemeTypes.Effective = "light";
   private width = -1;
   private height = -1;
   private viewport: Viewport = { zoom: 1, x: 0, y: 0 };
@@ -30,6 +32,13 @@ export class LayerPainter {
       asset: ImageAsset,
     ) => CanvasImageSource | null,
   ) {}
+
+  setTheme(theme: ThemeTypes.Effective) {
+    if (theme === this.theme) return;
+
+    this.theme = theme;
+    this.paintStates = new WeakMap();
+  }
 
   configure(
     width: number,
@@ -124,6 +133,7 @@ export class LayerPainter {
         state,
         true,
         this.imageSource,
+        this.theme,
       );
 
       return;
@@ -157,6 +167,14 @@ export class LayerPainter {
       state.ty = ty;
     }
 
-    BoardPaint.paintStroke(ctx, stroke, active, state, true, this.imageSource);
+    BoardPaint.paintStroke(
+      ctx,
+      stroke,
+      active,
+      state,
+      true,
+      this.imageSource,
+      this.theme,
+    );
   }
 }

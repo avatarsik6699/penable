@@ -20,7 +20,7 @@
   height: 96px;
   border-radius: 8px;
   overflow: hidden;
-  background: #f7f9fc;
+  background: var(--preview-paper);
   cursor: grab;
 }
 .viewport:active {

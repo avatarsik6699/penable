@@ -90,6 +90,7 @@ export const BoardWorkspace: React.FC<BoardWorkspaceTypes.Props> = (props) => {
         trailingControls={
           <StoragePanel
             languageSettings={props.languageSettings}
+            themeSettings={props.themeSettings}
             state={workspace.ui.storage}
             hasDocument={workspace.ui.hasBoard}
             busy={workspace.ui.history.busy}
@@ -205,6 +206,7 @@ export const BoardWorkspace: React.FC<BoardWorkspaceTypes.Props> = (props) => {
           </div>
         ) : (
           <WritingSurface
+            theme={props.theme}
             key={workspace.ui.generation}
             initialDocument={workspace.model.readInitialBoard()}
             clipboard={workspace.model.clipboard}

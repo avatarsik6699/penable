@@ -1,3 +1,4 @@
+import { Theme } from "~/shared/lib/theme";
 import { Messages } from "~/shared/lib/messages";
 import { I18n } from "~/shared/lib/i18n";
 import type React from "react";
@@ -19,7 +20,7 @@ export const InkSettings: React.FC<InkSettingsTypes.Props> = (props) => (
         style={{
           width: Math.min(16, props.width),
           height: Math.min(16, props.width),
-          background: props.color,
+          background: props.color ? Theme.cssColor(props.color) : undefined,
         }}
       />
     </button>

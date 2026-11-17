@@ -47,7 +47,7 @@
   min-width: 0;
   align-self: start;
   padding: 0;
-  background: #f7f9fc;
+  background: var(--preview-paper);
   border-radius: 8px;
 }
 .preview svg {

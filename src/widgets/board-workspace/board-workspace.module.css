@@ -4,7 +4,7 @@
   min-height: 0;
   isolation: isolate;
   overflow: hidden;
-  background: var(--paper);
+  background: var(--board-paper);
 }
 .board-stage {
   position: absolute;

@@ -2,7 +2,7 @@
   position: relative;
   flex: 1;
   min-height: 0;
-  background: var(--paper);
+  background: var(--board-paper);
   overflow: hidden;
 }
 

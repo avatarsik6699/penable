@@ -19,6 +19,7 @@ vi.mock("./rendering", async (importOriginal) => {
   return {
     ...original,
     CanvasRenderer: class {
+      setTheme = vi.fn();
       sceneChanged = vi.fn();
       activeChanged = vi.fn();
       setSelectionPreview = vi.fn();

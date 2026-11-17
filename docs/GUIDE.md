@@ -17,6 +17,14 @@ local delivery alone does not establish which revision the public site runs.
 
 On first launch, penable chooses the first supported language in your browser preferences,
 falling back to English. Board settings → View → Language offers Auto, English and Русский.
+
+Board settings → View → Theme offers Light, Dark and System. Light is the default; System
+follows your device's color scheme. This preference applies to all boards and menus in this
+browser, including read-only tabs, and is remembered separately from your notes.
+Existing handwriting, colored ink, shapes and mathematical labels adapt to the background.
+Photos and screenshots keep their original colors. Switching back restores the light appearance;
+the stored colors and undo history stay intact. PNG downloads and image copies always use the
+original colors for a light background with transparency, regardless of the selected theme.
 A manual choice is saved for all boards in this browser profile; Auto follows the browser.
 Switching applies immediately and preserves notes, selection and undo history. Existing board
 names are never translated. Both languages are included in the prepared offline app.

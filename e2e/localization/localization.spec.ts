@@ -48,6 +48,12 @@ test("an already-visible save failure changes language without losing unsaved in
   await saveErrorApp.visibleSaveErrorRetranslates();
 });
 
+test("retry save retains readable primary colors on hover in both themes", async ({
+  saveErrorApp,
+}) => {
+  await saveErrorApp.retrySaveThemeContrast();
+});
+
 test("narrow keyboard-accessible language control and both catalogs survive offline reload", async ({
   englishApp,
 }) => {

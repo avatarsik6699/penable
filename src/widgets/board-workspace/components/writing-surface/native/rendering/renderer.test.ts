@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { Theme } from "~/shared/lib/theme";
 import { PenInput } from "~/entities/board";
 import { EraserInput } from "~/entities/board";
 import { CanvasRenderer, type FrameScheduler } from "./renderer";
@@ -138,6 +139,72 @@ function pointer(overrides: Partial<PointerInput> = {}): PointerInput {
 }
 
 describe("layered frame renderer", () => {
+  it("repaints completed and active ink on theme change without replacing scene data or bitmap dimensions", () => {
+    const committed = stroke();
+    const active = { ...stroke(), id: 2 };
+    const h = setup({ strokes: [committed], active });
+    const before = structuredClone(h.scene);
+    const size = { ...h.completed.canvas };
+
+    h.renderer.setTheme("dark");
+    h.renderer.setTheme("dark");
+    expect(h.clock.pending.size).toBe(1);
+    h.clock.run();
+
+    expect(h.completed.context.strokeStyle).toBe(
+      Theme.color(BoardConstants.INK, "dark"),
+    );
+
+    expect(h.live.context.strokeStyle).toBe(
+      Theme.color(BoardConstants.INK, "dark"),
+    );
+
+    expect(h.scene.active).toBe(active);
+    expect(h.scene.strokes[0]).toBe(committed);
+    expect(h.scene).toEqual(before);
+    expect(h.completed.canvas).toEqual(size);
+    expect(h.completed.context.clearRect).toHaveBeenCalledOnce();
+    expect(h.live.context.clearRect).toHaveBeenCalledOnce();
+
+    h.renderer.setTheme("light");
+    h.clock.run();
+    expect(h.completed.context.strokeStyle).toBe(BoardConstants.INK);
+    expect(h.live.context.strokeStyle).toBe(BoardConstants.INK);
+    expect(h.scene).toEqual(before);
+  });
+
+  it("commits queued and subsequent ink with the current display color while preserving canonical ink", () => {
+    const h = setup();
+    const queued = stroke();
+
+    h.scene.strokes.push(queued);
+    h.renderer.commit(queued);
+    h.renderer.setTheme("dark");
+    h.clock.run();
+
+    expect(h.completed.context.strokeStyle).toBe(
+      Theme.color(queued.color, "dark"),
+    );
+
+    expect(queued.color).toBe(BoardConstants.INK);
+    vi.clearAllMocks();
+
+    const next = { ...stroke(), id: 2, color: "#175cd3" as const };
+
+    h.scene.strokes.push(next);
+    h.renderer.commit(next);
+    h.clock.run();
+
+    expect(h.completed.context.strokeStyle).toBe(
+      Theme.color(next.color, "dark"),
+    );
+
+    expect(h.completed.context.clearRect).not.toHaveBeenCalled();
+    expect(next.color).toBe("#175cd3");
+    h.renderer.setTheme("dark");
+    expect(h.clock.pending.size).toBe(0);
+  });
+
   it("coalesces many updates into one clear and one full active path per frame", () => {
     const { renderer, scene, live, completed, clock } = setup();
 

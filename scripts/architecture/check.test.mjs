@@ -161,6 +161,17 @@ test("timers, RAF, worker creation and storage require separate capabilities", (
   rejects(files, "platform-owner", { owners: { [file]: ["dom"] } });
 });
 
+test("theme browser access is confined to the exact application adapter", () => {
+  const source = `const media = window.matchMedia('(prefers-color-scheme: dark)');
+    localStorage.setItem('penable:theme', 'dark');
+    document.documentElement.dataset.theme = 'dark';
+    export const read = () => media.matches;`;
+
+  accepts({ "src/app/adapters/theme-platform.ts": source });
+  rejects({ "src/app/adapters/theme-neighbor.ts": source }, "platform-owner");
+  rejects({ "src/shared/lib/theme/theme.ts": source }, "platform-owner");
+});
+
 test("globalThis access and destructuring cannot bypass platform ownership", () => {
   for (const expression of [
     "globalThis.document",

@@ -1,10 +1,15 @@
+import type { ThemeTypes } from "~/shared/lib/theme";
 import { I18n } from "~/shared/lib/i18n";
 import { Messages } from "~/shared/lib/messages";
 import type { OverviewResult } from "~/features/board-document";
 import type { Viewport } from "~/entities/board";
 import type { MinimapElements } from "./minimap.types";
 
-function paint(canvas: HTMLCanvasElement, result: OverviewResult) {
+function paint(
+  canvas: HTMLCanvasElement,
+  result: OverviewResult,
+  theme: ThemeTypes.Effective = "light",
+) {
   canvas.width = result.width;
   canvas.height = result.height;
 
@@ -16,9 +21,9 @@ function paint(canvas: HTMLCanvasElement, result: OverviewResult) {
   const image = context.createImageData(result.width, result.height);
 
   for (let i = 0; i < result.values.length; i++) {
-    image.data[i * 4] = 82;
-    image.data[i * 4 + 1] = 97;
-    image.data[i * 4 + 2] = 118;
+    image.data[i * 4] = theme === "dark" ? 168 : 82;
+    image.data[i * 4 + 1] = theme === "dark" ? 180 : 97;
+    image.data[i * 4 + 2] = theme === "dark" ? 198 : 118;
     image.data[i * 4 + 3] = result.values[i]!;
   }
 

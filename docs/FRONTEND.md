@@ -219,6 +219,20 @@ per-pointer rendering. App composes a languageSettings slot into the existing ge
 readonly board authority does not disable this application preference. Both catalogs are offline
 assets. Tests fix ordinary legacy UI scenarios to ru-RU and add isolated EN/RU locale acceptance.
 
+## Theme preference and display colors
+
+App owns the origin/profile theme preference, resolved before rendering and composed through
+explicit workspace/settings props. Only app/adapters/theme-platform.ts owns its DOM/media/storage
+listeners and preference persistence. A shared pure theme module owns Light/Dark/System contracts
+and palette resolution; it imports no browser or React APIs and is safe in native raster workers.
+The preference never enters document DTOs, scene geometry, history or board persistence.
+
+Native editor/renderer receive only the effective light/dark theme. Updating it clears color
+paint-state caches and invalidates completed/live layers while retaining geometry caches and
+active input. SVG/tool previews use the same resolver. Native minimap recolors its cached coverage
+without regenerating geometry/Worker work. PNG and clipboard raster explicitly use light colors;
+image pixels are never transformed. Theme tokens cover chrome states without changing layout.
+
 ## Bounded document ownership
 
 Production document loading owns a native storage Worker. It reads the immutable record/recovery

@@ -4,6 +4,7 @@ import type { OverlayElements } from "~/shared/lib/overlay";
 export namespace BoardMenuTypes {
   export type Props = {
     languageSettings?: import("react").ReactNode;
+    themeSettings?: import("react").ReactNode;
     tab: "board" | "save";
     onTab: (tab: "board" | "save") => void;
     backgroundControl: StoragePanelTypes.Props["backgroundControl"];

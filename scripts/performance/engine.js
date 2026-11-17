@@ -12,6 +12,7 @@ import {
 
 import { mathBench } from "./math-templates.js";
 import { EraserBenchmark } from "./eraser.js";
+import { ThemeBenchmark } from "./themes.js";
 import { ApplicationBenchmark } from "@application";
 
 let scheduling = "raf";
@@ -176,10 +177,18 @@ const api = {
     scheduling,
   }),
 
-  async ink(count = 10000, batch = 50, strength = 65, instrument = null) {
+  async ink(
+    count = 10000,
+    batch = 50,
+    strength = 65,
+    instrument = null,
+    theme = "light",
+  ) {
     const { scene, renderer, flush } = setup(),
       work = [],
       intervals = [];
+
+    if (theme !== "light") renderer.setTheme(theme);
 
     const history = new StrokeHistory(scene.strokes);
     const samples = Array.from({ length: count }, (_, i) => point(i));
@@ -682,6 +691,8 @@ const api = {
 };
 
 api.math = mathBench;
+
+api.themes = ThemeBenchmark.create({ setup, note, observe, nextFrame, stats });
 
 api.eraserScene = EraserBenchmark.create({
   setup,

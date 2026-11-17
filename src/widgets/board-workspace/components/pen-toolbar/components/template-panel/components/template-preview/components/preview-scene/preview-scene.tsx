@@ -1,3 +1,4 @@
+import { Theme } from "~/shared/lib/theme";
 import type React from "react";
 import type { PreviewSceneTypes } from "./preview-scene.types";
 
@@ -5,7 +6,11 @@ export const PreviewScene: React.FC<PreviewSceneTypes.Props> = (props) => (
   <>
     {props.layout.primitives.map((primitive, index) =>
       primitive.kind === "label" ? (
-        <g key={index} fill={primitive.color} data-label={primitive.text}>
+        <g
+          key={index}
+          fill={Theme.cssColor(primitive.color)}
+          data-label={primitive.text}
+        >
           <title>{primitive.text}</title>
           {primitive.glyphs.map((glyph, i) => (
             <path
@@ -21,7 +26,7 @@ export const PreviewScene: React.FC<PreviewSceneTypes.Props> = (props) => (
           x={primitive.x}
           y={primitive.y}
           fontSize={primitive.size}
-          fill={primitive.color}
+          fill={Theme.cssColor(primitive.color)}
           fontFamily="Arial, sans-serif"
           dominantBaseline="text-before-edge"
           textLength={primitive.width}
@@ -36,8 +41,8 @@ export const PreviewScene: React.FC<PreviewSceneTypes.Props> = (props) => (
           cy={primitive.cy}
           rx={primitive.rx}
           ry={primitive.ry}
-          fill={primitive.fill ?? "none"}
-          stroke={primitive.color}
+          fill={primitive.fill ? Theme.cssColor(primitive.fill) : "none"}
+          stroke={Theme.cssColor(primitive.color)}
           strokeWidth={primitive.width}
           strokeDasharray={
             primitive.dashed
@@ -53,8 +58,8 @@ export const PreviewScene: React.FC<PreviewSceneTypes.Props> = (props) => (
               .map((p, i) => `${i ? "L" : "M"}${p.x} ${p.y}`)
               .join(" ") + (primitive.closed ? " Z" : "")
           }
-          fill={primitive.fill ?? "none"}
-          stroke={primitive.color}
+          fill={primitive.fill ? Theme.cssColor(primitive.fill) : "none"}
+          stroke={Theme.cssColor(primitive.color)}
           strokeWidth={primitive.width}
           strokeLinecap="round"
           strokeLinejoin="round"

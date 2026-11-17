@@ -32,8 +32,8 @@
   color: var(--paper);
 }
 
-.primary:hover {
-  background: #124cb1;
+.primary:not(:disabled):hover {
+  background: var(--primary-hover);
 }
 
 .secondary {

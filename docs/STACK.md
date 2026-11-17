@@ -164,6 +164,16 @@ First local ship initialized main from feature/01-pen-input; change 01 is archiv
 Change07 configures origin as https://github.com/avatarsik6699/penable.git and Actions-based Pages.
 
 
+## Change45 — Light and dark board themes
+
+SPEC5.28 and FRONTEND theme ownership govern the origin-wide preference and pure display palette.
+No document/catalog/IDB schema or dependency change. The exact app theme adapter owns DOM/media
+and preference storage. Source writer owns src; parent owns policies/E2E/docs/native evidence,
+shared gates and Git. Owned Pages47451 (4221/4222 already contained storage), benchmark4180 and
+automated E2E4185 isolate personal notes. Task-owned dev smoke uses unused47452.
+Preserve exact light native raster and PNG/clipboard output; measure ordinary input and bounded
+large-board repaint on the actual engine. Physical tablet/GPU acceptance remains separate.
+
 ## Historical delivery-specific tooling and evidence
 
 The sections below preserve per-change setup, baselines and verification boundaries. Their schema

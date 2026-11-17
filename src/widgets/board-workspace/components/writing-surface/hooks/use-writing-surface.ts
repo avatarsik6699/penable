@@ -61,6 +61,13 @@ export function useWritingSurface(props: WritingSurfaceTypes.Props) {
     ],
   );
 
+  useEffect(
+    function themeFx() {
+      runtime.current?.setTheme(props.theme ?? "light");
+    },
+    [props.theme],
+  );
+
   const bindBackground = useCallback((node: SurfaceElements["background"]) => {
     elements.current.background = node;
   }, []);

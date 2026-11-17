@@ -76,6 +76,7 @@ export const StoragePanel: React.FC<StoragePanelTypes.Props> = (props) => {
       {props.openPanel && (
         <BoardMenu
           languageSettings={props.languageSettings}
+          themeSettings={props.themeSettings}
           tab={props.openPanel}
           onTab={props.onPanelChange}
           backgroundControl={props.backgroundControl}

@@ -1,4 +1,13 @@
 export const EnglishMessages = {
+  theme: "Theme",
+  themeLight: "Light",
+  themeDark: "Dark",
+  themeSystem: "System",
+  themeHint:
+    "Applies to all boards. PNG copies keep colors for a light background.",
+  themeStorageUnavailable:
+    "Theme changes apply for this visit. Your browser could not save the preference.",
+
   selectionIsBusy: "Another selection action is still in progress.",
   boardIsReadOnly: "This board is read-only.",
   nativeInputEvent: "Native event",

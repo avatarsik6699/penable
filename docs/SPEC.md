@@ -1122,6 +1122,35 @@ Auto/manual/reload/offline, current error translation, readonly control access, 
 keyboard focus and exact content/history preservation. Original behavioral E2E use explicit RU;
 locale-specific acceptance covers EN and RU. Hardware writing/OS installation remains separate.
 
+## 5.28 — Application and board themes (Change45)
+
+The owner-approved theme plan adds Light / Dark / System in Board settings → View, beside
+Language. Light remains the default, including after upgrade. One origin/profile preference
+applies to all boards and application chrome; it is independent of document data and writable
+authority. System follows prefers-color-scheme changes only while selected. Resolve before the
+first application render; synchronize preference changes between tabs. Storage denial preserves
+an in-memory choice with a localized notice. All listeners are lifecycle-owned and disposed.
+
+Display uses paired variants of the existing ten-color ink palette: dark primary ink becomes
+light, while deliberate blue/red/other hues retain their identity with suitable brightness.
+The same pure color resolution serves ordinary/pressure ink, highlighter, template outlines,
+fills, labels and SVG/tool previews. Preserve opacity, widths, geometry and compositing order.
+Theme paper, grid/dots, cursor/selection, minimap and all controls/dialog states consistently.
+Photographs/screenshots retain their original pixels, including any text embedded in them.
+Do not apply an inversion filter to the whole board. Preserve current layout and light raster.
+
+Theme changes invalidate completed/live raster paint state and redraw existing geometry without
+remounting the editor, cancelling active ink, changing selection/camera/history, traversing raw
+points for color conversion, or writing the board. Subsequent drawing stores the original palette
+color. Documents, editable clipboard fragments, imports and recovery copies retain original colors.
+PNG download and clipboard PNG explicitly retain light-theme colors and transparent background.
+Keep document5/catalog2/IDB1 and dependencies unchanged; no schema migration or board metadata.
+
+Verify palette/instruments/templates/images, exact light→dark→light raster and data preservation,
+active input/selection/history, system/manual/reload/cross-tab/offline/readonly and storage failure,
+PNG equality across themes, narrow keyboard/focus/contrast and native large-board repaint/input
+cost. Physical Wacom/Pencil and GPU-specific acceptance remains separate from synthetic tests.
+
 ## 6. Auth & Access Model
 
 No authentication. Access follows computer/browser-profile access. Historical M1 was tab memory;

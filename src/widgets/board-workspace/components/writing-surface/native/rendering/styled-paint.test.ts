@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
+import { Theme } from "~/shared/lib/theme";
 import {
   BoardTemplates,
+  BoardWriting,
   BoardConstants,
   type Stroke,
   type ImageItem,
@@ -14,6 +16,8 @@ function context() {
 
   const ctx = {
     globalAlpha: 1,
+    fillStyle: "",
+    strokeStyle: "",
     save: () => stack.push(ctx.globalAlpha),
 
     restore: () => {
@@ -50,6 +54,65 @@ const marker: Stroke = {
 };
 
 describe("mixed alpha painting", () => {
+  it("adapts every palette color for all instruments while retaining source color and opacity", () => {
+    expect(Theme.colors).toEqual(
+      BoardWriting.palette.map((entry) => entry.color),
+    );
+
+    for (const entry of BoardWriting.palette) {
+      for (const instrument of BoardWriting.instruments) {
+        const h = context();
+
+        const ink: Stroke = {
+          ...marker,
+          color: entry.color,
+          points: [{ x: 0, y: 0, pressure: 0.5, time: 0 }],
+          style: {
+            ...marker.style!,
+            instrument,
+            opacity: instrument === "highlighter" ? 0.3 : 1,
+          },
+        };
+
+        const original = structuredClone(ink);
+
+        BoardPaint.paintStroke(
+          h.target,
+          ink,
+          false,
+          undefined,
+          false,
+          undefined,
+          "dark",
+        );
+
+        expect(h.ctx.fillStyle).toBe(Theme.color(entry.color, "dark"));
+        expect(h.ctx.strokeStyle).toBe(Theme.color(entry.color, "dark"));
+        expect(ink).toEqual(original);
+        expect(h.ctx.globalAlpha).toBe(ink.style!.opacity);
+        BoardPaint.paintStroke(h.target, ink);
+        expect(h.ctx.fillStyle).toBe(entry.color);
+      }
+    }
+  });
+
+  it("keeps images fully opaque and uses the original bitmap in a dark mixed scene", () => {
+    const h = context();
+    const bitmap = {} as CanvasImageSource;
+    const originalDraw = vi.spyOn(h.ctx, "drawImage");
+
+    const image: ImageItem = {
+      kind: "image",
+      id: 2,
+      asset: { id: "a", mime: "image/png", width: 10, height: 10, base64: "" },
+      matrix: [1, 0, 0, 1, 0, 0],
+    };
+
+    BoardPaint.paintStrokes(h.target, [marker, image], () => bitmap, "dark");
+    expect(h.alphas).toEqual([0.3, 1]);
+    expect(originalDraw).toHaveBeenCalledWith(bitmap, 0, 0, 10, 10);
+  });
+
   it("paints images fully opaque after a translucent highlighter in PNG and ordinary scenes", () => {
     const h = context();
 

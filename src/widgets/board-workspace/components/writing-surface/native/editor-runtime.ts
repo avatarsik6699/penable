@@ -45,6 +45,8 @@ function create(
   const api: EditorHandle = {
     refresh: () => {},
 
+    setTheme: () => {},
+
     cancel: () => {},
 
     dispose: () => {},
@@ -503,6 +505,13 @@ function create(
       },
     });
 
+    api.setTheme = (theme) => {
+      renderer.setTheme(theme);
+      minimap?.setTheme(theme);
+    };
+
+    api.setTheme(readSettings().theme ?? "light");
+
     api.refresh = () => {
       updateBackground();
 
@@ -569,6 +578,7 @@ function create(
       templatePlacement.cancel();
       selectionCommands.dispose();
       api.cancel = () => {};
+      api.setTheme = () => {};
       api.refresh = () => {};
       surface.dispose();
       unbindResolution();

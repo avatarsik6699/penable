@@ -1,3 +1,4 @@
+import type { ThemeTypes } from "~/shared/lib/theme";
 import { I18n } from "~/shared/lib/i18n";
 import type { MessageTypes } from "~/shared/lib/messages";
 import { Messages } from "~/shared/lib/messages";
@@ -6,6 +7,7 @@ import { MinimapPresentation } from "./minimap-presentation";
 import type { MinimapOptions } from "./minimap.types";
 
 export class NativeMinimap {
+  private theme: ThemeTypes.Effective = "light";
   private open = false;
   private jobs: DocumentJobs | null = null;
   private abort: AbortController | null = null;
@@ -33,6 +35,17 @@ export class NativeMinimap {
     const status = this.options.elements.mapStatus;
 
     if (status) status.textContent = I18n.text(message);
+  }
+
+  setTheme(theme: ThemeTypes.Effective) {
+    if (this.theme === theme) return;
+
+    this.theme = theme;
+
+    const canvas = this.options.elements.mapCanvas;
+
+    if (this.open && this.result && canvas)
+      MinimapPresentation.paint(canvas, this.result, this.theme);
   }
 
   setOpen(open: boolean) {
@@ -108,7 +121,7 @@ export class NativeMinimap {
 
       if (!canvas) return;
 
-      MinimapPresentation.paint(canvas, result);
+      MinimapPresentation.paint(canvas, result, this.theme);
 
       const status = this.options.elements.mapStatus;
 
