@@ -7,7 +7,7 @@
 | Change | `45` |
 | Slug | `board-themes` |
 | Title | Light and dark board themes |
-| Status | `active` |
+| Status | `shipped` |
 | Branch | `feature/45-board-themes` |
 
 ## Goal
