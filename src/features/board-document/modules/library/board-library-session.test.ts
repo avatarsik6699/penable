@@ -7,8 +7,10 @@ import { BoardSnapshots, BoardConstants } from "~/entities/board";
 import type { LibraryRepository, BoardCatalog } from "./library.types";
 import type {
   DocumentRepository,
+  StorageState,
   StoredRecord,
 } from "../../board-document.types";
+import type { LibraryOptions, LibraryState } from "./library.types";
 
 function deferred() {
   let resolve!: () => void;
@@ -28,6 +30,7 @@ function setup(
     missingCatalog?: boolean;
     decode?: import("../session").SessionOptions["decode"];
     prepareOwned?: import("./library.types").LibraryOptions["prepareOwned"];
+    preflight?: LibraryOptions["preflight"];
   } = {},
 ) {
   const original = {
@@ -116,10 +119,21 @@ function setup(
     }),
   };
 
-  const onLibrary = vi.fn();
+  const onLibrary = vi.fn<(state: LibraryState) => void>();
+  const onState = vi.fn<(state: StorageState) => void>();
+
+  const onRecoveryPreview =
+    vi.fn<NonNullable<LibraryOptions["onRecoveryPreview"]>>();
+
+  let invalidateCatalog: Parameters<LibraryOptions["open"]>[0] = () => {};
+
+  let invalidateDocument: Parameters<
+    import("../session").SessionOptions["open"]
+  >[0] = () => {};
 
   const session = new BoardLibrarySession({
     prepareOwned: options.prepareOwned,
+    preflight: options.preflight,
     snapshot: () => live,
 
     onHydrate: (document) => {
@@ -127,15 +141,21 @@ function setup(
       events.push("hydrate");
     },
 
-    onState: vi.fn(),
+    onState,
     onLibrary,
+    onRecoveryPreview,
     id: () => "created",
     acquire: async () => ({
       acquired: options.writer ?? true,
       message: "readonly",
       release,
     }),
-    open: async () => repository,
+
+    open: async (invalidated) => {
+      invalidateCatalog = invalidated;
+
+      return repository;
+    },
 
     session: (id, lease, callbacks) => {
       borrowed.push(lease);
@@ -168,7 +188,12 @@ function setup(
         ...callbacks,
         decode: options.decode,
         acquire: async () => lease,
-        open: async () => documentRepository,
+
+        open: async (invalidated) => {
+          invalidateDocument = invalidated;
+
+          return documentRepository;
+        },
       });
     },
   });
@@ -176,6 +201,10 @@ function setup(
   return {
     session,
     onLibrary,
+    onState,
+    onRecoveryPreview,
+    invalidateCatalog: () => invalidateCatalog("catalog disconnected"),
+    invalidateDocument: () => invalidateDocument("document disconnected"),
     repository,
     records,
     release,
@@ -389,6 +418,279 @@ it("exports the selected corrupt document rather than a valid catalog when start
   await h.session.dispose();
 });
 
+it.each([true, false])(
+  "opens other boards without a writable session or migration when the lease is %s",
+  async (writer) => {
+    const original = {
+      format: "penable-board",
+      schemaVersion: 99,
+      notes: "raw",
+    };
+
+    const h = setup({ writer, catalog: catalog1() });
+
+    h.records.set("main", original);
+
+    const board = DocumentCodec.emptyDocument();
+
+    board.viewport.x = 240;
+    h.records.set("other", DocumentCodec.encodeDocument(board));
+
+    await h.session.start();
+    expect(h.onState).toHaveBeenLastCalledWith(h.session.state);
+
+    expect(h.session.state).toMatchObject({
+      phase: "error",
+      loaded: false,
+      canImport: false,
+      writable: false,
+      readOnly: true,
+      canReconnect: true,
+      hasRawCopy: true,
+    });
+
+    await h.session.previewBoard("other");
+
+    expect(h.onRecoveryPreview).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        viewport: { x: 240, y: 0, zoom: 1 },
+      }),
+    );
+
+    expect(h.onLibrary.mock.lastCall?.[0]).toMatchObject({
+      activeId: "main",
+      recovery: { previewId: "other", pendingId: null },
+    });
+
+    expect(h.session.rawRecord?.value).toBe(original);
+
+    expect(h.session.state).toMatchObject({
+      writable: false,
+      canImport: false,
+      hasRawCopy: true,
+    });
+
+    h.session.changed(true);
+    await h.session.flush();
+    h.session.closePreview();
+    expect(h.onRecoveryPreview).toHaveBeenLastCalledWith(null);
+    expect(h.records.get("main")).toBe(original);
+    expect(h.repository.migrate).not.toHaveBeenCalled();
+    expect(h.repository.bootstrap).not.toHaveBeenCalled();
+    expect(h.repository.update).not.toHaveBeenCalled();
+    expect(h.borrowed).toEqual([]);
+    await h.session.dispose();
+  },
+);
+
+it("ignores late previews, keeps a successful preview on failure, and cancels on close", async () => {
+  const slow = deferred(),
+    reopening = deferred();
+
+  let slowSignal: AbortSignal | undefined;
+  let fastSignal: AbortSignal | undefined;
+
+  const catalog = {
+    ...catalog1(),
+    boards: [...catalog1().boards, { id: "fast", title: "Fast" }],
+  };
+
+  const h = setup({
+    catalog,
+
+    preflight: async (board, signal) => {
+      if (board.viewport.x === 10) {
+        slowSignal = signal;
+        await slow.promise;
+      }
+
+      if (board.viewport.x === 30) {
+        fastSignal = signal;
+        await reopening.promise;
+      }
+    },
+  });
+
+  const board = (x: number) => {
+    const document = DocumentCodec.emptyDocument();
+
+    document.viewport.x = x;
+
+    return DocumentCodec.encodeDocument(document);
+  };
+
+  h.records.delete("main");
+  h.records.set("other", board(10));
+  h.records.set("fast", board(20));
+  await h.session.start();
+
+  const pending = h.session.previewBoard("other");
+
+  await vi.waitFor(() => expect(slowSignal).toBeDefined());
+  await h.session.previewBoard("fast");
+  expect(slowSignal?.aborted).toBe(true);
+  slow.resolve();
+  await pending;
+  expect(h.onRecoveryPreview).toHaveBeenCalledOnce();
+  expect(h.onLibrary.mock.lastCall?.[0].recovery?.previewId).toBe("fast");
+
+  h.records.set("other", { corrupt: true });
+  await h.session.previewBoard("other");
+
+  expect(h.onLibrary.mock.lastCall?.[0].recovery).toMatchObject({
+    previewId: "fast",
+    pendingId: null,
+    message: { code: "joinedMessage" },
+  });
+
+  expect(h.onRecoveryPreview).toHaveBeenCalledOnce();
+
+  h.records.set("other", board(30));
+
+  const closing = h.session.previewBoard("other");
+
+  await vi.waitFor(() => expect(fastSignal).toBeDefined());
+  h.session.closePreview();
+  expect(fastSignal?.aborted).toBe(true);
+  reopening.resolve();
+  await closing;
+  expect(h.onRecoveryPreview).toHaveBeenCalledTimes(2);
+  expect(h.onRecoveryPreview).toHaveBeenLastCalledWith(null);
+
+  expect(h.onLibrary.mock.lastCall?.[0].recovery).toEqual({
+    previewId: null,
+    pendingId: null,
+    message: "",
+  });
+
+  await h.session.dispose();
+});
+
+it.each(["catalog", "document"] as const)(
+  "publishes the same clean reconnect state after %s invalidation",
+  async (source) => {
+    const h = setup();
+
+    const starting = h.session.start();
+
+    expect(h.onState).toHaveBeenLastCalledWith(h.session.state);
+
+    expect(h.session.state).toMatchObject({
+      phase: "loading",
+      canReconnect: false,
+    });
+
+    await starting;
+    (source === "catalog" ? h.invalidateCatalog : h.invalidateDocument)();
+    expect(h.onState).toHaveBeenLastCalledWith(h.session.state);
+
+    expect(h.session.state).toMatchObject({
+      phase: "error",
+      loaded: true,
+      writable: false,
+      readOnly: true,
+      canImport: false,
+      canReconnect: true,
+    });
+
+    await h.session.dispose();
+    expect(h.session.state.canReconnect).toBe(false);
+  },
+);
+
+it("retains dirty memory and suppresses a late save failure after library invalidation", async () => {
+  const h = setup(),
+    gate = deferred();
+
+  await h.session.start();
+  h.failSave();
+  h.gate(gate.promise);
+  h.session.changed(true);
+
+  const writing = h.session.flush();
+
+  await vi.waitFor(() => expect(h.events).toContain("save:main"));
+  h.invalidateCatalog();
+
+  const status = h.session.state;
+
+  expect(status).toMatchObject({
+    phase: "error",
+    loaded: true,
+    writable: false,
+    readOnly: true,
+    canImport: false,
+    canReconnect: false,
+  });
+
+  h.invalidateDocument();
+  gate.resolve();
+  await writing;
+  expect(h.session.state).toEqual(status);
+  expect(h.onState).toHaveBeenLastCalledWith(status);
+  expect(h.session.hasUnsaved).toBe(true);
+  expect(h.events.filter((event) => event === "save:main")).toHaveLength(1);
+  await h.session.dispose();
+});
+
+it("keeps a healthy board flush available while a library update is busy", async () => {
+  const h = setup(),
+    gate = deferred();
+
+  await h.session.start();
+  h.session.changed(true);
+  vi.mocked(h.repository.update).mockReturnValueOnce(gate.promise);
+
+  const renaming = h.session.renameBoard("other", "Renamed");
+
+  expect(h.session.state).toMatchObject({
+    writable: false,
+    canReconnect: false,
+  });
+
+  await h.session.flush();
+  expect(h.events).toContain("save:main");
+  expect(h.onState).toHaveBeenLastCalledWith(h.session.state);
+  gate.resolve();
+  await renaming;
+  expect(h.session.state).toMatchObject({ writable: true, phase: "saved" });
+  await h.session.dispose();
+});
+
+it("keeps the captured active record downloadable when preflight is interrupted by invalidation", async () => {
+  const gate = deferred();
+  const preflight = vi.fn(() => gate.promise);
+  const h = setup({ preflight });
+  const original = h.records.get("main");
+  const starting = h.session.start();
+
+  await vi.waitFor(() => expect(preflight).toHaveBeenCalledOnce());
+  h.invalidateCatalog();
+  expect(h.onState).toHaveBeenLastCalledWith(h.session.state);
+
+  expect(h.session.state).toMatchObject({
+    phase: "error",
+    loaded: false,
+    hasRawCopy: true,
+    canReconnect: false,
+  });
+
+  expect(h.session.rawRecord?.value).toBe(original);
+  gate.resolve();
+  await starting;
+  expect(h.onState).toHaveBeenLastCalledWith(h.session.state);
+
+  expect(h.session.state).toMatchObject({
+    phase: "error",
+    hasRawCopy: true,
+    canReconnect: true,
+  });
+
+  expect(h.onLibrary.mock.lastCall?.[0].recovery).toBeUndefined();
+  expect(h.events).not.toContain("hydrate");
+  await h.session.dispose();
+});
+
 function catalog1() {
   return {
     format: "penable-library",
@@ -492,7 +794,7 @@ describe("cover migration and durable appearance changes", () => {
     gate.resolve();
     await saving;
 
-    expect(h.onLibrary.mock.lastCall![0].boards[1].appearance).toEqual(
+    expect(h.onLibrary.mock.lastCall![0].boards[1]!.appearance).toEqual(
       appearance,
     );
 
@@ -508,7 +810,7 @@ describe("cover migration and durable appearance changes", () => {
     await h.session.start();
 
     const before = h.onLibrary.mock.lastCall![0].boards;
-    const appearance = before[0].appearance;
+    const appearance = before[0]!.appearance;
 
     vi.mocked(h.repository.update).mockRejectedValueOnce(new Error("quota"));
 

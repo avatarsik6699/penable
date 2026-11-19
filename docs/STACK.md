@@ -638,3 +638,10 @@ Raw recovery Blobs preserve detached snapshot semantics. Worker-blocked startup 
 exports remain intentional synchronous exceptions. The rejected dirty-raster prototype is
 documented in [change41's feasibility record](performance/41-long-stroke-raster.md); it is not
 part of production. Standard Fast/Full/Release Gates remain unchanged.
+
+## Change 46 — Board recovery and editor hydration
+
+The standard gates apply. [Editor-open measurements](performance/46-editor-open.md) use
+two isolated Pages previews and include actual canvas input readiness after switching boards.
+Recovery tests exercise both writer and reader tabs on seeded test data and compare every
+durable record after viewing and exporting healthy boards.

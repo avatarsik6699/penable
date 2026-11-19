@@ -189,6 +189,11 @@ export const EnglishMessages = {
   settingsSection: "Settings section",
   view: "View",
   filesAndCopies: "Files and copies",
+  recoverBoards: "Recover boards",
+  openingRecoveryPreview: "Opening “{{p0}}”…",
+  viewingRecoveryPreview: "Viewing “{{p0}}” (read-only)",
+  closeRecoveryPreview: "Close preview",
+  couldNotPreviewBoard: "Could not open “{{p0}}”. ",
   importBoard: "Import board",
   chooseAJsonBackupTheCurrentBoard:
     "Choose a JSON backup. The current board stays unchanged until you confirm.",

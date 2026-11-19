@@ -667,6 +667,12 @@ costs are measured separately. Final independent source/security/visual review a
 local ship. Physical Wacom and real OS clipboard remain the owner's final manual acceptance.
 No release/deploy in this change without a separate instruction.
 
+When a valid catalog references a missing or unreadable active board, Files offers read-only
+recovery browsing of other catalog boards and JSON export of the displayed board. Preserve
+the failed record's raw recovery and durable active ID. Viewing, navigation, switching previews
+and closing recovery write nothing. A failed preview keeps the list accessible. The newest
+selection owns the displayed result. Catalog failure retains its existing raw recovery flow.
+
 ## 5.17 Editor UX and unified clipboard (Change18)
 
 Owner approved the Change18 plan: immediate visible image insertion, a left board library,

@@ -965,6 +965,58 @@ it("uses a stored-record marker for production replacement of an unloaded corrup
   await h.session.dispose();
 });
 
+it("rejects a late durable import after invalidation and retains its previous copy", async () => {
+  const committing = deferred<StoredRecord>(),
+    started = deferred<void>();
+
+  const persistence: DocumentPersistence = {
+    write: vi.fn(async () => {}),
+    replace: vi.fn(() => {
+      started.resolve();
+
+      return committing.promise;
+    }),
+    close: vi.fn(async () => {}),
+  };
+
+  const h = setup(undefined, true, persistence);
+  const candidate = DocumentCodec.emptyDocument();
+
+  candidate.background = "dots";
+  await h.session.start();
+
+  const replacing = h.session.replace(candidate, () => false);
+
+  await started.promise;
+  h.invalidate("connection lost");
+
+  const status = h.session.state;
+  const copy = { exists: true, value: { previous: "exact captured record" } };
+
+  const rejected = expect(replacing).rejects.toMatchObject({
+    detail: status.message,
+  });
+
+  committing.resolve(copy);
+  await rejected;
+  expect(h.onHydrate).toHaveBeenCalledOnce();
+  expect(h.live.background).toBe("blank");
+  expect(h.session.previousRecord).toBe(copy);
+
+  expect(h.session.state).toMatchObject({
+    phase: "error",
+    writable: false,
+    canImport: false,
+    hasPrevious: true,
+    importing: false,
+    canReconnect: true,
+    message: status.message,
+  });
+
+  expect(h.onState).toHaveBeenLastCalledWith(h.session.state);
+  await h.session.dispose();
+});
+
 it("consumes a prepared owned load once without rereading or decoding and releases its owner after hydration", async () => {
   const document = DocumentCodec.emptyDocument();
 

@@ -6,6 +6,7 @@ import styles from "./storage-details.module.css";
 import { Button } from "~/shared/ui/button";
 import { EditorIcon } from "~/shared/ui/editor-icon";
 import { StorageStatus } from "../storage-status";
+import { RecoveryBrowser } from "../recovery-browser";
 import { useExportCopy } from "./hooks/use-export-copy";
 
 export const StorageDetails: React.FC<StorageDetailsTypes.Props> = (props) => {
@@ -14,7 +15,10 @@ export const StorageDetails: React.FC<StorageDetailsTypes.Props> = (props) => {
   return (
     <div className={styles.content}>
       <div className={styles.state}>
-        <StorageStatus state={props.state} />
+        <StorageStatus
+          state={props.state}
+          recovering={Boolean(props.recovery.library.recovery)}
+        />
       </div>
       {props.state.message && (
         <p className={props.state.phase === "error" ? styles.error : undefined}>
@@ -55,6 +59,7 @@ export const StorageDetails: React.FC<StorageDetailsTypes.Props> = (props) => {
           {I18n.t("importBackup")}
         </Button>
       </div>
+      <RecoveryBrowser {...props.recovery} />
       <div className={styles.recovery}>
         <h3>{I18n.t("recoveryCopies")}</h3>
         {props.state.hasRawCopy && (

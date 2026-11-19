@@ -22,6 +22,10 @@ export const BoardWorkspace: React.FC<BoardWorkspaceTypes.Props> = (props) => {
 
   const readOnly = !workspace.ui.storage.writable || unavailable;
 
+  const preview = workspace.ui.library.boards.find(
+    (board) => board.id === workspace.ui.library.recovery?.previewId,
+  );
+
   return (
     <main className={styles.app} aria-label={I18n.t("personalBoard")}>
       <div className={styles.brand} aria-label="penable">
@@ -40,7 +44,7 @@ export const BoardWorkspace: React.FC<BoardWorkspaceTypes.Props> = (props) => {
             state={workspace.ui.library}
             onAppearance={workspace.model.setBoardAppearance}
             readOnly={readOnly}
-            blocked={unavailable}
+            blocked={unavailable || Boolean(workspace.ui.library.recovery)}
             transientDisabled={workspace.ui.history.busy}
             open={workspace.panel === "library"}
             onOpenChange={(open) =>
@@ -93,6 +97,11 @@ export const BoardWorkspace: React.FC<BoardWorkspaceTypes.Props> = (props) => {
             themeSettings={props.themeSettings}
             state={workspace.ui.storage}
             hasDocument={workspace.ui.hasBoard}
+            recovery={{
+              library: workspace.ui.library,
+              onPreview: workspace.model.previewBoard,
+              onClosePreview: workspace.model.closePreview,
+            }}
             busy={workspace.ui.history.busy}
             onExport={workspace.model.exportCurrent}
             onUpgrade={workspace.model.exportUpgrade}
@@ -186,6 +195,11 @@ export const BoardWorkspace: React.FC<BoardWorkspaceTypes.Props> = (props) => {
       <span className={styles.hidden} id="prototype-warning">
         {I18n.t("writeWithAPenOrMouseThe")}
       </span>
+      {preview && workspace.panel !== "save" && (
+        <p className={styles.preview} role="status">
+          {I18n.t("viewingRecoveryPreview", { p0: preview.title })}
+        </p>
+      )}
       <div className={styles["board-stage"]}>
         {!workspace.ui.hasBoard ? (
           <div className={styles["load-state"]} role="status">

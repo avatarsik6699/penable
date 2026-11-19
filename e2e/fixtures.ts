@@ -2,6 +2,7 @@ import { test as base, expect, type Page } from "@playwright/test";
 import { BoardTransformPage } from "./pages/board-transform-page";
 import { BoardClipboardPage } from "./pages/board-clipboard-page";
 import { BoardImagePage } from "./pages/board-image-page";
+import { BoardRecoveryPage } from "./pages/board-recovery-page";
 import { BoardLibraryPage } from "./pages/board-library-page";
 import { BoardAppearancePage } from "./pages/board-appearance-page";
 import { appearanceBoards } from "./data/appearance-boards";
@@ -112,6 +113,61 @@ async function seedRecords(page: Page, records: Record<string, unknown>) {
   );
 
   await page.unroute(url);
+}
+
+async function recoveryFixture(
+  page: Page,
+  use: (recovery: BoardRecoveryPage) => Promise<void>,
+  held: boolean,
+) {
+  const verify = monitor(page);
+  const seed = await page.context().newPage();
+
+  const boards = [
+    { id: "main", title: "Damaged" },
+    { id: "missing", title: "Unavailable" },
+    { id: "geometry", title: "Geometry" },
+    { id: "notes", title: "Notebook" },
+  ];
+
+  const records = {
+    library: {
+      format: "penable-library",
+      schemaVersion: 1,
+      activeId: "main",
+      boards,
+    },
+    main: testBoards.corrupt(),
+    "board:geometry": { ...testBoards.legacy(), background: "grid" },
+    "board:notes": { ...testBoards.legacy(), background: "dots" },
+  };
+
+  try {
+    await seedRecords(seed, records);
+
+    await seed.evaluate(
+      (locale) => localStorage.setItem("penable:language", locale),
+      held ? "en" : "ru",
+    );
+
+    if (held) {
+      await seed.evaluate(
+        () =>
+          new Promise<void>((resolve) => {
+            void navigator.locks.request("penable:board:main", async () => {
+              resolve();
+              await new Promise<void>(() => {});
+            });
+          }),
+      );
+    }
+
+    await page.goto("/penable/");
+    await use(new BoardRecoveryPage(page, records));
+  } finally {
+    await seed.close();
+    verify();
+  }
 }
 
 async function seedLegacy(page: Page, secondVersion = false) {
@@ -232,6 +288,8 @@ type Fixtures = {
   pressureHeavyBoard: BoardPage;
   eraserHeavyBoard: BoardPage;
   corruptStorage: StoragePage;
+  recoveryBrowser: BoardRecoveryPage;
+  recoveryReader: BoardRecoveryPage;
   missingBoardStorage: StoragePage;
   saveFailureBoard: BoardPage;
 };
@@ -768,6 +826,14 @@ export const test = base.extend<Fixtures>({
     } finally {
       verify();
     }
+  },
+
+  recoveryBrowser: async ({ page }, use) => {
+    await recoveryFixture(page, use, false);
+  },
+
+  recoveryReader: async ({ page }, use) => {
+    await recoveryFixture(page, use, true);
   },
 
   corruptStorage: async ({ page }, use) => {

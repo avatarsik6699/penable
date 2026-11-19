@@ -29,6 +29,7 @@ export type SessionOptions = {
   persistence?: DocumentPersistence;
   onHydrate: (document: BoardSnapshot) => void;
   onState: (state: StorageState) => void;
+  onInvalidated?: (message: MessageTypes.Value) => void;
   acquire: () => Promise<WriterLease>;
   open: (
     invalidated: (message: MessageTypes.Value) => void,

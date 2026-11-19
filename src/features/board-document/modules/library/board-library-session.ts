@@ -1,13 +1,14 @@
 import type { ImportCandidate } from "../import-candidates";
 import type { MessageTypes } from "~/shared/lib/messages";
 import { Messages } from "~/shared/lib/messages";
-import { DocumentCodec } from "../codec";
-import { DocumentErrors } from "../session";
+import { DocumentCodec, DocumentSnapshots } from "../codec";
+import { DocumentErrors, SessionUtils } from "../session";
 import type { DocumentSession } from "../session";
 import type {
   BoardDocument,
   BoardAppearance,
   StorageState,
+  StoredRecord,
   WriterLease,
 } from "../../board-document.types";
 import type {
@@ -18,6 +19,7 @@ import type {
 } from "./library.types";
 import { LibraryAppearance } from "./library-appearance";
 import { LibraryCatalog } from "./library-catalog";
+import { LibraryRecovery } from "./library-recovery";
 
 export class BoardLibrarySession {
   private lease: WriterLease | null = null;
@@ -28,14 +30,16 @@ export class BoardLibrarySession {
   private startup: Promise<void> | null = null;
   private closing: Promise<void> | null = null;
   private disposed = false;
+  private booting = true;
   private busy = false;
   private fatal: MessageTypes.Value = "";
+  private invalidated: MessageTypes.Value = "";
   private message: MessageTypes.Value = "";
   private readonly validationAbort = new AbortController();
-  private raw: {
-    exists: boolean;
-    value: unknown;
-  } = {
+  private readonly recovery: LibraryRecovery;
+  private recoveryAvailable = false;
+  private publishedStorage: StorageState | null = null;
+  private raw: StoredRecord = {
     exists: false,
     value: undefined,
   };
@@ -43,19 +47,40 @@ export class BoardLibrarySession {
 
   constructor(private readonly options: LibraryOptions) {
     this.catalog = LibraryCatalog.initial(options.initialTitle);
-  }
 
-  get canWrite() {
-    return (
-      !this.disposed &&
-      !this.busy &&
-      !this.fatal &&
-      Boolean(this.active?.canWrite)
+    this.recovery = new LibraryRecovery(
+      async (id, signal) => {
+        const prepared = await this.prepareBoard(id, signal);
+
+        try {
+          return DocumentSnapshots.toSnapshot(prepared.document);
+        } finally {
+          await prepared.owned?.close().catch(() => {});
+        }
+      },
+      (board) => {
+        if (!this.disposed) this.options.onRecoveryPreview?.(board);
+      },
+      () => this.publish(),
     );
   }
 
+  private get canUseActive() {
+    return (
+      !this.disposed &&
+      !this.booting &&
+      !this.busy &&
+      !this.fatal &&
+      !this.invalidated
+    );
+  }
+
+  get canWrite() {
+    return this.canUseActive && Boolean(this.active?.canWrite);
+  }
+
   get canImport() {
-    return this.canWrite && Boolean(this.active?.canImport);
+    return this.canUseActive && Boolean(this.active?.canImport);
   }
 
   get hasUnsaved() {
@@ -63,35 +88,43 @@ export class BoardLibrarySession {
   }
 
   get state(): StorageState {
-    if (this.active) {
-      const state = this.active.state;
-
-      return {
-        ...state,
-        phase: this.fatal ? "error" : state.phase,
-        writable: this.canWrite,
-        canImport: this.canImport,
-        readOnly: Boolean(this.fatal) || state.readOnly,
-        canReconnect: !this.canWrite && !this.busy && !this.hasUnsaved,
-        message: this.fatal || state.message,
-      };
-    }
+    const active = this.active?.state;
+    const error = this.invalidated || this.fatal;
 
     return {
-      phase: this.startup ? "error" : "loading",
-      loaded: false,
-      writable: false,
-      readOnly: true,
-      canImport: false,
-      importing: false,
-      hasPrevious: false,
-      canReconnect: true,
-      message: this.fatal,
+      ...active,
+      phase: error ? "error" : (active?.phase ?? "loading"),
+      loaded: active?.loaded ?? false,
+      writable: this.canWrite,
+      readOnly: this.disposed || Boolean(error) || (active?.readOnly ?? true),
+      canImport: this.canImport,
+      importing: active?.importing ?? false,
+      hasPrevious: active?.hasPrevious ?? false,
+      hasRawCopy:
+        error && !active?.loaded
+          ? (this.rawRecord?.exists ?? false)
+          : active?.hasRawCopy,
+      canReconnect:
+        !this.disposed &&
+        !this.booting &&
+        !this.busy &&
+        !this.canWrite &&
+        !this.hasUnsaved &&
+        !active?.importing,
+      message: this.invalidated || this.fatal || active?.message || "",
     };
   }
 
   get rawRecord() {
-    return this.fatal && this.raw.exists ? this.raw : this.active?.rawRecord;
+    const child = this.active?.rawRecord;
+
+    if (child?.exists) return child;
+
+    return (this.fatal || this.invalidated) &&
+      !this.active?.state.loaded &&
+      this.raw.exists
+      ? this.raw
+      : child;
   }
 
   get previousRecord() {
@@ -119,28 +152,50 @@ export class BoardLibrarySession {
   }
 
   private publish() {
+    if (this.disposed) return;
+
+    this.publishStorage();
+
     const state: LibraryState = Object.freeze({
       activeId: this.catalog.activeId,
       boards: Object.freeze(
         this.catalog.boards.map((board) => Object.freeze({ ...board })),
       ),
       busy: this.busy,
-      message: this.message || this.fatal,
+      message: this.invalidated || this.fatal || this.message,
+      ...(this.recoveryAvailable
+        ? { recovery: Object.freeze(this.recovery.state) }
+        : {}),
     });
 
     this.options.onLibrary?.(state);
+  }
 
-    if (this.active) {
-      const storage = this.active.state;
+  private publishStorage() {
+    if (this.disposed) return;
 
-      this.options.onState({
-        ...storage,
-        phase: this.fatal ? "error" : storage.phase,
-        writable: this.canWrite,
-        canImport: this.canImport,
-        message: this.fatal || storage.message,
-      });
-    }
+    const state = this.state;
+
+    if (SessionUtils.sameState(this.publishedStorage, state)) return;
+
+    this.publishedStorage = Object.freeze(state);
+    this.options.onState(this.publishedStorage);
+  }
+
+  private invalidate(message: MessageTypes.Value) {
+    if (this.disposed || this.invalidated) return;
+
+    this.invalidated = Messages.concat(
+      message,
+      this.hasUnsaved
+        ? Messages.create("downloadChangesFromMemoryThenReloadThe")
+        : "",
+    );
+
+    this.validationAbort.abort(Messages.error(this.invalidated));
+    this.active?.invalidate(message);
+    this.recoveryAvailable = false;
+    this.recovery.close();
   }
 
   start() {
@@ -150,17 +205,21 @@ export class BoardLibrarySession {
   }
 
   private async boot() {
+    if (this.disposed) return;
+
+    this.publishStorage();
+
+    const signal = this.validationAbort.signal;
+
     try {
       this.lease = await this.options.acquire();
+      signal.throwIfAborted();
 
-      if (this.disposed) return;
+      this.repository = await this.options.open((message) =>
+        this.invalidate(message),
+      );
 
-      this.repository = await this.options.open((message) => {
-        this.fatal = message;
-        this.publish();
-      });
-
-      if (this.disposed) return;
+      signal.throwIfAborted();
 
       let records =
         this.options.prepareOwned && this.repository.readCatalog
@@ -172,40 +231,31 @@ export class BoardLibrarySession {
 
       let initialLoad: import("../jobs").OwnedPreparedBoard | undefined;
 
-      if (this.disposed) return;
-
+      signal.throwIfAborted();
       this.raw = records.catalog.exists ? records.catalog : records.main;
 
       if (records.catalog.exists) {
         this.catalog = LibraryCatalog.decode(records.catalog.value);
 
-        const owned = await this.options.prepareOwned?.(
-          this.catalog.activeId,
-          this.validationAbort.signal,
-        );
-
-        if (owned) this.preparing = owned;
-
-        const selected =
-          owned?.records.main ??
-          (await this.repository.board(this.catalog.activeId));
-
-        this.raw = selected.exists ? selected : records.catalog;
-
-        if (!selected.exists)
-          throw Messages.error(
-            Messages.create("aCatalogBoardIsMissingFromStorage"),
+        try {
+          const prepared = await this.prepareBoard(
+            this.catalog.activeId,
+            signal,
+            (record) => {
+              if (record.exists) this.raw = record;
+            },
           );
 
-        if (owned?.error) throw Messages.error(owned.error);
+          this.preparing = prepared.owned ?? null;
+          initialLoad = prepared.owned;
+        } catch (error) {
+          this.recoveryAvailable =
+            !signal.aborted && this.catalog.boards.length > 1;
 
-        const document = owned?.document ?? (await this.decode(selected.value));
+          throw error;
+        }
 
-        initialLoad = owned ?? undefined;
-
-        await this.options.preflight?.(document, this.validationAbort.signal);
-
-        if (this.disposed) return;
+        signal.throwIfAborted();
 
         if (
           this.lease.acquired &&
@@ -217,10 +267,7 @@ export class BoardLibrarySession {
         )
           await this.repository.migrate(this.catalog, records.catalog);
       } else {
-        const owned = await this.options.prepareOwned?.(
-          "main",
-          this.validationAbort.signal,
-        );
+        const owned = await this.options.prepareOwned?.("main", signal);
 
         if (owned) {
           this.preparing = owned;
@@ -230,17 +277,18 @@ export class BoardLibrarySession {
           this.raw = records.main;
         }
 
+        signal.throwIfAborted();
+
         if (owned?.error) throw Messages.error(owned.error);
 
         const document =
           owned?.document ??
           (records.main.exists
-            ? await this.decode(records.main.value)
+            ? await this.decode(records.main.value, signal)
             : DocumentCodec.emptyDocument());
 
-        await this.options.preflight?.(document, this.validationAbort.signal);
-
-        if (this.disposed) return;
+        await this.options.preflight?.(document, signal);
+        signal.throwIfAborted();
 
         if (this.lease.acquired) {
           if (owned) await owned.bootstrap(this.catalog);
@@ -255,29 +303,15 @@ export class BoardLibrarySession {
         initialLoad = owned ?? undefined;
       }
 
+      signal.throwIfAborted();
       await this.activate(this.catalog.activeId, initialLoad);
-      this.publish();
     } catch (error) {
       await this.preparing?.close().catch(() => {});
       this.preparing = null;
 
-      if (this.disposed) return;
-
-      this.fatal = DocumentErrors.messageOf(error);
-
-      this.options.onState({
-        phase: "error",
-        loaded: false,
-        writable: false,
-        readOnly: !this.lease?.acquired,
-        canImport: false,
-        importing: false,
-        hasPrevious: false,
-        canReconnect: true,
-        hasRawCopy: this.raw.exists,
-        message: this.fatal,
-      });
-
+      if (!signal.aborted) this.fatal = DocumentErrors.messageOf(error);
+    } finally {
+      this.booting = false;
       this.publish();
     }
   }
@@ -286,7 +320,7 @@ export class BoardLibrarySession {
     id: string,
     initialLoad?: import("../jobs").OwnedPreparedBoard,
   ) {
-    if (this.disposed) return;
+    this.validationAbort.signal.throwIfAborted();
 
     if (!this.lease)
       throw Messages.error(Messages.create("boardLockingIsUnavailable"));
@@ -301,15 +335,18 @@ export class BoardLibrarySession {
       {
         ...(initialLoad ? { initialLoad } : {}),
         snapshot: this.options.snapshot,
-        onHydrate: this.options.onHydrate,
 
-        onState: (state) => {
-          if (this.active === session && !this.disposed)
-            this.options.onState({
-              ...state,
-              writable: !this.busy && !this.fatal && state.writable,
-              canImport: !this.busy && !this.fatal && state.canImport,
-            });
+        onHydrate: (board) => {
+          if (this.active === session && !this.validationAbort.signal.aborted)
+            this.options.onHydrate(board);
+        },
+
+        onState: () => {
+          if (this.active === session) this.publishStorage();
+        },
+
+        onInvalidated: (message) => {
+          if (this.active === session) this.invalidate(message);
         },
       },
     );
@@ -319,6 +356,8 @@ export class BoardLibrarySession {
     if (initialLoad === this.preparing) this.preparing = null;
 
     await session.start();
+
+    this.validationAbort.signal.throwIfAborted();
 
     if (!session.state.loaded)
       throw Messages.error(
@@ -351,41 +390,68 @@ export class BoardLibrarySession {
     }
   }
 
-  private decode(value: unknown) {
+  private decode(value: unknown, signal: AbortSignal) {
     return this.options.decode
-      ? this.options.decode(value, this.validationAbort.signal)
+      ? this.options.decode(value, signal)
       : Promise.resolve(DocumentCodec.decodeDocument(value));
   }
 
-  private async load(id: string) {
-    const owned = await this.options.prepareOwned?.(
-      id,
-      this.validationAbort.signal,
-    );
+  private async prepareBoard(
+    id: string,
+    signal: AbortSignal,
+    capture?: (record: StoredRecord) => void,
+  ) {
+    const owned = await this.options.prepareOwned?.(id, signal);
 
     try {
+      signal.throwIfAborted();
+
       const record = owned?.records.main ?? (await this.repository!.board(id));
+
+      capture?.(record);
+      signal.throwIfAborted();
 
       if (!record.exists)
         throw Messages.error(
-          Messages.create("boardIsMissingFromStorageCurrentNotes"),
+          Messages.create(
+            capture
+              ? "aCatalogBoardIsMissingFromStorage"
+              : "boardIsMissingFromStorageCurrentNotes",
+          ),
         );
 
       if (owned?.error) throw Messages.error(owned.error);
 
-      const document = owned?.document ?? (await this.decode(record.value));
+      const document =
+        owned?.document ?? (await this.decode(record.value, signal));
 
-      await this.options.preflight?.(document, this.validationAbort.signal);
+      signal.throwIfAborted();
+      await this.options.preflight?.(document, signal);
+      signal.throwIfAborted();
 
-      if (this.disposed)
-        throw Messages.error(Messages.create("boardSwitchCancelled"));
-
-      return owned;
+      return { document, owned: owned ?? undefined };
     } catch (error) {
       await owned?.close().catch(() => {});
 
       throw error;
     }
+  }
+
+  previewBoard(id: string) {
+    if (
+      !this.recoveryAvailable ||
+      this.disposed ||
+      id === this.catalog.activeId
+    )
+      return Promise.resolve();
+
+    const board = this.catalog.boards.find((entry) => entry.id === id);
+
+    return board ? this.recovery.select(id, board.title) : Promise.resolve();
+  }
+
+  closePreview() {
+    if (this.recoveryAvailable && !this.disposed) this.recovery.close();
   }
 
   private async transition(
@@ -394,18 +460,24 @@ export class BoardLibrarySession {
   ) {
     await this.active!.flushOrThrow();
 
-    const prepared = await this.load(catalog.activeId);
+    const signal = this.validationAbort.signal;
+
+    signal.throwIfAborted();
+
+    const prepared = await this.prepareBoard(catalog.activeId, signal);
 
     try {
+      signal.throwIfAborted();
       await this.repository!.update(catalog, change);
+      signal.throwIfAborted();
       await this.active!.dispose();
 
-      if (this.disposed) return;
+      signal.throwIfAborted();
 
       this.catalog = catalog;
-      await this.activate(catalog.activeId, prepared ?? undefined);
+      await this.activate(catalog.activeId, prepared.owned);
     } finally {
-      await prepared?.close().catch(() => {});
+      await prepared.owned?.close().catch(() => {});
     }
   }
 
@@ -433,6 +505,7 @@ export class BoardLibrarySession {
         );
 
       await this.active!.flushOrThrow();
+      this.validationAbort.signal.throwIfAborted();
 
       const catalog = {
         ...this.catalog,
@@ -458,9 +531,11 @@ export class BoardLibrarySession {
         create: { id, document: DocumentCodec.emptyDocument() },
       });
 
+      this.validationAbort.signal.throwIfAborted();
+
       await this.active!.dispose();
 
-      if (this.disposed) return;
+      this.validationAbort.signal.throwIfAborted();
 
       this.catalog = catalog;
       await this.activate(id);
@@ -546,7 +621,7 @@ export class BoardLibrarySession {
   }
 
   retrySave() {
-    return this.active?.retrySave() ?? Promise.resolve();
+    return this.canWrite ? this.active!.retrySave() : Promise.resolve();
   }
 
   replace(document: BoardDocument, isBusy: () => boolean) {
@@ -571,7 +646,12 @@ export class BoardLibrarySession {
     if (this.closing) return this.closing;
 
     this.disposed = true;
-    this.validationAbort.abort();
+
+    this.validationAbort.abort(
+      Messages.error(Messages.create("boardSwitchCancelled")),
+    );
+
+    this.recovery.close();
 
     const activeDisposal = this.active?.dispose();
 
@@ -580,6 +660,7 @@ export class BoardLibrarySession {
         this.startup?.catch(() => {}),
         this.operation.catch(() => {}),
         activeDisposal,
+        this.recovery.drain(),
       ]);
 
       await this.preparing?.close();

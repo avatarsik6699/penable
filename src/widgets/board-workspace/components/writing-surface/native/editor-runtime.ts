@@ -78,7 +78,7 @@ function create(
       return;
     }
 
-    const initial = BoardSnapshots.clone(initialDocument);
+    const initial = BoardSnapshots.hydrateEditor(initialDocument);
     const scene: Scene = { strokes: initial.strokes, active: null };
 
     const state = {
@@ -86,7 +86,7 @@ function create(
     };
 
     let minimap: NativeMinimap | null = null;
-    let lastWritingView = initial.lastWritingView ?? null;
+    let lastWritingView = initial.lastWritingView;
     let usesImages = scene.strokes.some((item) => item.kind === "image");
 
     const onDocumentChange = (urgent: boolean) => {

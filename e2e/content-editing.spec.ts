@@ -123,3 +123,15 @@ test("undecodable image inside otherwise valid JSON cannot replace the saved boa
 }) => {
   await imageBoard.expectCorruptImageImportPreservesCurrent(images.png);
 });
+
+test("healthy boards can be browsed and downloaded after active-board corruption", async ({
+  recoveryBrowser,
+}) => {
+  await recoveryBrowser.expectReadOnlyBrowsing();
+});
+
+test("recovery browsing works in English while another tab holds the writer lease", async ({
+  recoveryReader,
+}) => {
+  await recoveryReader.expectReadOnlyBrowsing();
+});

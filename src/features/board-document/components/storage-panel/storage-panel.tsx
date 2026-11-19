@@ -15,6 +15,11 @@ import { useStoragePanel } from "./hooks/use-storage-panel";
 
 export const StoragePanel: React.FC<StoragePanelTypes.Props> = (props) => {
   const panel = useStoragePanel(props);
+  const recovering = Boolean(props.recovery.library.recovery);
+
+  const label = I18n.text(
+    StorageStatusPresentation.label(props.state, recovering),
+  );
 
   const status =
     props.state.phase === "error"
@@ -32,7 +37,7 @@ export const StoragePanel: React.FC<StoragePanelTypes.Props> = (props) => {
     >
       <div className={styles.controls}>
         {props.state.phase === "error" && (
-          <span className={styles.errorText}>{I18n.t("couldNotSave")}</span>
+          <span className={styles.errorText}>{label}</span>
         )}
         <Button
           ref={(node) => panel.save.bindTrigger(node)}
@@ -45,7 +50,7 @@ export const StoragePanel: React.FC<StoragePanelTypes.Props> = (props) => {
           onClick={() =>
             props.onPanelChange(props.openPanel === "save" ? null : "save")
           }
-          title={I18n.text(StorageStatusPresentation.label(props.state))}
+          title={label}
         >
           <span
             className={[styles.statusDot, styles[status]].join(" ")}
@@ -56,7 +61,7 @@ export const StoragePanel: React.FC<StoragePanelTypes.Props> = (props) => {
           )}
         </Button>
         <span className={styles.srOnly} id="storage-summary">
-          <StorageStatus state={props.state} />
+          <StorageStatus state={props.state} recovering={recovering} />
         </span>
         <Button
           ref={(node) => panel.board.bindTrigger(node)}
@@ -94,6 +99,7 @@ export const StoragePanel: React.FC<StoragePanelTypes.Props> = (props) => {
             state={props.state}
             busy={props.busy}
             hasDocument={props.hasDocument}
+            recovery={props.recovery}
             onExport={props.onExport}
             onPrevious={props.onPrevious}
             onUpgrade={props.onUpgrade}

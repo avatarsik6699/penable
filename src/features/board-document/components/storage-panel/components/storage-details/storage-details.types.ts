@@ -6,6 +6,7 @@ export namespace StorageDetailsTypes {
     StoragePanelTypes.Props,
     | "state"
     | "hasDocument"
+    | "recovery"
     | "busy"
     | "onExport"
     | "onPrevious"

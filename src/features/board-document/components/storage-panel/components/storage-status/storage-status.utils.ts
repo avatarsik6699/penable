@@ -3,8 +3,11 @@ import { Messages } from "~/shared/lib/messages";
 import type { StorageState } from "../../../../board-document.types";
 import { StorageStatusConfig } from "./storage-status.config";
 
-function label(state: StorageState): MessageTypes.Value {
-  if (state.phase === "error") return StorageStatusConfig.labels.error;
+function label(state: StorageState, recovering = false): MessageTypes.Value {
+  if (state.phase === "error")
+    return recovering
+      ? Messages.create("couldNotOpenTheBoard")
+      : StorageStatusConfig.labels.error;
 
   if (state.phase === "loading") return StorageStatusConfig.labels.loading;
 

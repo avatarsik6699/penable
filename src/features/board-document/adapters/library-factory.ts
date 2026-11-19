@@ -13,7 +13,7 @@ import { LibraryRepositoryAdapter } from "./library-indexeddb";
 function create(
   options: Pick<
     LibraryOptions,
-    "snapshot" | "onHydrate" | "onState" | "onLibrary"
+    "snapshot" | "onHydrate" | "onState" | "onLibrary" | "onRecoveryPreview"
   >,
 ): BoardLibrarySession {
   return new BoardLibrarySession({

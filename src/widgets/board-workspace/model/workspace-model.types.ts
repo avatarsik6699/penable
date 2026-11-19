@@ -118,6 +118,7 @@ export type WorkspaceDependencies = {
     onHydrate: (board: BoardSnapshot) => void;
     onState: (state: StorageState) => void;
     onLibrary?: (state: LibraryState) => void;
+    onRecoveryPreview?: (board: BoardSnapshot | null) => void;
   }) => DocumentSession | BoardLibrarySession;
   download: (
     json: import("~/features/board-document").DownloadContents,

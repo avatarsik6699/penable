@@ -1,4 +1,5 @@
 import type { MessageTypes } from "~/shared/lib/messages";
+import type { BoardSnapshot } from "~/entities/board";
 import type {
   BoardDocument,
   BoardAppearance,
@@ -24,6 +25,13 @@ export type LibraryState = Readonly<{
   >;
   busy: boolean;
   message: MessageTypes.Value;
+  recovery?: LibraryRecoveryState;
+}>;
+
+export type LibraryRecoveryState = Readonly<{
+  previewId: string | null;
+  pendingId: string | null;
+  message: MessageTypes.Value;
 }>;
 
 export type LibraryOptions = Pick<
@@ -31,6 +39,7 @@ export type LibraryOptions = Pick<
   "snapshot" | "onHydrate" | "onState"
 > & {
   onLibrary?: (state: LibraryState) => void;
+  onRecoveryPreview?: (board: BoardSnapshot | null) => void;
   initialTitle?: string;
   decode?: SessionOptions["decode"];
   prepareOwned?: (
@@ -47,7 +56,7 @@ export type LibraryOptions = Pick<
     lease: WriterLease,
     options: Pick<
       SessionOptions,
-      "snapshot" | "onHydrate" | "onState" | "initialLoad"
+      "snapshot" | "onHydrate" | "onState" | "initialLoad" | "onInvalidated"
     >,
   ) => DocumentSession;
   id: () => string;

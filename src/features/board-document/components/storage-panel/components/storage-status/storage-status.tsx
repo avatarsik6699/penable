@@ -13,6 +13,6 @@ export const StorageStatus: React.FC<StorageStatusTypes.Props> = (props) => (
     role="status"
     aria-live="polite"
   >
-    {I18n.text(StorageStatusPresentation.label(props.state))}
+    {I18n.text(StorageStatusPresentation.label(props.state, props.recovering))}
   </span>
 );

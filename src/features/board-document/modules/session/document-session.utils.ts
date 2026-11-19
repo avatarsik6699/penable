@@ -41,6 +41,7 @@ function sameState(
     previous.hasUpgradeCopy === state.hasUpgradeCopy &&
     previous.hasSchema3Copy === state.hasSchema3Copy &&
     previous.hasSchema4Copy === state.hasSchema4Copy &&
+    previous.hasSchema5Copy === state.hasSchema5Copy &&
     previous.hasLibraryCopy === state.hasLibraryCopy &&
     previous.hasRawCopy === state.hasRawCopy &&
     previous.hasPrevious === state.hasPrevious &&

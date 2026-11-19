@@ -35,6 +35,18 @@ import {
   DocumentCodec,
 } from "~/features/board-document";
 
+const loadingStorage: WorkspaceState["storage"] = Object.freeze({
+  phase: "loading",
+  loaded: false,
+  writable: false,
+  readOnly: true,
+  canImport: false,
+  importing: false,
+  hasPrevious: false,
+  canReconnect: false,
+  message: "",
+});
+
 // One tab owns the durable session, clipboard and coarse UI projection. Editor
 // generations own their scene/renderer and may be replaced without releasing either.
 export class WorkspaceModel {
@@ -72,17 +84,7 @@ export class WorkspaceModel {
       backgroundSettings: Object.freeze({ contrast: 45, spacing: 24 }),
       lastWritingView: null,
       history: Object.freeze({ canUndo: false, canRedo: false, busy: false }),
-      storage: Object.freeze({
-        phase: "loading",
-        loaded: false,
-        writable: false,
-        readOnly: true,
-        canImport: false,
-        importing: false,
-        hasPrevious: false,
-        canReconnect: false,
-        message: "",
-      }),
+      storage: loadingStorage,
       diagnostics: Object.freeze(dependencies.diagnostics),
       generation: 0,
       hasBoard: false,
@@ -165,7 +167,10 @@ export class WorkspaceModel {
 
   readonly canWrite = () =>
     Boolean(
-      this.session?.canWrite && this.controls.current && !this.state.dialogOpen,
+      this.lifetime?.active &&
+      this.session?.canWrite &&
+      this.controls.current &&
+      !this.state.dialogOpen,
     );
 
   readonly getTool = () => this.state.tool;
@@ -197,55 +202,74 @@ export class WorkspaceModel {
     if (this.controls.current?.isBusy()) this.controls.current.cancelInput();
   };
 
+  private hydrate(board: BoardSnapshot | null) {
+    this.exportOperation?.abort();
+    this.controls.current?.cancelInput();
+    this.controls.current = null;
+    this.initialBoard = board;
+
+    if (!board) {
+      this.patch({
+        hasBoard: false,
+        hasInk: false,
+        lastWritingView: null,
+        unavailable: "",
+        navigationMessage: "",
+        history: Object.freeze({ canUndo: false, canRedo: false, busy: false }),
+      });
+
+      return;
+    }
+
+    const writing = BoardWriting.clone(
+      board.tools.writing ??
+        BoardWriting.defaults(board.tools.width, board.tools.stabilization),
+    );
+
+    const activeInstrument = writing.instruments[writing.instrument];
+
+    this.patch({
+      hasBoard: true,
+      hasInk: board.strokes.length > 0,
+      tool: "pen",
+      selectionShape: "rectangle",
+      writing,
+      width: activeInstrument.width,
+      stabilization: BoardStabilization.normalizeStrength(
+        activeInstrument.stabilization,
+      ),
+      background: board.background,
+      backgroundSettings: Object.freeze({
+        ...(board.backgroundSettings ?? { contrast: 45, spacing: 24 }),
+      }),
+      lastWritingView: board.lastWritingView ?? null,
+      unavailable: "",
+      navigationMessage: "",
+      history: Object.freeze({ canUndo: false, canRedo: false, busy: false }),
+      generation: this.state.generation + 1,
+    });
+  }
+
   start(): () => void {
+    const current = () => lifetime.active && this.session === session;
+
     const session = this.dependencies.session({
       snapshot: this.readBoardSnapshot,
-      onLibrary: (library) => this.patch({ library }),
+
+      onLibrary: (library) => {
+        if (current()) this.patch({ library });
+      },
 
       onHydrate: (board) => {
-        if (!lifetime.active || this.session !== session) return;
+        if (current()) this.hydrate(board);
+      },
 
-        this.controls.current?.cancelInput();
-        this.controls.current = null;
-        this.initialBoard = board;
-
-        this.patch({
-          hasBoard: true,
-          hasInk: board.strokes.length > 0,
-          tool: "pen",
-          selectionShape: "rectangle",
-          writing: BoardWriting.clone(
-            board.tools.writing ??
-              BoardWriting.defaults(
-                board.tools.width,
-                board.tools.stabilization,
-              ),
-          ),
-          width:
-            board.tools.writing?.instruments[board.tools.writing.instrument]
-              .width ?? board.tools.width,
-          stabilization: BoardStabilization.normalizeStrength(
-            board.tools.writing?.instruments[board.tools.writing.instrument]
-              .stabilization ?? board.tools.stabilization,
-          ),
-          background: board.background,
-          backgroundSettings: Object.freeze({
-            ...(board.backgroundSettings ?? { contrast: 45, spacing: 24 }),
-          }),
-          lastWritingView: board.lastWritingView ?? null,
-          unavailable: "",
-          navigationMessage: "",
-          history: Object.freeze({
-            canUndo: false,
-            canRedo: false,
-            busy: false,
-          }),
-          generation: this.state.generation + 1,
-        });
+      onRecoveryPreview: (board) => {
+        if (current()) this.hydrate(board);
       },
 
       onState: (state) => {
-        if (!lifetime.active || this.session !== session) return;
+        if (!current()) return;
 
         if (!state.writable) this.controls.current?.cancelInput();
 
@@ -257,6 +281,11 @@ export class WorkspaceModel {
 
     this.lifetime = lifetime;
     this.session = session;
+
+    this.patch({
+      storage: loadingStorage,
+      library: Object.freeze({ ...this.state.library, recovery: undefined }),
+    });
 
     lifetime.starting = this.priorDisposal.then(async () => {
       if (lifetime.active) await session.start();
@@ -282,6 +311,16 @@ export class WorkspaceModel {
 
   readonly switchBoard = (id: string) =>
     this.libraryAction((session) => session.switchBoard(id));
+
+  readonly previewBoard = (id: string) => {
+    if (this.lifetime?.active && this.session && "previewBoard" in this.session)
+      void this.session.previewBoard(id);
+  };
+
+  readonly closePreview = () => {
+    if (this.session && "closePreview" in this.session)
+      this.session.closePreview();
+  };
 
   readonly createBoard = (title: string) =>
     this.libraryAction((session) => session.createBoard(title));
@@ -598,13 +637,23 @@ export class WorkspaceModel {
     this.exportRecord(this.session?.rawRecord, "penable-original-record.json");
 
   readonly retry = () => {
-    if (this.session?.canWrite) {
-      void this.session.retrySave();
+    const session = this.session;
+
+    if (!session) return;
+
+    const state = session.state;
+
+    if (state.writable) {
+      void session.retrySave();
 
       return;
     }
 
-    if (!this.session?.hasUnsaved && this.session?.state.canReconnect) {
+    if (state.canReconnect) {
+      this.closePreview();
+
+      if (this.initialBoard) this.hydrate(null);
+
       this.stop();
       this.start();
     }

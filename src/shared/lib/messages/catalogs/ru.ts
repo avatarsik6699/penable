@@ -189,6 +189,11 @@ export const RussianMessages = {
   settingsSection: "Раздел настроек",
   view: "Вид",
   filesAndCopies: "Файлы и копии",
+  recoverBoards: "Восстановление досок",
+  openingRecoveryPreview: "Открываем «{{p0}}»…",
+  viewingRecoveryPreview: "Просмотр «{{p0}}» (только чтение)",
+  closeRecoveryPreview: "Закрыть просмотр",
+  couldNotPreviewBoard: "Не удалось открыть «{{p0}}». ",
   importBoard: "Импорт доски",
   chooseAJsonBackupTheCurrentBoard:
     "Выберите JSON-копию. До подтверждения текущая доска останется прежней.",

@@ -90,7 +90,7 @@ export class DocumentSession {
       phase: this.phase,
       loaded: this.loaded,
       writable: this.canWrite,
-      readOnly: !this.lease?.acquired || this.fatal,
+      readOnly: this.disposed || !this.lease?.acquired || this.fatal,
       canImport: this.canImport,
       importing: this.importing,
       hasPrevious: this.previous.exists,
@@ -101,6 +101,7 @@ export class DocumentSession {
       hasLibraryCopy: this.libraryCopy.exists,
       hasRawCopy: this.rawMain.exists && !this.loaded && this.phase === "error",
       canReconnect:
+        !this.disposed &&
         !this.canWrite &&
         this.phase !== "loading" &&
         !this.hasUnsaved &&
@@ -152,6 +153,27 @@ export class DocumentSession {
     return this.startup;
   }
 
+  invalidate(message: MessageTypes.Value) {
+    if (this.disposed || this.fatal) return;
+
+    this.fatal = true;
+    this.paused = true;
+    this.loadingAbort.abort();
+    this.replacementAbort?.abort();
+    this.clearTimers();
+    this.phase = "error";
+
+    this.message = Messages.concat(
+      message,
+      this.hasUnsaved
+        ? Messages.create("downloadChangesFromMemoryThenReloadThe")
+        : "",
+    );
+
+    this.options.onInvalidated?.(message);
+    this.publish();
+  }
+
   private async boot() {
     if (this.disposed) return;
 
@@ -162,23 +184,11 @@ export class DocumentSession {
 
       if (this.disposed) return;
 
-      this.repository = await this.options.open((message) => {
-        this.fatal = true;
-        this.paused = true;
-        this.clearTimers();
-        this.phase = "error";
+      this.repository = await this.options.open((message) =>
+        this.invalidate(message),
+      );
 
-        this.message = Messages.concat(
-          message,
-          this.hasUnsaved
-            ? Messages.create("downloadChangesFromMemoryThenReloadThe")
-            : "",
-        );
-
-        this.publish();
-      });
-
-      if (this.disposed) return;
+      if (this.disposed || this.fatal) return;
 
       const initial = this.initialLoad;
 
@@ -247,12 +257,15 @@ export class DocumentSession {
       if (this.disposed || this.fatal) return;
 
       this.loaded = true;
-      this.options.onHydrate(DocumentSnapshots.toSnapshot(document));
       this.phase = "saved";
+      this.options.onHydrate(DocumentSnapshots.toSnapshot(document));
       this.publish();
     } catch (error) {
       await this.ownedLoad?.close().catch(() => {});
       this.ownedLoad = null;
+
+      if (this.disposed || this.fatal) return;
+
       this.phase = "error";
       this.message = DocumentErrors.messageOf(error);
       this.publish();
@@ -367,6 +380,9 @@ export class DocumentSession {
         this.message = "";
       } catch (error) {
         this.writing = false;
+
+        if (this.disposed || this.fatal) return;
+
         this.paused = true;
         this.clearTimers();
         this.phase = "error";
@@ -519,7 +535,11 @@ export class DocumentSession {
           );
         else await this.repository.replace(previous, document);
 
-        if (this.disposed || this.fatal) return;
+        if (this.disposed) return;
+
+        this.previous = recovery ?? { exists: true, value: previous };
+
+        if (this.fatal) throw Messages.error(this.message);
 
         if (
           !this.schema4.exists &&
@@ -538,7 +558,6 @@ export class DocumentSession {
         )
           this.schema5 = this.rawMain;
 
-        this.previous = recovery ?? { exists: true, value: previous };
         this.rawMain = { exists: true, value: document };
         this.loaded = true;
         this.rawLoaded = true;
@@ -549,12 +568,14 @@ export class DocumentSession {
         this.phase = "saved";
         this.options.onHydrate(DocumentSnapshots.toSnapshot(document));
       } catch (error) {
-        if (!writeAttempted && !this.disposed && !this.fatal) {
+        if (this.fatal) throw Messages.error(this.message);
+
+        if (!writeAttempted && !this.disposed) {
           this.phase = priorState.phase;
           this.paused = priorState.paused;
           this.message = priorState.message;
           validationFailed = true;
-        } else {
+        } else if (!this.disposed) {
           this.paused = true;
           this.phase = "error";
 

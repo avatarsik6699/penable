@@ -1,6 +1,7 @@
 import type { MessageTypes } from "~/shared/lib/messages";
 import type { ImportCandidate } from "../../modules/import-candidates";
 import type { StorageState } from "../../board-document.types";
+import type { RecoveryBrowserTypes } from "./components/recovery-browser";
 
 export namespace StoragePanelTypes {
   export type Props = {
@@ -11,6 +12,7 @@ export namespace StoragePanelTypes {
     backgroundControl: import("react").ReactNode;
     state: StorageState;
     hasDocument: boolean;
+    recovery: RecoveryBrowserTypes.Props;
     busy: boolean;
     onExport: () => Promise<MessageTypes.Value>;
     onUpgrade: () => MessageTypes.Value | Promise<MessageTypes.Value>;

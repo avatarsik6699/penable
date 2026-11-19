@@ -263,3 +263,12 @@ signals cannot cancel a later operation. Detailed insertion outcomes carry immut
 rejection descriptors rather than recovering errors from mutable selection UI text. Existing
 boolean selection APIs remain compatible for their other consumers. Temporary bitmap claims
 release once and preserve canonical assets already present in the scene.
+
+## Recovery browsing and editor hydration
+
+The library session derives published storage status from the current document and library
+failure state. Its read-only recovery preview owns a transient selection and aborts superseded
+loads. Only the validated catalog can supply preview targets. The workspace owns the displayed
+editor generation and the current-board export. Raw recovery remains bound to the failed record.
+When mounting an editor, copy mutable placement and camera state and share completed point
+arrays. Commands replace completed items. Active input owns its growing point array.

@@ -1,10 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 import { BoardConstants, BoardSnapshots, type Stroke } from "~/entities/board";
 import {
+  BoardLibrarySession,
   DocumentCodec,
   DocumentSession,
+  LibraryCatalog,
   type DocumentRepository,
   type DocumentPersistence,
+  type LibraryRepository,
+  type StoredRecord,
 } from "~/features/board-document";
 import { WorkspaceModel, type WorkspaceDependencies } from "./workspace-model";
 import type { SurfaceControls } from "./workspace-model.types";
@@ -127,6 +131,143 @@ function controls(strokes: Stroke[] = []): SurfaceControls {
 }
 
 describe("asynchronous recovery export ownership", () => {
+  it("clears the prior reader board when reconnect loads a different corrupt active record", async () => {
+    const oldBoard = DocumentCodec.emptyDocument();
+
+    oldBoard.background = "dots";
+
+    const failed = {
+      format: "penable-board",
+      schemaVersion: 99,
+      marker: "original",
+    };
+
+    const records = new Map<string, unknown>([
+      ["main", DocumentCodec.encodeDocument(oldBoard)],
+      ["broken", failed],
+    ]);
+
+    let catalog = LibraryCatalog.initial();
+
+    catalog.boards.push({
+      id: "broken",
+      title: "Broken",
+      appearance: { color: "blue", icon: "book" },
+    });
+
+    const record = (id: string): StoredRecord => ({
+      exists: records.has(id),
+      value: records.get(id),
+    });
+
+    const library: LibraryRepository = {
+      read: async () => ({
+        catalog: { exists: true, value: catalog },
+        main: record("main"),
+      }),
+      board: async (id) => record(id),
+      close: vi.fn(async () => {}),
+      bootstrap: vi.fn(async () => {}),
+      migrate: vi.fn(async () => {}),
+      update: vi.fn(async () => {}),
+    };
+
+    const write = vi.fn(async () => {}),
+      replace = vi.fn(async () => {}),
+      download = vi.fn();
+
+    const model = new WorkspaceModel({
+      diagnostics,
+      download,
+      exportDocument: async (document) => ({
+        contents: JSON.stringify(DocumentCodec.encodeDocument(document)),
+        warning: "",
+      }),
+      session: (options) =>
+        new BoardLibrarySession({
+          ...options,
+          id: () => "new-board",
+          acquire: async () => ({
+            acquired: false,
+            message: "readonly",
+
+            release: async () => {},
+          }),
+          open: async () => library,
+          session: (id, lease, callbacks) =>
+            new DocumentSession({
+              ...callbacks,
+              acquire: async () => lease,
+              open: async () => ({
+                read: async () => ({
+                  main: record(id),
+                  beforeImport: record("before-import"),
+                }),
+                write,
+                replace,
+
+                close: async () => {},
+              }),
+            }),
+        }),
+    });
+
+    const stop = model.start();
+
+    await vi.waitFor(() =>
+      expect(model.getSnapshot().storage.canReconnect).toBe(true),
+    );
+
+    expect(model.getSnapshot().hasBoard).toBe(true);
+    model.controls.current = controls();
+    catalog = { ...catalog, activeId: "broken" };
+    model.retry();
+    expect(model.getSnapshot().storage.phase).toBe("loading");
+    expect(model.getSnapshot().hasBoard).toBe(false);
+
+    await vi.waitFor(() =>
+      expect(model.getSnapshot().library.activeId).toBe("broken"),
+    );
+
+    expect(model.getSnapshot().storage.phase).toBe("error");
+    expect(model.getSnapshot().library.recovery?.previewId).toBeNull();
+    await model.exportCurrent();
+    expect(download).not.toHaveBeenCalled();
+
+    model.previewBoard("main");
+
+    await vi.waitFor(() =>
+      expect(model.getSnapshot().library.recovery?.previewId).toBe("main"),
+    );
+
+    model.controls.current = controls();
+    expect(model.canWrite()).toBe(false);
+    model.documentChanged(true);
+    await model.flush();
+    await model.exportCurrent();
+
+    expect(download).toHaveBeenLastCalledWith(
+      expect.stringContaining('"background":"dots"'),
+      "penable-board.json",
+    );
+
+    await model.exportRaw();
+
+    const [contents, file] = download.mock.lastCall! as [string, string];
+
+    expect(JSON.parse(contents)).toEqual(failed);
+    expect(file).toBe("penable-original-record.json");
+    expect(write).not.toHaveBeenCalled();
+    expect(replace).not.toHaveBeenCalled();
+    expect(library.update).not.toHaveBeenCalled();
+    expect(library.bootstrap).not.toHaveBeenCalled();
+    expect(library.migrate).not.toHaveBeenCalled();
+    model.closePreview();
+    expect(model.getSnapshot().hasBoard).toBe(false);
+    expect(model.getSnapshot().library.activeId).toBe("broken");
+    stop();
+  });
+
   it("keeps downloads available after writer authority is lost", async () => {
     const h = harness(),
       stop = h.model.start();
