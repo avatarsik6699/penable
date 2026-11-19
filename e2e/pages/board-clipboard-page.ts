@@ -2,6 +2,7 @@ import { expect, type Page } from "@playwright/test";
 import type { BoardPage } from "./board-page";
 import type { BoardLibraryPage } from "./board-library-page";
 import type { BoardImagePage } from "./board-image-page";
+import type { TestBoardTypes } from "../data/board.types";
 import type { TestImageTypes } from "../data/image-files";
 
 const fragmentType = "web application/x-penable-fragment+json";
@@ -148,23 +149,241 @@ export class BoardClipboardPage {
     await this.board.storage.expectStrokeCount(1);
     await this.copy();
 
-    await this.page.evaluate(() =>
-      navigator.clipboard.writeText("External unsupported plain text"),
+    const text = "Выдержка из статьи";
+
+    await this.writeText(text);
+    await this.paste();
+    await this.expectText(text, 2);
+    await image.payload(file, "paste");
+    await image.expectImages(1);
+    await this.board.storage.expectStrokeCount(3);
+  }
+
+  private writeText(value: string) {
+    return this.page.evaluate(
+      (text) => navigator.clipboard.writeText(text),
+      value,
+    );
+  }
+
+  private async expectText(value: string, itemCount: number) {
+    const read = async () => {
+      const document = (await this.board.storage.records()).main;
+
+      return document?.items.find((item) => item.kind === "text");
+    };
+
+    await expect.poll(async () => (await read())?.text).toBe(value);
+    await this.board.storage.expectStrokeCount(itemCount);
+
+    return (await read())!;
+  }
+
+  private async actions() {
+    await this.page
+      .getByRole("button", { name: "Действия", exact: true })
+      .click();
+  }
+
+  private async openTextEditor() {
+    await this.actions();
+
+    const name = "Изменить текст";
+
+    await this.page.getByRole("button", { name, exact: true }).click();
+
+    const dialog = this.page.getByRole("dialog", { name, exact: true });
+
+    const input = dialog.getByRole("textbox", {
+      name: "Текст на доске",
+      exact: true,
+    });
+
+    await expect(input).toBeFocused();
+
+    return { dialog, input };
+  }
+
+  private textPoint(item: TestBoardTypes.TextItem) {
+    return { x: item.matrix[4] + 20, y: item.matrix[5] + 16 };
+  }
+
+  async expectEditableTextRoundtrip(library: BoardLibraryPage) {
+    const source = "Фрагмент из книги.\n\nВторой абзац.";
+    const edited = "Фрагмент из книги.\n\nУточнённый абзац.";
+
+    await this.board.drawStroke();
+
+    const previous = (await this.board.storage.records()).main!;
+
+    await this.writeText(source);
+    await this.paste();
+
+    const text = await this.expectText(source, 2);
+    const records = await this.board.storage.records();
+
+    expect(records.main?.schemaVersion).toBe(6);
+    expect(records.upgrade6).toEqual(previous);
+    expect(text.lines).toHaveLength(3);
+
+    const point = this.textPoint(text);
+
+    await this.board.drawStroke(point, { x: point.x + 75, y: point.y });
+    await this.board.reopenSavedBoard();
+
+    await this.page
+      .getByRole("button", { name: "Выделение", exact: true })
+      .click();
+
+    await this.board.surface.click({ position: point });
+
+    const { dialog, input } = await this.openTextEditor();
+
+    await expect(input).toHaveValue(source);
+    await this.writeText("Временный черновик");
+    await input.press("Control+a");
+    await input.press("Control+v");
+    await expect(input).toHaveValue("Временный черновик");
+    await input.press("Escape");
+    await expect(dialog).toBeHidden();
+
+    await expect(
+      this.page.getByRole("button", { name: "Действия", exact: true }),
+    ).toBeFocused();
+
+    await this.expectText(source, 3);
+
+    const editor = await this.openTextEditor();
+
+    await editor.input.fill(edited);
+
+    await editor.dialog
+      .getByRole("button", { name: "Сохранить", exact: true })
+      .click();
+
+    await expect(editor.dialog).toBeHidden();
+    await this.expectText(edited, 3);
+    await this.board.undo();
+    await this.expectText(source, 3);
+    await this.board.redo();
+    await this.expectText(edited, 3);
+
+    await this.page.getByRole("button", { name: "Перо", exact: true }).click();
+
+    await this.board.selectRectangle(
+      { x: text.matrix[4] - 5, y: text.matrix[5] - 5 },
+      {
+        x: text.matrix[4] + text.width + 5,
+        y: text.matrix[5] + text.lines.length * 28 + 5,
+      },
     );
 
+    await this.board.moveSelection(point, { x: point.x + 28, y: point.y + 14 });
+
+    await expect
+      .poll(async () => (await this.expectText(edited, 3)).matrix[4])
+      .toBe(text.matrix[4] + 28);
+
+    const sourceDocument = (await this.board.storage.records()).main!;
+    const annotation = sourceDocument.items[2]!;
+
+    expect(annotation.matrix.slice(4)).toEqual([28, 14]);
+
+    await this.actions();
+
+    const download = this.page.waitForEvent("download");
+
+    await this.page.getByRole("button", { name: "Скачать PNG" }).click();
+    expect((await download).suggestedFilename()).toBe("penable-selection.png");
+
+    await this.copy();
+    await library.create("Цитаты");
     await this.paste();
+    await this.expectText(edited, 3);
+
+    const exported = await this.board.storage.exportDocument();
+
+    await library.create("Из файла");
+    await this.board.storage.importDocument(exported);
+    await this.expectText(edited, 3);
+    await this.board.storage.expectScene(exported.items);
+  }
+
+  async expectTallTextClipboard() {
+    const text = Array.from(
+      { length: 150 },
+      (_, index) => `Line ${index + 1}`,
+    ).join("\n");
+
+    await this.writeText(text);
+    await this.paste();
+
+    const original = await this.expectText(text, 1);
+
+    expect(original.lines).toHaveLength(150);
+    await this.page.keyboard.press("Control+c");
 
     await expect(
       this.page
-        .getByRole("status")
-        .filter({ hasText: /В буфере нет фрагмента Penable, PNG или JPEG/ })
+        .getByText(/Редактируемый фрагмент скопирован.*слишком велико/)
         .first(),
     ).toBeVisible();
 
-    await this.board.storage.expectStrokeCount(1);
-    await image.payload(file, "paste");
-    await image.expectImages(1);
-    await this.board.storage.expectStrokeCount(2);
+    const types = await this.page.evaluate(async () =>
+      (await navigator.clipboard.read()).flatMap((item) => [...item.types]),
+    );
+
+    expect(types).toEqual([fragmentType]);
+    await this.paste();
+    await this.expectText(text, 2);
+
+    const document = (await this.board.storage.records()).main!;
+
+    expect(document.items).toEqual([
+      original,
+      expect.objectContaining({ kind: "text", text, lines: original.lines }),
+    ]);
+  }
+
+  async expectTextMenuAndNarrowEdit() {
+    await this.page.setViewportSize({ width: 390, height: 620 });
+
+    const text = "Длинная строка из статьи. ".repeat(14);
+
+    await this.writeText(text);
+
+    await this.page
+      .getByRole("button", { name: "Выделение", exact: true })
+      .click();
+
+    await this.actions();
+
+    await this.page
+      .getByRole("button", { name: "Вставить", exact: true })
+      .click();
+
+    const item = await this.expectText(text, 1);
+
+    expect(item.lines.length).toBeGreaterThan(2);
+    expect(item.width).toBeLessThan(390);
+
+    const { dialog, input } = await this.openTextEditor();
+
+    await input.fill("x".repeat(8001));
+
+    const save = dialog.getByRole("button", { name: "Сохранить", exact: true });
+
+    await save.click();
+
+    await expect(dialog.getByRole("alert")).toContainText(
+      "Текст слишком длинный",
+    );
+
+    await expect(save).toBeInViewport();
+    await expect(input).toHaveValue("x".repeat(8001));
+    await dialog.getByRole("button", { name: "Отмена", exact: true }).click();
+    await expect(dialog).toBeHidden();
+    await this.expectText(text, 1);
   }
 
   async expectCorruptOwnFormatDoesNotPastePng(file: TestImageTypes.File) {
@@ -500,7 +719,7 @@ export class BoardClipboardPage {
       await expect(
         this.page
           .getByText(
-            "Чтение буфера недоступно. Вставьте PNG или JPEG сочетанием Ctrl+V.",
+            "Чтение буфера недоступно. Попробуйте системную вставку (Ctrl+V или Cmd+V).",
             { exact: true },
           )
           .first(),

@@ -3,6 +3,7 @@ import {
   BoardTransforms,
   BoardRegions,
   BoardLimits,
+  BoardText,
   type BoardItem,
   type ImageAsset,
 } from "~/entities/board";
@@ -17,7 +18,7 @@ function decode(
   root: Record<string, unknown>,
   limits = CodecConfig.DOCUMENT_LIMITS,
   geometryOnly = false,
-  modern = false,
+  schemaVersion: 4 | 5 | 6 = 4,
 ): BoardItem[] {
   const rawAssets = CodecPrimitives.own(root, "assets"),
     rawItems = CodecPrimitives.own(root, "items");
@@ -65,10 +66,18 @@ function decode(
     (value) => CodecPrimitives.object(value, "item").kind === "ink",
   );
 
-  const decodedInk = StrokeDecoder.decodeStrokes(ink, 2, limits, modern);
+  const decodedInk = StrokeDecoder.decodeStrokes(
+    ink,
+    2,
+    limits,
+    schemaVersion >= 5,
+  );
 
   let inkIndex = 0,
-    vertices = 0;
+    vertices = 0,
+    textBytes = 0;
+
+  const encoder = schemaVersion === 6 ? new TextEncoder() : null;
 
   const ids = new Set<number>(),
     sourceKinds = new Map<string, string>();
@@ -123,7 +132,7 @@ function decode(
 
         result.source = raw.source;
       }
-    } else if (modern && raw.kind === "template") {
+    } else if (schemaVersion >= 5 && raw.kind === "template") {
       if (raw.generatorVersion !== 1 && raw.generatorVersion !== 2)
         CodecPrimitives.invalid("item.generatorVersion");
 
@@ -145,7 +154,38 @@ function decode(
         )
           CodecPrimitives.invalid("item.source");
 
-        result.source = raw.source as string;
+        result.source = raw.source;
+      }
+    } else if (schemaVersion === 6 && raw.kind === "text") {
+      const text = CodecPrimitives.own(raw, "text"),
+        width = CodecPrimitives.own(raw, "width"),
+        lines = CodecPrimitives.own(raw, "lines");
+
+      if (
+        Object.hasOwn(raw, "clip") ||
+        Object.hasOwn(raw, "translation") ||
+        typeof text !== "string" ||
+        typeof width !== "number" ||
+        !Array.isArray(lines) ||
+        !BoardText.validLayout({ text, width, lines })
+      )
+        CodecPrimitives.invalid("item.text/width/lines");
+
+      textBytes += encoder!.encode(text).byteLength;
+
+      if (textBytes > BoardText.maxBytes)
+        CodecPrimitives.invalid("items.text total");
+
+      result = { kind: "text", id, text, width, lines: [...lines], matrix };
+
+      if (Object.hasOwn(raw, "source")) {
+        if (
+          typeof raw.source !== "string" ||
+          !/^[a-zA-Z0-9_-]{1,160}$/.test(raw.source)
+        )
+          CodecPrimitives.invalid("item.source");
+
+        result.source = raw.source;
       }
     } else return CodecPrimitives.invalid("item.kind");
 
@@ -160,7 +200,7 @@ function decode(
           ? `image:${result.asset.id}`
           : result.kind === "template"
             ? `template:${result.generatorVersion}:${JSON.stringify(result.template)}`
-            : "ink";
+            : (result.kind ?? "ink");
 
       if (
         sourceKinds.has(result.source) &&
@@ -185,6 +225,8 @@ function decode(
 
     return result;
   });
+
+  if (schemaVersion === 6 && !textBytes) CodecPrimitives.invalid("items.text");
 
   if (!geometryOnly) ImageAssets.validateBoard(items, false);
   else if (
@@ -242,6 +284,18 @@ function encode(items: readonly BoardItem[], geometryOnly = false) {
           id: item.id,
           generatorVersion: item.generatorVersion,
           template: item.template,
+          matrix,
+          ...(item.source ? { source: item.source } : {}),
+          ...(item.clip ? { clip: item.clip } : {}),
+        };
+
+      if (item.kind === "text")
+        return {
+          kind: "text",
+          id: item.id,
+          text: item.text,
+          width: item.width,
+          lines: [...item.lines],
           matrix,
           ...(item.source ? { source: item.source } : {}),
           ...(item.clip ? { clip: item.clip } : {}),

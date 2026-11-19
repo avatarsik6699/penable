@@ -99,6 +99,16 @@ export const SelectionActions: React.FC<SelectionActionsTypes.Props> = (
           <EditorIcon name="fit" />
           <span>{I18n.t("transform")}</span>
         </Button>
+        {props.state.text && !props.readOnly && (
+          <Button
+            className={styles.action}
+            disabled={props.busy}
+            onClick={props.editText}
+          >
+            <EditorIcon name="pen" />
+            <span>{I18n.t("editBoardText")}</span>
+          </Button>
+        )}
         {transformOpen && (
           <TransformControls
             disabled={props.busy || props.readOnly || !props.state.selected}

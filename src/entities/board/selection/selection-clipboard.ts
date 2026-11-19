@@ -24,9 +24,9 @@ function prepare(
     strokes.reduce(
       (sum, stroke) =>
         sum +
-        (stroke.kind === "image" || stroke.kind === "template"
-          ? 0
-          : stroke.points.length),
+        (stroke.kind === undefined || stroke.kind === "ink"
+          ? stroke.points.length
+          : 0),
       0,
     );
 

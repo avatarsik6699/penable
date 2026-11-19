@@ -1,6 +1,6 @@
 import type { MessageTypes } from "~/shared/lib/messages";
 import { Messages } from "~/shared/lib/messages";
-import { DocumentCodec } from "../modules/codec";
+import { DocumentCodec, DocumentSchema } from "../modules/codec";
 import type { LibraryRepository } from "../board-document.types";
 import type { StoredRecord } from "../board-document.types";
 
@@ -178,23 +178,16 @@ function open(
         bootstrap: (catalog, document, raw) =>
           transaction<void>("readwrite", (store, result) => {
             if (raw.exists) {
+              const backups = DocumentSchema.upgradeBackups(
+                DocumentSchema.current(document.strokes),
+                raw,
+              );
+
               for (const name of [
                 "before-library",
-                ...(document.schemaVersion === 5 &&
-                raw.value &&
-                typeof raw.value === "object" &&
-                "schemaVersion" in raw.value &&
-                [1, 2, 3, 4].includes(raw.value.schemaVersion as number)
-                  ? ["before-schema5"]
-                  : []),
-                ...((document.schemaVersion === 4 ||
-                  document.schemaVersion === 5) &&
-                raw.value &&
-                typeof raw.value === "object" &&
-                "schemaVersion" in raw.value &&
-                [1, 2, 3].includes(raw.value.schemaVersion as number)
-                  ? ["before-schema4"]
-                  : []),
+                ...(backups.beforeSchema4 ? ["before-schema4"] : []),
+                ...(backups.beforeSchema5 ? ["before-schema5"] : []),
+                ...(backups.beforeSchema6 ? ["before-schema6"] : []),
               ]) {
                 const existing = store.getKey(name);
 
@@ -239,6 +232,7 @@ function open(
                 "before-schema3",
                 "before-schema4",
                 "before-schema5",
+                "before-schema6",
                 "before-library",
               ])
                 store.delete(

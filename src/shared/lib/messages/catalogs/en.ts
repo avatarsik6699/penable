@@ -538,18 +538,31 @@ export const EnglishMessages = {
     "Could not write the fragment. Original content is retained.",
   valuePasteCancelled: "{{p0}} Paste cancelled.",
   waitingForCopyingBeforePaste: "Waiting for copying before paste…",
+  editBoardText: "Edit text",
+  boardTextField: "Board text",
+  saveBoardText: "Save",
+  boardTextEmpty: "Enter some text.",
+  boardTextTooLong: "Text is too long. Paste or enter up to 8,000 characters.",
+  boardTextTooManyLines:
+    "This block has more than 256 lines. Split the text into shorter blocks.",
+  tallTextFragmentCopied:
+    "Editable fragment copied. The selection is too large for a clipboard PNG.",
+  tallTextFragmentCut:
+    "Editable fragment cut. The selection is too large for a clipboard PNG.",
+  boardTextPasted: "Text pasted.",
+  downloadCopyBeforeDocument6: "Download copy before document 6",
   readingSystemClipboard: "Reading system clipboard…",
   editableFragmentReadingIsUnavailableAllowClipboard:
     "Editable-fragment reading is unavailable. Allow clipboard access and paste again.",
   theClipboardContainsNoPenableFragmentPng:
-    "The clipboard contains no penable fragment, PNG or JPEG.",
+    "The clipboard contains no Penable fragment, PNG, JPEG or plain text.",
   clipboardReadingIsUnavailablePasteAPng:
-    "Clipboard reading is unavailable. Paste a PNG or JPEG with Ctrl+V.",
+    "Clipboard reading is unavailable. Try the system paste shortcut (Ctrl+V or Cmd+V).",
   fragmentPasted: "Fragment pasted.",
   fragmentWasNotPastedTryTheAction:
     "Fragment was not pasted. Try the action again.",
   systemClipboardAccessDeniedAllowReadingAnd:
-    "System clipboard access denied. Allow reading and paste again.",
+    "System clipboard access denied. Try the system paste shortcut (Ctrl+V or Cmd+V).",
   couldNotReadTheSystemClipboard: "Could not read the system clipboard.",
   preparingPng: "Preparing PNG…",
   pngIsReadyToDownload: "PNG is ready to download.",

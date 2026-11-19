@@ -1,7 +1,7 @@
 import { Messages } from "~/shared/lib/messages";
 import { DocumentRepositoryAdapter } from "../../adapters/indexeddb";
 import { LibraryRepositoryAdapter } from "../../adapters/library-indexeddb";
-import { DocumentCodec } from "../codec";
+import { DocumentCodec, DocumentSchema } from "../codec";
 import type {
   BoardDocument,
   DocumentRepository,
@@ -110,34 +110,34 @@ async function bootstrap(
 
     const raw = records.main;
 
-    await library.bootstrap(catalog, { ...document, schemaVersion: 5 }, raw);
+    const candidate = {
+      ...document,
+      schemaVersion: DocumentSchema.current(document.strokes),
+    };
+
+    await library.bootstrap(catalog, candidate, raw);
 
     if (raw.exists) {
       if (!records.beforeLibrary?.exists) records.beforeLibrary = raw;
 
-      const version =
-        raw.value &&
-        typeof raw.value === "object" &&
-        "schemaVersion" in raw.value
-          ? raw.value.schemaVersion
-          : undefined;
+      const backups = DocumentSchema.upgradeBackups(
+        candidate.schemaVersion,
+        raw,
+      );
 
-      if (
-        [1, 2, 3].includes(version as number) &&
-        !records.beforeSchema4?.exists
-      )
+      if (backups.beforeSchema4 && !records.beforeSchema4?.exists)
         records.beforeSchema4 = raw;
 
-      if (
-        [1, 2, 3, 4].includes(version as number) &&
-        !records.beforeSchema5?.exists
-      )
+      if (backups.beforeSchema5 && !records.beforeSchema5?.exists)
         records.beforeSchema5 = raw;
+
+      if (backups.beforeSchema6 && !records.beforeSchema6?.exists)
+        records.beforeSchema6 = raw;
     }
 
     records.main = {
       exists: true,
-      value: DocumentCodec.encodeDocument({ ...document, schemaVersion: 5 }),
+      value: DocumentCodec.encodeDocument(candidate),
     };
 
     publishRecords();

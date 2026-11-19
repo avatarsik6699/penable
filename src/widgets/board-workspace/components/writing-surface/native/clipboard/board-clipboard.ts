@@ -5,6 +5,11 @@ import {
   FragmentCodec,
   FragmentReader,
 } from "~/features/board-document";
+import {
+  BoardRegions,
+  BoardText,
+  type SelectionClipboard,
+} from "~/entities/board";
 import { BoardPNG } from "../rendering";
 import type { BoardClipboardTypes } from "./board-clipboard.types";
 
@@ -68,6 +73,14 @@ export class BoardClipboard {
       advertised.includes(FragmentCodec.MIME) ||
       advertised.includes(FragmentCodec.MIME.replace(/^web /, ""));
 
+    const text =
+      advertised.includes("text/plain") &&
+      advertised.every((type) =>
+        ["text/plain", "text/html", "text/uri-list"].includes(type),
+      )
+        ? event.clipboardData?.getData("text/plain")
+        : undefined;
+
     const file = ownAdvertised
       ? undefined
       : Array.from(event.clipboardData?.items ?? [])
@@ -78,7 +91,7 @@ export class BoardClipboard {
           )
           ?.getAsFile();
 
-    void this.paste(file ?? undefined, ownAdvertised, true);
+    void this.paste(file ?? undefined, ownAdvertised, true, text);
   };
 
   private begin(message: MessageTypes.Value, writable = false) {
@@ -145,15 +158,25 @@ export class BoardClipboard {
           ),
         );
 
+      const includePng = this.offersClipboardPng(capture.fragment);
       const fragment = this.jobs.fragment(capture.fragment, pending.signal);
-      const png = BoardPNG.fragmentPNG(fragment, pending.signal);
+
+      const png = includePng
+        ? BoardPNG.fragmentPNG(fragment, pending.signal)
+        : undefined;
+
+      const representations: Record<string, Promise<Blob>> = {
+        [FragmentCodec.MIME]: fragment,
+      };
+
+      if (png) representations["image/png"] = png;
 
       void fragment.catch(() => {});
-      void png.catch(() => {});
+      void png?.catch(() => {});
 
-      // Both deferred representations belong to the same user-gesture write.
+      // Write the negotiated representations in one user gesture.
       const written = navigator.clipboard.write([
-        new ClipboardItem({ [FragmentCodec.MIME]: fragment, "image/png": png }),
+        new ClipboardItem(representations),
       ]);
 
       const results = await Promise.allSettled([fragment, png, written]);
@@ -172,10 +195,21 @@ export class BoardClipboard {
 
         this.notice(
           removed
-            ? Messages.create("fragmentCutToTheSystemClipboard")
+            ? Messages.create(
+                includePng
+                  ? "fragmentCutToTheSystemClipboard"
+                  : "tallTextFragmentCut",
+              )
             : Messages.create("fragmentCopiedButTheBoardOrSelection"),
         );
-      } else this.notice(Messages.create("fragmentCopiedToTheSystemClipboard"));
+      } else
+        this.notice(
+          Messages.create(
+            includePng
+              ? "fragmentCopiedToTheSystemClipboard"
+              : "tallTextFragmentCopied",
+          ),
+        );
     } catch (error) {
       if (this.current(pending))
         this.notice(
@@ -212,7 +246,28 @@ export class BoardClipboard {
     }
   }
 
-  async paste(fallback?: Blob, ownAdvertised = false, nativePaste = false) {
+  private offersClipboardPng(fragment: SelectionClipboard) {
+    if (!fragment.strokes.some((item) => item.kind === "text")) return true;
+
+    const bounds = fragment.region && BoardRegions.maskBounds(fragment.region);
+
+    if (!bounds) return true;
+
+    try {
+      BoardPNG.pngDimensions(bounds, 0);
+
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async paste(
+    fallback?: Blob,
+    ownAdvertised = false,
+    nativePaste = false,
+    eventText?: string,
+  ) {
     if (
       !this.disposed &&
       this.pending &&
@@ -230,8 +285,15 @@ export class BoardClipboard {
     if (!pending) return;
 
     try {
+      if (eventText !== undefined) {
+        await this.pasteText(eventText, pending);
+
+        return;
+      }
+
       let blob: Blob | undefined,
         own = false,
+        plainText = false,
         unavailableOpaqueFormats = false;
 
       const read = navigator.clipboard?.read;
@@ -276,11 +338,19 @@ export class BoardClipboard {
                     ? "image/png"
                     : "image/jpeg",
                 );
-              else if (
-                items.length > 0 &&
-                items.every((item) => !item.types.length)
-              )
-                opaque = true;
+              else {
+                const text = items.find((item) =>
+                  item.types.includes("text/plain"),
+                );
+
+                if (text) {
+                  blob = await text.getType("text/plain");
+                  plainText = true;
+                } else
+                  opaque =
+                    items.length > 0 &&
+                    items.every((item) => !item.types.length);
+              }
             }
 
             if (!this.current(pending, true)) return;
@@ -346,6 +416,13 @@ export class BoardClipboard {
               ? Messages.create("fragmentPasted")
               : Messages.create("fragmentWasNotPastedTryTheAction"),
           );
+      } else if (plainText) {
+        if (blob.size > BoardText.maxLength * 4)
+          throw Messages.error(Messages.create("boardTextTooLong"));
+
+        const text = await blob.text();
+
+        if (this.current(pending, true)) await this.pasteText(text, pending);
       } else {
         await this.options.insertImage(blob);
       }
@@ -361,6 +438,18 @@ export class BoardClipboard {
     } finally {
       this.finish(pending);
     }
+  }
+
+  private async pasteText(value: string, pending: AbortController) {
+    const result = await this.options.insertText(value, pending.signal);
+
+    if (!this.current(pending, true) || result.status === "cancelled") return;
+
+    this.notice(
+      result.status === "committed"
+        ? Messages.create("boardTextPasted")
+        : result.reason,
+    );
   }
 
   async download() {

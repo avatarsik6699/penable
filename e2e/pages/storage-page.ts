@@ -50,6 +50,7 @@ export class StoragePage {
                 [`${prefix}before-schema3`, "upgrade3"],
                 [`${prefix}before-schema4`, "upgrade4"],
                 [`${prefix}before-schema5`, "upgrade5"],
+                [`${prefix}before-schema6`, "upgrade6"],
                 [`${prefix}before-library`, "beforeLibrary"],
               ]) {
                 const read = store.get(recordKey!);
@@ -453,7 +454,10 @@ export class StoragePage {
 
     expect(exported).toEqual((await this.records()).main);
     expect(exported.format).toBe("penable-board");
-    expect(exported.schemaVersion).toBe(5);
+
+    expect(exported.schemaVersion).toBe(
+      exported.items.some((item) => item.kind === "text") ? 6 : 5,
+    );
   }
 
   async expectReadOnly() {

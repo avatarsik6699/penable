@@ -5,6 +5,7 @@ import { useBoardWorkspace } from "./hooks/use-board-workspace";
 import styles from "./board-workspace.module.css";
 import { StoragePanel, BoardLibrary } from "~/features/board-document";
 import { PenToolbar } from "./components/pen-toolbar";
+import { TextEditDialog } from "./components/text-edit-dialog";
 import { SelectionToolbar } from "./components/selection-toolbar";
 import { WritingSurface } from "./components/writing-surface";
 import { BackgroundControl } from "./components/background-control";
@@ -110,6 +111,7 @@ export const BoardWorkspace: React.FC<BoardWorkspaceTypes.Props> = (props) => {
             onSchema3={workspace.model.exportSchema3}
             onSchema4={workspace.model.exportSchema4}
             onSchema5={workspace.model.exportSchema5}
+            onSchema6={workspace.model.exportSchema6}
             onLibrary={workspace.model.exportLibrary}
             onRaw={workspace.model.exportRaw}
             onRetry={workspace.model.retry}
@@ -155,6 +157,7 @@ export const BoardWorkspace: React.FC<BoardWorkspaceTypes.Props> = (props) => {
                 )
               }
               onShape={workspace.model.changeShape}
+              onEditText={workspace.model.beginTextEdit}
               onCommand={(command) =>
                 workspace.model.controls.current?.selection(command)
               }
@@ -253,6 +256,12 @@ export const BoardWorkspace: React.FC<BoardWorkspaceTypes.Props> = (props) => {
           />
         )}
       </div>
+      {workspace.textEditor && (
+        <TextEditDialog
+          edit={workspace.textEditor}
+          onClose={workspace.model.endTextEdit}
+        />
+      )}
     </main>
   );
 };

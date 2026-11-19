@@ -14,6 +14,9 @@ function empty(): BoardSnapshot {
 }
 
 function copyItem(stroke: BoardItem, sharePoints: boolean): BoardItem {
+  if (stroke.kind === "text")
+    return { ...stroke, matrix: [...stroke.matrix], lines: [...stroke.lines] };
+
   if (stroke.kind === "image" || stroke.kind === "template")
     return {
       ...stroke,

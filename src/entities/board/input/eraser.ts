@@ -124,7 +124,7 @@ export class EraserInput {
       const previous = this.previous ?? point;
 
       for (const stroke of this.options.scene.strokes) {
-        if (stroke.kind === "image" || stroke.kind === "template") continue;
+        if (stroke.kind !== undefined && stroke.kind !== "ink") continue;
 
         if (
           !this.preview.has(stroke) &&

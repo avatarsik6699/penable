@@ -5,6 +5,7 @@ import type {
   ImageItem,
   Stroke,
   TemplateItem,
+  TextItem,
 } from "~/entities/board";
 
 export namespace FragmentReaderTypes {
@@ -24,6 +25,7 @@ export namespace FragmentReaderTypes {
         type: "item";
         item:
           | TemplateItem
+          | TextItem
           | Omit<Stroke, "points">
           | (Omit<ImageItem, "asset"> & {
               assetId: string;

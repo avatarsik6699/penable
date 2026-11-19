@@ -89,6 +89,9 @@ Do not create all directories or suffix files by template: every one must own ac
   Feature codec/jobs own strict portable payloads, chunked serialization/reading and embedded
   image preflight; entity selection owns generation-safe capture/removal and ordinary insertion.
   Clipboard/insertion state is a coarse projection; it never exposes raw scene data to React.
+- Text paste and measurement use the existing native clipboard and Canvas owners. Text items store
+  visual line starts for stable layout across paint, worker validation and reload. A temporary
+  textarea draft is local to its dialog and does not enter the scene until validation commits.
 - Feature-owned catalog2 holds board appearance, with pure deterministic assignment/validation.
   Library repository owns the atomic catalog1 backup/upgrade; read-only views derive covers
   without writes. Sidebar covers are plain Lucide SVG/color presentation, with no document

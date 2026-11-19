@@ -86,8 +86,7 @@ function apply(item: BoardItem, transform: AffineMatrix): BoardItem {
     throw Messages.error(Messages.create("transformIsTooSmallOrExceedsBoard"));
 
   if (
-    item.kind !== "image" &&
-    item.kind !== "template" &&
+    (item.kind === undefined || item.kind === "ink") &&
     translationOnly(result)
   ) {
     const { matrix: _matrix, ...rest } = item;

@@ -23,8 +23,8 @@ async function setup() {
   vi.resetModules();
 
   const repository = {
-    write: vi.fn(async (_document: BoardDocument) => {}),
-    replace: vi.fn(async (_previous: unknown, _candidate: BoardDocument) => {}),
+    write: vi.fn<DocumentRepository["write"]>(async () => {}),
+    replace: vi.fn<DocumentRepository["replace"]>(async () => {}),
     replaceStored: vi.fn(async (_candidate: BoardDocument) => {}),
     close: vi.fn(async () => {}),
   };
@@ -114,6 +114,75 @@ afterEach(() => {
 });
 
 describe("serialized worker replacement", () => {
+  it("writes schema6 text in bounded metadata packets and exposes the transaction's exact recovery copy", async () => {
+    const h = await setup();
+
+    const previous = {
+      ...DocumentCodec.encodeDocument(DocumentCodec.emptyDocument()),
+      extra: "raw durable value",
+    };
+
+    h.repository.write.mockResolvedValueOnce({ exists: true, value: previous });
+
+    h.repository.replace.mockResolvedValueOnce({
+      exists: true,
+      value: previous,
+    });
+
+    const document = DocumentCodec.emptyDocument();
+
+    for (let id = 1; id < 8; id++)
+      document.strokes.push({
+        kind: "text",
+        id,
+        text: "я".repeat(8000),
+        width: 600,
+        lines: [0],
+        matrix: [1, 0, 0, 1, id * 20, 50],
+      });
+
+    const recovery = await h.jobs.write(document);
+    const packets = h.requests.filter((entry) => entry.type === "strokes");
+
+    expect(packets.map((entry) => entry.values.length)).toEqual([4, 3]);
+
+    expect(h.repository.write).toHaveBeenCalledWith({
+      ...document,
+      schemaVersion: 6,
+    });
+
+    expect(recovery).toMatchObject({ exists: true });
+
+    expect(await RecordCopies.read(recovery!.value)!.text()).toBe(
+      JSON.stringify(previous),
+    );
+
+    const capture = vi.fn();
+
+    await h.jobs.replaceValidated(
+      DocumentCodec.emptyDocument(),
+      document,
+      capture,
+    );
+
+    expect(h.repository.replace.mock.calls[0]?.[1]).toEqual({
+      ...document,
+      schemaVersion: 6,
+    });
+
+    expect(
+      await RecordCopies.read(capture.mock.calls[0]?.[0].value)!.text(),
+    ).toBe(JSON.stringify(previous));
+
+    const overview = await h.jobs.overview(
+      document.strokes,
+      new AbortController().signal,
+    );
+
+    expect(overview.values.some((coverage) => coverage > 0)).toBe(true);
+    await h.jobs.close();
+  });
+
   it("preserves separate previous/candidate geometry and colliding asset IDs", async () => {
     const h = await setup(),
       previous = document(11, "P8/x8"),

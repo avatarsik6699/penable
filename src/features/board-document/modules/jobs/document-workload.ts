@@ -1,6 +1,10 @@
 import { DocumentJobConfig } from "./document-jobs.config";
-import type { BoardItem, RegionInput } from "~/entities/board";
+import type { BoardItem, RegionInput, TextItem } from "~/entities/board";
 import { BoardRegions, BoardTemplates } from "~/entities/board";
+
+function textUnits(text: TextItem): number {
+  return text.text.length + text.lines.length * 4;
+}
 
 function heavyDocument(
   strokes: readonly BoardItem[],
@@ -15,7 +19,8 @@ function heavyDocument(
 
   let points = 0,
     vertices = 0,
-    imageBytes = 0;
+    imageBytes = 0,
+    text = 0;
 
   const assets = new Set<import("~/entities/board").ImageAsset>();
 
@@ -27,18 +32,20 @@ function heavyDocument(
       if (imageBytes >= 128 * 1024) return true;
     }
 
-    points +=
-      stroke.kind === "template"
-        ? BoardTemplates.workload(stroke.template, stroke.generatorVersion)
-        : stroke.kind === "image"
-          ? 0
-          : stroke.points.length;
+    if (stroke.kind === "template")
+      points += BoardTemplates.workload(
+        stroke.template,
+        stroke.generatorVersion,
+      );
+    else if (stroke.kind === "text") text += textUnits(stroke);
+    else if (stroke.kind !== "image") points += stroke.points.length;
 
     vertices += stroke.clip ? BoardRegions.vertexCount(stroke.clip) : 0;
 
     if (
       points > DocumentJobConfig.heavyPoints ||
-      vertices > DocumentJobConfig.heavyMaskVertices
+      vertices > DocumentJobConfig.heavyMaskVertices ||
+      text >= DocumentJobConfig.heavyTextUnits
     )
       return true;
   }
@@ -46,4 +53,4 @@ function heavyDocument(
   return false;
 }
 
-export const DocumentWorkload = { heavyDocument };
+export const DocumentWorkload = { heavyDocument, textUnits };

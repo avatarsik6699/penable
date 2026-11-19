@@ -1,7 +1,10 @@
+import { Messages } from "~/shared/lib/messages";
 import { CreditWindow } from "./credit-window";
 import { DocumentJobConfig } from "./document-jobs.config";
+import { DocumentWorkload } from "./document-workload";
 import {
   BoardRegions,
+  BoardText,
   type BoardItem,
   type Stroke,
   type ImageAsset,
@@ -54,6 +57,8 @@ export class SourceUpload {
       metadata: StrokeMetadata[] = [];
 
     let vertices = 0;
+    let text = 0;
+    let totalTextLength = 0;
     let pointCount = 0;
     let values = new Float64Array(DocumentJobConfig.pointChunk * 4);
 
@@ -100,19 +105,29 @@ export class SourceUpload {
         );
 
         vertices = 0;
+        text = 0;
       }
     };
 
     const queueMetadata = async (entry: StrokeMetadata, count: number) => {
-      if (metadata.length && vertices + count > DocumentJobConfig.vertexChunk)
+      const units =
+        entry.kind === "text" ? DocumentWorkload.textUnits(entry) : 0;
+
+      if (
+        metadata.length &&
+        (vertices + count > DocumentJobConfig.vertexChunk ||
+          text + units > DocumentJobConfig.textChunkUnits)
+      )
         await sendMetadata();
 
       metadata.push(entry);
       vertices += count;
+      text += units;
 
       if (
         metadata.length >= DocumentJobConfig.metadataChunk ||
-        vertices >= DocumentJobConfig.vertexChunk
+        vertices >= DocumentJobConfig.vertexChunk ||
+        text >= DocumentJobConfig.textChunkUnits
       )
         await sendMetadata();
     };
@@ -161,7 +176,20 @@ export class SourceUpload {
         continue;
       }
 
-      if (stroke.kind === "template") {
+      if (stroke.kind === "template" || stroke.kind === "text") {
+        if (stroke.kind === "text") {
+          totalTextLength += stroke.text.length;
+
+          if (
+            stroke.text.length > BoardText.maxLength ||
+            stroke.lines.length > BoardText.maxLines ||
+            totalTextLength > BoardText.maxBytes
+          )
+            throw Messages.error(
+              Messages.create("invalidDataValue", { p0: "items.text" }),
+            );
+        }
+
         await queueMetadata(
           stroke,
           stroke.clip ? BoardRegions.vertexCount(stroke.clip) : 0,

@@ -19,6 +19,7 @@ function create(
     | "canWrite"
     | "interactionsBlocked"
     | "inputBusy"
+    | "preserveBlockedSelection"
     | "drawingPointerId"
     | "activeInput"
     | "observeInput"
@@ -156,7 +157,8 @@ function create(
           eraser.pointerId !== null ||
           selection.pointerId !== null))
     ) {
-      cancel();
+      if (options.preserveBlockedSelection?.()) cancelGestures();
+      else cancel();
 
       return;
     }
@@ -239,7 +241,8 @@ function create(
           eraser.pointerId !== null ||
           selection.pointerId !== null))
     ) {
-      cancel();
+      if (options.preserveBlockedSelection?.()) cancelGestures();
+      else cancel();
 
       return;
     }

@@ -52,9 +52,11 @@ export type {
   BoardItem,
   ImageItem,
   ImageAsset,
+  TextItem,
   AffineMatrix,
 } from "./board.types";
 export { BoardTransforms } from "./transforms";
+export { BoardText } from "./board-text";
 
 export { BoardWriting } from "./writing";
 export { BoardTemplates } from "./templates";

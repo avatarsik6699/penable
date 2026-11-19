@@ -8,6 +8,7 @@ import type {
   Stroke,
   ImageItem,
   TemplateItem,
+  TextItem,
   ImageAsset,
   RegionInput,
 } from "~/entities/board";
@@ -23,10 +24,11 @@ export type DocumentJobKind =
   | "raw-export";
 
 export type FragmentMetadata =
-  Omit<Stroke, "points"> | Omit<ImageItem, "asset"> | TemplateItem;
+  Omit<Stroke, "points"> | Omit<ImageItem, "asset"> | TemplateItem | TextItem;
 
 export type StrokeMetadata =
   | TemplateItem
+  | TextItem
   | (Omit<Stroke, "points"> & {
       kind: "ink";
       geometry: number;
@@ -108,6 +110,7 @@ export type JobResponse = {
   ack?: number;
   seq?: number;
   previousCopy?: import("../record-copies").SerializedRecordCopy;
+  beforeSchema6?: import("../record-copies").SerializedRecordCopy;
   rawExport?: Blob;
   error?: MessageTypes.Value;
   selection?: SelectionResult;

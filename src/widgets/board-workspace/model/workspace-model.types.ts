@@ -3,6 +3,7 @@ import type {
   BoardItem,
   Viewport,
   SelectionShape,
+  SelectionCommitResult,
   BackgroundSettings,
   WritingView,
 } from "~/entities/board";
@@ -13,6 +14,7 @@ export type SelectionState = {
     message: MessageTypes.Value;
   };
   images?: boolean;
+  text?: boolean;
   selected: boolean;
   clipboard: boolean;
   busy: boolean;
@@ -48,7 +50,13 @@ export type InputDiagnostics = {
   resolutionCapped: boolean;
 };
 
+export type TextEditHandle = {
+  text: string;
+  save: (value: string, signal: AbortSignal) => Promise<SelectionCommitResult>;
+};
+
 export type SurfaceControls = {
+  beginTextEdit?: () => TextEditHandle | null;
   transform?: (width: number, height: number, angle: number) => void;
   insertImage?: () => void;
   insertTemplate?: (

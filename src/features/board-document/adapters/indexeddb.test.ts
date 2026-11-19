@@ -162,6 +162,7 @@ describe("native IndexedDB adapter transaction boundary", () => {
       beforeSchema3: { exists: false, value: undefined },
       beforeSchema4: { exists: false, value: undefined },
       beforeSchema5: { exists: false, value: undefined },
+      beforeSchema6: { exists: false, value: undefined },
       beforeLibrary: { exists: false, value: undefined },
     });
 
@@ -189,6 +190,77 @@ describe("native IndexedDB adapter transaction boundary", () => {
     expect(h.db.close).toHaveBeenCalledOnce();
     expect(h.onInvalidated).toHaveBeenCalledOnce();
     await expect(repository.write(candidate)).rejects.toThrow("закрыто");
+    await repository.close();
+  });
+
+  it("preserves the exact previous durable record once when text upgrades a board to schema6", async () => {
+    const h = fakeDatabase();
+
+    h.opening.onsuccess?.();
+
+    const repository = await h.opened;
+
+    const prior = {
+      ...DocumentCodec.encodeDocument(DocumentCodec.emptyDocument()),
+      privateField: { unchanged: [1, null, 3] },
+    };
+
+    const candidate = DocumentCodec.emptyDocument();
+
+    candidate.strokes.push({
+      kind: "text",
+      id: 1,
+      text: "Pen\nPaper",
+      width: 180,
+      lines: [0, 4],
+      matrix: [1, 0, 0, 1, 15, 25],
+    });
+
+    const stage = (previous: unknown, existing?: string) => {
+      const pending = repository.write(candidate);
+      const tx = h.transactions.at(-1)!;
+
+      for (const { key, request } of tx.requests) {
+        request.result =
+          key === "key:before-schema6"
+            ? existing
+            : key === "key:main"
+              ? "main"
+              : key === "value:main"
+                ? previous
+                : undefined;
+
+        request.onsuccess?.();
+      }
+
+      expect(tx.puts[0]).toEqual([
+        DocumentCodec.encodeDocument(candidate),
+        "main",
+      ]);
+
+      return { pending, tx };
+    };
+
+    const aborted = stage(prior);
+
+    expect(aborted.tx.puts[1]).toEqual([prior, "before-schema6"]);
+    aborted.tx.onabort?.();
+    await expect(aborted.pending).rejects.toThrow();
+
+    const saved = stage(prior);
+
+    saved.tx.oncomplete?.();
+
+    await expect(saved.pending).resolves.toEqual({
+      exists: true,
+      value: prior,
+    });
+
+    const later = stage(prior, "before-schema6");
+
+    expect(later.tx.puts).toHaveLength(1);
+    later.tx.oncomplete?.();
+    await expect(later.pending).resolves.toBeUndefined();
     await repository.close();
   });
 

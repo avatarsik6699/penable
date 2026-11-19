@@ -9,6 +9,7 @@ import { CodecPrimitives } from "./document-codec.utils";
 import { StrokeDecoder } from "./stroke-decoder";
 import { SnapshotOperations } from "./document-snapshots";
 import { BackupSerializer } from "./backup-serializer";
+import { DocumentSchema } from "./document-schema";
 
 function decodeDocument(
   value: unknown,
@@ -23,19 +24,17 @@ function decodeDocument(
     (schemaVersion !== 1 &&
       schemaVersion !== 2 &&
       schemaVersion !== 3 &&
-      schemaVersion !== 4 &&
-      schemaVersion !== 5)
+      !DocumentSchema.itemDocument(schemaVersion))
   )
     CodecPrimitives.invalid("format/schemaVersion");
 
-  const decoded =
-    schemaVersion === 4 || schemaVersion === 5
-      ? ItemCodec.decode(root, limits, geometryOnly, schemaVersion === 5)
-      : StrokeDecoder.decodeStrokes(
-          CodecPrimitives.own(root, "strokes"),
-          schemaVersion === 1 ? 1 : 2,
-          limits,
-        );
+  const decoded = DocumentSchema.itemDocument(schemaVersion)
+    ? ItemCodec.decode(root, limits, geometryOnly, schemaVersion)
+    : StrokeDecoder.decodeStrokes(
+        CodecPrimitives.own(root, "strokes"),
+        schemaVersion === 1 ? 1 : 2,
+        limits,
+      );
 
   const viewport = CodecPrimitives.object(
     CodecPrimitives.own(root, "viewport"),
@@ -55,7 +54,7 @@ function decodeDocument(
   let backgroundSettings = { contrast: 45, spacing: 24 };
   let lastWritingView: import("~/entities/board").WritingView | null = null;
 
-  if (schemaVersion === 3 || schemaVersion === 4 || schemaVersion === 5) {
+  if (schemaVersion === 3 || DocumentSchema.itemDocument(schemaVersion)) {
     const settings = CodecPrimitives.object(
       CodecPrimitives.own(root, "backgroundSettings"),
       "backgroundSettings",
@@ -120,7 +119,7 @@ function decodeDocument(
 
   const result: BoardDocument = {
     format: "penable-board",
-    schemaVersion: schemaVersion as 1 | 2 | 3 | 4 | 5,
+    schemaVersion,
     strokes: decoded,
     viewport: {
       zoom: CodecPrimitives.number(
@@ -142,7 +141,7 @@ function decodeDocument(
     backgroundSettings,
     lastWritingView,
     tools: {
-      ...(schemaVersion === 5
+      ...(schemaVersion >= 5
         ? {
             writing: WritingDecoder.writing(
               CodecPrimitives.own(tools, "writing"),
@@ -209,7 +208,9 @@ function documentStats(document: BoardDocument) {
     points: document.strokes.reduce(
       (sum, stroke) =>
         sum +
-        (stroke.kind === "image" || stroke.kind === "template"
+        (stroke.kind === "image" ||
+        stroke.kind === "template" ||
+        stroke.kind === "text"
           ? 0
           : stroke.points.length),
       0,
@@ -222,7 +223,7 @@ function encodeDocument(document: BoardDocument, geometryOnly = false) {
 
   return {
     ...root,
-    schemaVersion: 5,
+    schemaVersion: DocumentSchema.current(document.strokes),
     tools: {
       ...document.tools,
       writing:

@@ -66,6 +66,7 @@ export const SelectionToolbar: React.FC<SelectionToolbarTypes.Props> = (
           blocked={props.blocked}
           busy={toolbar.busy}
           command={toolbar.command}
+          editText={toolbar.editText}
         />
       )}
     </div>

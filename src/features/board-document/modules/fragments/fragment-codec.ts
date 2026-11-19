@@ -1,6 +1,6 @@
 import { Messages } from "~/shared/lib/messages";
 import type { SelectionClipboard } from "~/entities/board";
-import { DocumentCodec, MaskDecoder } from "../codec";
+import { DocumentCodec, DocumentSchema, MaskDecoder } from "../codec";
 
 function parse(text: string): SelectionClipboard {
   if (
@@ -27,7 +27,7 @@ function parse(text: string): SelectionClipboard {
   const document = DocumentCodec.decodeDocument(root.document);
 
   if (
-    (document.schemaVersion !== 4 && document.schemaVersion !== 5) ||
+    !DocumentSchema.itemDocument(document.schemaVersion) ||
     !document.strokes.length
   )
     throw Messages.error(Messages.create("thePenableFragmentIsEmptyOrCorrupt"));

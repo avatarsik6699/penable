@@ -24,6 +24,7 @@ export type BindingOptions = {
   interactionsBlocked: () => boolean;
   inputBusy?: () => boolean;
   preservePendingInsertion?: () => boolean;
+  preserveBlockedSelection?: () => boolean;
   templatePlacement?: import("../templates").TemplatePlacement;
   cancelPendingInput?: () => boolean;
   drawingPointerId: () => number | null;

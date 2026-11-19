@@ -71,6 +71,7 @@ export function useBoardWorkspace() {
   return {
     model,
     ui,
+    textEditor: model.readTextEditor(),
     panel,
     changePanel,
     diagnosticsOpen,

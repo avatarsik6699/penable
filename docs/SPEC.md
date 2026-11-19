@@ -40,7 +40,7 @@ unwanted gestures. Until that check, compatibility and writing comfort on a devi
 ### 1.3 Historical milestone boundaries
 
 This table records the original delivery sequence, not current missing features. Later §5
-contracts supersede earlier exclusions. Current storage is document5/catalog2/IDB1; named boards,
+contracts supersede earlier exclusions. Current storage is document5–6/catalog2/IDB1; named boards,
 images, transforms, instruments, mathematical templates, touch navigation and the offline shell
 are implemented. Physical acceptance and public deployment remain separately qualified.
 
@@ -102,7 +102,8 @@ restores the same raw points, width and profile. New completed ink clears redo; 
 navigation, backgrounds and settings preserve it. Unfinished ink is not history. M3 persists
 versioned documents and viewport in IndexedDB. Import validates shape, finite numbers and version
 before mutation; invalid imports preserve current content. The exact later formats and limits
-are governed by §5.6 onward. Current document5 reads1–4; catalog2 and IDB1 remain separate versions.
+are governed by §5.6 onward. Current documents use version5–6 and read1–6. The catalog and
+IndexedDB versions remain2 and1.
 
 ## 4. API / Backend Contract
 
@@ -708,8 +709,9 @@ type suppresses this fallback. Native acquisition errors, retries, invalid own p
 paste never permit event-image fallback; its File is never retained as tab clipboard memory.
 Native acquisition retries once on a transient read failure or opaque nonempty item collection;
 menu Paste suggests Ctrl+V if the formats remain opaque. Explicit read denial fails closed
-because Chrome may hide the editable representation behind that event's PNG; permission/unsupported/empty/text feedback is
-explicit and the document remains unchanged. Do not add text objects, HTML/SVG/URL ingestion,
+because Chrome may hide the editable representation behind that event's PNG. Permission, unsupported
+format and empty feedback are explicit. See §5.29 for the later plain-text contract. Keep HTML/SVG/URL
+ingestion out of this path,
 background clipboard reads, permission bypass or automatic lossy vector fallback. Target is
 current Chrome on Windows11/localhost or HTTPS. If editable write is unavailable, explain the
 failure and retain the original. A cut removes source only after successful clipboard write
@@ -1156,6 +1158,28 @@ Verify palette/instruments/templates/images, exact light→dark→light raster a
 active input/selection/history, system/manual/reload/cross-tab/offline/readonly and storage failure,
 PNG equality across themes, narrow keyboard/focus/contrast and native large-board repaint/input
 cost. Physical Wacom/Pencil and GPU-specific acceptance remains separate from synthetic tests.
+
+## 5.29 — Editable clipboard text (Change47)
+
+Paste plain text with the system shortcut or Actions → Paste. Preserve paragraph breaks and
+characters, wrap to the usable viewport, and select the result. The beginning of tall text stays
+visible. An explicitly text-only system paste consumes its event text synchronously. Other
+requests negotiate editable Penable, PNG/JPEG, then plain text. HTML is never interpreted.
+Permission errors in the menu explain the system paste path. A text-bearing selection above
+raster limits can still be copied or cut as an editable fragment. A paste queued behind an
+in-flight Penable copy reads that copy after the write completes.
+
+In Selection mode, a click or tap on text selects its whole block. A region includes a text block
+when it encloses the block. Existing transforms, copy, duplicate, delete and PNG apply to text.
+Edit text opens a localized textarea with Save and Cancel. One successful save is one undoable
+change. Pen and highlighter annotations are separate items and can travel in a shared selection.
+
+Ordered text objects store plain text, width, visual line starts and affine placement. The same
+Canvas painter serves the board and light-compatible PNG. Limit a block to 8,000 UTF-16 code
+units and 256 visual lines, and a document to 1 MiB of UTF-8 text. Empty or oversized input
+leaves the board intact. Text-bearing snapshots use document6; text-free snapshots use document5.
+Read schemas1–6 and keep the exact previous durable record on the first transition to document6.
+Catalog2, IndexedDB1 and the editable clipboard envelope retain their existing formats.
 
 ## 6. Auth & Access Model
 

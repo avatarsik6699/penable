@@ -1,4 +1,5 @@
 import { Theme, type ThemeTypes } from "~/shared/lib/theme";
+import { TextPaint } from "./text-paint";
 import { TemplatePaint } from "./template-paint";
 import { PressurePaint } from "./pressure-paint";
 import type { RenderingContext } from "./rendering-context.types";
@@ -86,6 +87,20 @@ function paintStroke(
       }
 
       ctx.drawImage(image, 0, 0, stroke.asset.width, stroke.asset.height);
+    } finally {
+      ctx.restore();
+    }
+
+    return;
+  }
+
+  if (stroke.kind === "text") {
+    ctx.save();
+
+    try {
+      if (!translationHandled) ctx.transform(...stroke.matrix);
+
+      TextPaint.paint(ctx, stroke, theme);
     } finally {
       ctx.restore();
     }

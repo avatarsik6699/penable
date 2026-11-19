@@ -1,4 +1,5 @@
 import { type BoardDocument } from "../../board-document.types";
+import { DocumentSchema } from "./document-schema";
 import {
   BoardWriting,
   BoardSnapshots,
@@ -47,7 +48,7 @@ function toSnapshot(document: BoardDocument): BoardSnapshot {
 function fromSnapshot(snapshot: BoardSnapshot): BoardDocument {
   return {
     format: "penable-board",
-    schemaVersion: 5,
+    schemaVersion: DocumentSchema.current(snapshot.strokes),
     strokes: snapshot.strokes,
     viewport: snapshot.viewport,
     background: snapshot.background,

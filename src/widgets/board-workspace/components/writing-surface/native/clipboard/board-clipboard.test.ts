@@ -94,6 +94,8 @@ function setup(
 
   selection.all();
 
+  const insertText = vi.fn(async () => ({ status: "committed" as const }));
+
   const insertImage = vi.fn(async () => {}),
     cache = new BitmapCache();
 
@@ -106,6 +108,7 @@ function setup(
     allowed,
     writable: canWrite,
     insertImage,
+    insertText,
 
     activate: () => {},
 
@@ -122,6 +125,7 @@ function setup(
     read,
     data,
     insertImage,
+    insertText,
     cache,
   };
 }
@@ -130,6 +134,7 @@ function dispatchPaste(
   h: ReturnType<typeof setup>,
   types = ["image/png"],
   getAsFile = vi.fn(),
+  text = "",
 ) {
   vi.stubGlobal("Element", EventTarget);
   vi.stubGlobal("document", { body: h.canvas });
@@ -137,7 +142,11 @@ function dispatchPaste(
   const event = Object.assign(new Event("paste", { cancelable: true }), {
     clipboardData: {
       types,
-      items: [{ kind: "file", type: "image/png", getAsFile }],
+      getData: (type: string) => (type === "text/plain" ? text : ""),
+      items:
+        types.includes("Files") || types.includes("image/png")
+          ? [{ kind: "file", type: "image/png", getAsFile }]
+          : [],
     },
   });
 
@@ -592,7 +601,7 @@ describe("unified system clipboard ownership", () => {
     h.clipboard.dispose();
   });
 
-  it("does not retain an opaque result after the retry exposes unsupported text", async () => {
+  it("uses text when the retry after an opaque read exposes it", async () => {
     const h = setup();
 
     h.read
@@ -602,7 +611,8 @@ describe("unified system clipboard ownership", () => {
       .mockResolvedValueOnce([
         {
           types: ["text/plain"],
-          getType: vi.fn(),
+          getType: async () =>
+            new Blob(["Chapter one"], { type: "text/plain" }),
         } as unknown as ClipboardItem,
       ]);
 
@@ -610,10 +620,55 @@ describe("unified system clipboard ownership", () => {
     expect(h.read).toHaveBeenCalledTimes(2);
     expect(h.insertImage).not.toHaveBeenCalled();
 
-    expect(Messages.plain(h.selection.message)).not.toContain(
-      "Чтение буфера недоступно",
+    expect(h.insertText).toHaveBeenCalledWith(
+      "Chapter one",
+      expect.any(AbortSignal),
     );
 
+    h.clipboard.dispose();
+  });
+
+  it("accepts plain text from the native paste event even when async read is denied", async () => {
+    const h = setup();
+
+    h.read.mockRejectedValue(new DOMException("denied", "NotAllowedError"));
+
+    const pasted = dispatchPaste(
+      h,
+      ["text/plain", "text/html"],
+      vi.fn(),
+      "Текст из книги",
+    );
+
+    expect(pasted.defaultPrevented).toBe(true);
+    await vi.waitFor(() => expect(h.clipboard.busy).toBe(false));
+    expect(h.read).not.toHaveBeenCalled();
+
+    expect(h.insertText).toHaveBeenCalledWith(
+      "Текст из книги",
+      expect.any(AbortSignal),
+    );
+
+    h.clipboard.dispose();
+  });
+
+  it("prefers the async PNG over a plain text representation", async () => {
+    const h = setup();
+    const image = new Blob(["PNG"], { type: "image/png" });
+    const getType = vi.fn(async () => image);
+
+    h.read.mockResolvedValue([
+      {
+        types: ["text/plain", "image/png"],
+        getType,
+      } as unknown as ClipboardItem,
+    ]);
+
+    dispatchPaste(h, ["text/plain", "Files"], vi.fn(), "Image caption");
+    await vi.waitFor(() => expect(h.clipboard.busy).toBe(false));
+    expect(getType).toHaveBeenCalledExactlyOnceWith("image/png");
+    expect(h.insertImage).toHaveBeenCalledExactlyOnceWith(image);
+    expect(h.insertText).not.toHaveBeenCalled();
     h.clipboard.dispose();
   });
 

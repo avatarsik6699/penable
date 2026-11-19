@@ -1,6 +1,7 @@
 import type { MessageTypes } from "~/shared/lib/messages";
 import { Messages } from "~/shared/lib/messages";
 import { BoardCompositing } from "../compositing";
+import { BoardText } from "../board-text";
 import { SelectionTransform } from "./modules/transform";
 import { BoardTransforms } from "../transforms";
 import type { AffineMatrix } from "../board.types";
@@ -16,6 +17,7 @@ import {
   type Position,
   type PointerInput,
   type RegionInput,
+  type TextItem,
 } from "../board.types";
 import { type SelectedPart, BoardRegions } from "../regions";
 import { BoardViewport } from "../viewport";
@@ -103,6 +105,18 @@ export class BoardSelection {
 
   get hasImages(): boolean {
     return this.parts.some((part) => part.selected.kind === "image");
+  }
+
+  selectedText(): TextItem | null {
+    const part = this.parts[0];
+
+    return !this.busy &&
+      this.parts.length === 1 &&
+      part?.selected.kind === "text" &&
+      part.selected === part.original &&
+      this.options.scene.strokes.includes(part.original)
+      ? part.selected
+      : null;
   }
 
   get outline(): ClipMask {
@@ -260,10 +274,40 @@ export class BoardSelection {
       return true;
     }
 
+    const tap = this.gesture.tapPoint;
     const released = this.gesture.release();
+
+    if (tap && this.selectTextAt(tap)) return true;
 
     if (released.kind === "drag") this.finishMove(released.viewport);
     else if (released.kind === "region") this.selectRegion(released.input);
+
+    return true;
+  }
+
+  prepareTextTap(event: PointerInput): (() => void) | null {
+    const point = this.world(event);
+
+    if (this.busy || !BoardText.atPoint(this.options.scene.strokes, point))
+      return null;
+
+    return () => {
+      if (!this.busy) this.selectTextAt(point);
+    };
+  }
+
+  private selectTextAt(point: Position): boolean {
+    const item = BoardText.atPoint(this.options.scene.strokes, point);
+
+    if (!item) return false;
+
+    this.delta = { ...SelectionConfig.ZERO };
+    this.previewBase = null;
+    this.parts = [{ original: item, selected: item, remainder: null }];
+    this.region = BoardText.mask(item);
+    this.message = "";
+    this.options.preview(null);
+    this.options.changed();
 
     return true;
   }
@@ -418,6 +462,53 @@ export class BoardSelection {
 
       return Promise.resolve({ status: "rejected", reason });
     }
+  }
+
+  async replaceText(
+    original: TextItem,
+    content: Pick<TextItem, "text" | "width" | "lines">,
+    signal?: AbortSignal,
+  ): Promise<SelectionCommitResult> {
+    if (signal?.aborted) return { status: "cancelled" };
+
+    if (this.busy)
+      return { status: "rejected", reason: Messages.create("selectionIsBusy") };
+
+    if (!this.options.writable())
+      return { status: "rejected", reason: Messages.create("boardIsReadOnly") };
+
+    if (this.selectedText() !== original)
+      return {
+        status: "rejected",
+        reason: Messages.create("theBoardChangedTryTheActionAgain"),
+      };
+
+    if (!BoardText.validLayout(content))
+      return {
+        status: "rejected",
+        reason: Messages.create("couldNotProcessTheSelection"),
+      };
+
+    const replacement: TextItem = {
+      ...original,
+      text: content.text,
+      width: content.width,
+      lines: [...content.lines],
+    };
+
+    return new Promise((resolve) =>
+      this.apply(
+        {
+          strokes: this.options.scene.strokes.map((item) =>
+            item === original ? replacement : item,
+          ),
+          selected: [replacement],
+        },
+        BoardText.mask(replacement),
+        resolve,
+        signal,
+      ),
+    );
   }
 
   cropImages() {

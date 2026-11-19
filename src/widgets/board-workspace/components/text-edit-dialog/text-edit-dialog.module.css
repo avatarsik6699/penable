@@ -1,0 +1,82 @@
+.dialog {
+  box-sizing: border-box;
+  width: min(610px, calc(100% - 32px));
+  max-height: calc(var(--panel-viewport-height, 100dvh) - 24px);
+  overflow: auto;
+  padding: clamp(16px, 4vw, 24px);
+  border: 1px solid var(--divider);
+  border-radius: 14px;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: var(--popover-shadow);
+}
+
+.dialog::backdrop {
+  background: var(--dialog-backdrop);
+}
+
+.dialog h2 {
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+
+.editor {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  height: clamp(
+    88px,
+    calc(var(--panel-viewport-height, 100dvh) - 160px),
+    260px
+  );
+  resize: vertical;
+  padding: 10px 12px;
+  border: 1px solid var(--divider);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.editor:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.save {
+  color: var(--focus);
+  border-color: var(--focus);
+}
+
+.error {
+  margin: 8px 0 0;
+  color: var(--error);
+  font-size: 13px;
+}
+
+@media (any-pointer: coarse) {
+  .dialog {
+    position: fixed;
+    top: auto;
+    bottom: calc(
+      var(--panel-keyboard-inset, 0px) +
+        max(12px, env(safe-area-inset-bottom, 0px))
+    );
+    margin-block: 0;
+  }
+
+  .actions button {
+    min-height: 44px;
+  }
+}

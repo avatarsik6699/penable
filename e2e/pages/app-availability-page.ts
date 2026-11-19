@@ -59,6 +59,37 @@ export class AppAvailabilityPage {
     await this.board.storage.expectStrokeCount(2);
   }
 
+  async expectOfflineText() {
+    const quotation = "Цитата для офлайн-доски.\nВторая строка.";
+
+    await this.controlled();
+    await this.context.setOffline(true);
+    await this.board.reopenSavedBoard();
+
+    await this.board.surface.evaluate((surface, text) => {
+      const clipboardData = new DataTransfer();
+
+      clipboardData.setData("text/plain", text);
+
+      surface.dispatchEvent(
+        new ClipboardEvent("paste", {
+          clipboardData,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    }, quotation);
+
+    await this.board.storage.expectStrokeCount(1);
+    await this.board.reopenSavedBoard();
+
+    expect((await this.board.storage.records()).main?.items).toEqual([
+      expect.objectContaining({ kind: "text", text: quotation }),
+    ]);
+
+    await this.board.storage.expectExportMatchesSaved();
+  }
+
   private async currentCache() {
     return this.page.evaluate(async () =>
       (await caches.keys()).filter((key) => key.startsWith("penable-shell:")),

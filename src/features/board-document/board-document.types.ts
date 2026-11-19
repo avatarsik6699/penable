@@ -9,7 +9,7 @@ import type {
 
 export type BoardDocument = {
   format: "penable-board";
-  schemaVersion: 1 | 2 | 3 | 4 | 5;
+  schemaVersion: 1 | 2 | 3 | 4 | 5 | 6;
   strokes: BoardItem[];
   viewport: Viewport;
   background: BackgroundMode;
@@ -93,11 +93,15 @@ export type DocumentRepository = {
     beforeSchema3?: StoredRecord;
     beforeSchema4?: StoredRecord;
     beforeSchema5?: StoredRecord;
+    beforeSchema6?: StoredRecord;
     beforeLibrary?: StoredRecord;
   }>;
-  write: (document: BoardDocument) => Promise<void>;
-  replace: (previous: unknown, candidate: BoardDocument) => Promise<void>;
-  replaceStored?: (candidate: BoardDocument) => Promise<void>;
+  write: (document: BoardDocument) => Promise<StoredRecord | void>;
+  replace: (
+    previous: unknown,
+    candidate: BoardDocument,
+  ) => Promise<StoredRecord | void>;
+  replaceStored?: (candidate: BoardDocument) => Promise<StoredRecord | void>;
   close: () => Promise<void>;
 };
 
@@ -126,6 +130,7 @@ export type StorageState = {
   hasSchema3Copy?: boolean;
   hasSchema4Copy?: boolean;
   hasSchema5Copy?: boolean;
+  hasSchema6Copy?: boolean;
   hasLibraryCopy?: boolean;
   hasRawCopy?: boolean;
   canReconnect: boolean;
@@ -139,7 +144,8 @@ export type DocumentPersistence = {
   replace?: (
     previous: ReplacementPrevious,
     candidate: BoardDocument,
+    onSchema6Copy?: (record: StoredRecord) => void,
   ) => Promise<StoredRecord | void>;
-  write: (document: BoardDocument) => Promise<void>;
+  write: (document: BoardDocument) => Promise<StoredRecord | void>;
   close: () => Promise<void>;
 };

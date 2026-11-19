@@ -8,6 +8,7 @@ import type {
   InputDiagnostics,
   SelectionState,
   SurfaceControls,
+  TextEditHandle,
 } from "./workspace-model.types";
 import {
   type BoardSnapshot,
@@ -52,6 +53,7 @@ const loadingStorage: WorkspaceState["storage"] = Object.freeze({
 export class WorkspaceModel {
   readonly controls = { current: null as SurfaceControls | null };
   readonly clipboard: SelectionClipboard = { strokes: [] };
+  private textEditor: TextEditHandle | null = null;
   private exportOperation: AbortController | null = null;
   private recoveryOperation: AbortController | null = null;
   private initialBoard: BoardSnapshot | null = null;
@@ -175,7 +177,28 @@ export class WorkspaceModel {
 
   readonly getTool = () => this.state.tool;
 
-  readonly interactionsBlocked = () => this.state.dialogOpen;
+  readonly interactionsBlocked = () =>
+    this.state.dialogOpen || this.textEditor !== null;
+
+  readonly readTextEditor = () => this.textEditor;
+
+  readonly beginTextEdit = () => {
+    if (this.interactionsBlocked()) return;
+
+    const edit = this.controls.current?.beginTextEdit?.();
+
+    if (!edit) return;
+
+    this.textEditor = edit;
+    this.overlayChanged();
+  };
+
+  readonly endTextEdit = () => {
+    if (!this.textEditor) return;
+
+    this.textEditor = null;
+    this.overlayChanged();
+  };
 
   readonly documentChanged = (urgent: boolean) => {
     this.session?.changed(urgent);
@@ -192,8 +215,11 @@ export class WorkspaceModel {
   readonly diagnosticsChanged = (state: InputDiagnostics) =>
     this.patch({ diagnostics: Object.freeze({ ...state }) });
 
-  readonly unavailable = (unavailable: MessageTypes.Value) =>
+  readonly unavailable = (unavailable: MessageTypes.Value) => {
+    if (unavailable) this.textEditor = null;
+
     this.patch({ unavailable });
+  };
 
   readonly overlayChanged = () =>
     this.patch({ uiRevision: this.state.uiRevision + 1 });
@@ -203,6 +229,7 @@ export class WorkspaceModel {
   };
 
   private hydrate(board: BoardSnapshot | null) {
+    this.textEditor = null;
     this.exportOperation?.abort();
     this.controls.current?.cancelInput();
     this.controls.current = null;
@@ -271,7 +298,10 @@ export class WorkspaceModel {
       onState: (state) => {
         if (!current()) return;
 
-        if (!state.writable) this.controls.current?.cancelInput();
+        if (!state.writable) {
+          this.textEditor = null;
+          this.controls.current?.cancelInput();
+        }
 
         this.patch({ storage: Object.freeze({ ...state }) });
       },
@@ -347,6 +377,7 @@ export class WorkspaceModel {
       !this.session ||
       !("switchBoard" in this.session) ||
       (this.state.dialogOpen && !allowModal) ||
+      this.textEditor ||
       this.controls.current?.isBusy()
     )
       throw Messages.error(Messages.create("finishTheBoardAction"));
@@ -361,7 +392,7 @@ export class WorkspaceModel {
 
   readonly changeTool = (tool: DrawingTool) => {
     if (
-      this.state.dialogOpen ||
+      this.interactionsBlocked() ||
       !this.state.hasBoard ||
       this.state.unavailable ||
       this.controls.current?.isBusy() ||
@@ -612,6 +643,13 @@ export class WorkspaceModel {
     this.exportRecord(
       this.session?.schema3Record,
       "penable-before-schema3.json",
+      Messages.create("copyBeforeUpdateSentToTheBrowser"),
+    );
+
+  readonly exportSchema6 = () =>
+    this.exportRecord(
+      this.session?.schema6Record,
+      "penable-before-schema6.json",
       Messages.create("copyBeforeUpdateSentToTheBrowser"),
     );
 

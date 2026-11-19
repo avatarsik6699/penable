@@ -11,7 +11,10 @@ import type {
   HistoryState,
   HistoryAction,
 } from "~/entities/board";
-import type { SelectionCommand } from "../../../../model/workspace-model.types";
+import type {
+  SelectionCommand,
+  TextEditHandle,
+} from "../../../../model/workspace-model.types";
 import type { CanvasRenderer } from "../rendering";
 import type { EditorHandle } from "../editor-runtime.types";
 import type { SurfaceBindings } from "../bindings";
@@ -49,6 +52,7 @@ export namespace EditorCommandTypes {
   export type ControlsOptions = Interaction & {
     pendingInput?: () => boolean;
     insertImage: () => void;
+    beginTextEdit?: () => TextEditHandle | null;
     insertTemplate?: (
       config: import("~/entities/board").TemplateConfig,
       explicitSize?: boolean,

@@ -118,7 +118,19 @@ export type ImageItem = {
   translation?: Position;
 };
 
-export type BoardItem = Stroke | ImageItem | TemplateItem;
+export type TextItem = {
+  readonly kind: "text";
+  id: number;
+  readonly text: string;
+  readonly width: number;
+  readonly lines: readonly number[];
+  matrix: AffineMatrix;
+  source?: string;
+  clip?: ClipMask;
+  translation?: Position;
+};
+
+export type BoardItem = Stroke | ImageItem | TemplateItem | TextItem;
 
 export type Stroke = {
   kind?: "ink";

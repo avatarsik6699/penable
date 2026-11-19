@@ -4,7 +4,9 @@ import { Messages } from "~/shared/lib/messages";
 import { CreditWindow } from "./credit-window";
 import { FragmentCodec } from "../fragments";
 import { DocumentOverview } from "./modules/overview";
-import { DocumentCodec } from "../codec";
+import { DocumentCodec, DocumentSchema } from "../codec";
+import { DocumentJobConfig } from "./document-jobs.config";
+import { DocumentWorkload } from "./document-workload";
 import { DocumentRepositoryAdapter } from "../../adapters/indexeddb";
 import { BoardIds } from "~/entities/board";
 import { BoardRegions } from "~/entities/board";
@@ -18,6 +20,7 @@ import {
 import type {
   BoardDocument,
   DocumentRepository,
+  StoredRecord,
 } from "../../board-document.types";
 import type { BoardItem, Point, ImageAsset } from "~/entities/board";
 
@@ -48,7 +51,7 @@ function metadata(
     return entry;
   }
 
-  if (stroke.kind === "template") return stroke;
+  if (stroke.kind === "template" || stroke.kind === "text") return stroke;
 
   const { points: _points, ...entry } = stroke;
 
@@ -79,7 +82,7 @@ function capturedItems(): BoardItem[] {
         asset: assets.get(entry.asset.id) ?? { ...entry.asset, base64: "" },
       };
 
-    if (entry.kind === "template") return entry;
+    if (entry.kind === "template" || entry.kind === "text") return entry;
 
     const { geometry, kind: _kind, ownKind, ...stroke } = entry;
 
@@ -174,6 +177,8 @@ async function finish(id: number) {
 
     if (normalizedPrevious) previousDocument = null;
 
+    let schema6Copy: StoredRecord | void = undefined;
+
     if (job.kind === "save" || job.kind === "replace") {
       if (invalidated) throw Messages.error(invalidated);
 
@@ -186,21 +191,38 @@ async function finish(id: number) {
       );
 
       const target = await repository;
-      const candidate = { ...document, schemaVersion: 5 as const };
+
+      const candidate = {
+        ...document,
+        schemaVersion: DocumentSchema.current(document.strokes),
+      };
 
       if (job.kind === "replace") {
         if (job.previousStored) {
           if (!target.replaceStored)
             throw Messages.error(Messages.create("documentProcessingFailed"));
 
-          await target.replaceStored(candidate);
-        } else await target.replace(normalizedPrevious, candidate);
-      } else await target.write(candidate);
+          schema6Copy = await target.replaceStored(candidate);
+        } else
+          schema6Copy = await target.replace(normalizedPrevious, candidate);
+      } else schema6Copy = await target.write(candidate);
     }
 
     if (selection) {
       let batch: SelectionResult["parts"] = [],
+        vertices = 0,
+        text = 0;
+
+      const flush = async () => {
+        if (!batch.length) return;
+
+        const chunk = batch;
+
+        await credit.send((seq) => host.postMessage({ id, seq, chunk }));
+        batch = [];
         vertices = 0;
+        text = 0;
+      };
 
       for (const part of selection.parts) {
         const count =
@@ -211,29 +233,28 @@ async function finish(id: number) {
             ? BoardRegions.vertexCount(part.remainder.clip)
             : 0);
 
-        if (batch.length && vertices + count > 2048) {
-          const chunk = batch;
+        const units =
+          (part.selected.kind === "text"
+            ? DocumentWorkload.textUnits(part.selected)
+            : 0) +
+          (part.remainder?.kind === "text"
+            ? DocumentWorkload.textUnits(part.remainder)
+            : 0);
 
-          await credit.send((seq) => host.postMessage({ id, seq, chunk }));
-          batch = [];
-          vertices = 0;
-        }
+        if (
+          vertices + count > DocumentJobConfig.vertexChunk ||
+          text + units > DocumentJobConfig.textChunkUnits
+        )
+          await flush();
 
         batch.push(part);
         vertices += count;
+        text += units;
 
-        if (batch.length >= 64 || vertices >= 2048) {
-          const chunk = batch;
-
-          await credit.send((seq) => host.postMessage({ id, seq, chunk }));
-          batch = [];
-          vertices = 0;
-        }
+        if (batch.length >= DocumentJobConfig.metadataChunk) await flush();
       }
 
-      if (batch.length)
-        await credit.send((seq) => host.postMessage({ id, seq, chunk: batch }));
-
+      await flush();
       await credit.drain();
 
       selection.parts = [];
@@ -241,9 +262,7 @@ async function finish(id: number) {
 
     const used = new Set(
       strokes.flatMap((stroke) =>
-        stroke.kind === "image" || stroke.kind === "template"
-          ? []
-          : [stroke.geometry],
+        stroke.kind === "ink" ? [stroke.geometry] : [],
       ),
     );
 
@@ -277,6 +296,9 @@ async function finish(id: number) {
     host.postMessage({
       id,
       ...(previousCopy ? { previousCopy } : {}),
+      ...(schema6Copy
+        ? { beforeSchema6: RecoveryCopy.serialize(schema6Copy) }
+        : {}),
       ...(job.kind === "raw-export"
         ? {
             rawExport: new Blob([DocumentCodec.serializeRawBackup(captured)], {

@@ -22,6 +22,7 @@ function records(
     beforeSchema3: { exists: false, value: undefined },
     beforeSchema4: { exists: false, value: undefined },
     beforeSchema5: { exists: false, value: undefined },
+    beforeSchema6: { exists: false, value: undefined },
     beforeLibrary: { exists: false, value: undefined },
     ...extra,
   };
@@ -124,6 +125,39 @@ afterEach(() => {
 });
 
 describe("Worker-owned storage snapshot", () => {
+  it("loads schema6 text and keeps the exact version5 recovery copy detached after worker termination", async () => {
+    const document = DocumentCodec.emptyDocument();
+
+    document.strokes.push({
+      kind: "text",
+      id: 1,
+      text: "Перо\n💡",
+      width: 180,
+      lines: [0, 5],
+      matrix: [1, 0, 0, 1, 20, 30],
+    });
+
+    const raw = DocumentCodec.encodeDocument(document);
+
+    const previous = {
+      ...DocumentCodec.encodeDocument(DocumentCodec.emptyDocument()),
+      preserve: "previous raw field",
+    };
+
+    const h = await setup(
+      records(raw, { beforeSchema6: { exists: true, value: previous } }),
+    );
+
+    const loaded = await h.load();
+    const copy = loaded.records.beforeSchema6!.value;
+
+    expect(loaded.document).toEqual({ ...document, schemaVersion: 6 });
+    expect(h.repository.write).not.toHaveBeenCalled();
+    h.stored.beforeSchema6!.value = { changed: true };
+    await loaded.close();
+    expect(JSON.parse(await RecordCopies.read(copy)!.text())).toEqual(previous);
+  });
+
   it("reads all raw records once, returns only packed validated data and immutable recovery Blobs", async () => {
     const source = DocumentCodec.emptyDocument();
 

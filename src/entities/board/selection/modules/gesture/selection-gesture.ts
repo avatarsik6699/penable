@@ -1,5 +1,5 @@
 import { Messages } from "~/shared/lib/messages";
-import type { PointerInput, Viewport } from "../../../board.types";
+import type { PointerInput, Position, Viewport } from "../../../board.types";
 import { BoardRegions } from "../../../regions";
 import type {
   GestureContact,
@@ -22,6 +22,10 @@ export class SelectionGesture {
 
   get moving(): boolean {
     return Boolean(this.contact?.moving);
+  }
+
+  get tapPoint(): Position | null {
+    return this.contact && !this.contact.moved ? this.contact.start : null;
   }
 
   get draftOutline(): GestureOutline {
@@ -65,6 +69,7 @@ export class SelectionGesture {
       points: [point],
       viewport: { ...this.options.viewport() },
       moving,
+      moved: false,
     };
 
     return true;
@@ -82,6 +87,15 @@ export class SelectionGesture {
       return { kind: "handled" };
 
     contact.current = this.options.world(event);
+
+    if (!contact.moved) {
+      const distance = Math.hypot(
+        contact.current.x - contact.start.x,
+        contact.current.y - contact.start.y,
+      );
+
+      contact.moved = distance * contact.viewport.zoom > 4;
+    }
 
     if (contact.moving)
       return {

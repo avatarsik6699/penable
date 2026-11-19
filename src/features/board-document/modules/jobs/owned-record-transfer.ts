@@ -1,5 +1,6 @@
 import { CreditWindow } from "./credit-window";
 import type { OwnedRecordPacket } from "./document-reader.types";
+import { DocumentSchema } from "../codec";
 
 // Raw storage data stays untyped until the unchanged strict decoder runs in the Worker.
 // Unsupported prototypes/cycles or exceptional metadata use the strict generic fallback.
@@ -119,7 +120,7 @@ async function send(
 ) {
   const root = metadata(value, ["items", "strokes", "assets"], 4096).value;
   const raw = value as Record<string, unknown>;
-  const modern = root.schemaVersion === 4 || root.schemaVersion === 5;
+  const modern = DocumentSchema.itemDocument(root.schemaVersion);
   const key = modern ? "items" : "strokes";
 
   const items = raw[key],

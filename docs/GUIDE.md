@@ -165,13 +165,24 @@ accepts width/height percentages and degrees. Handwriting remains vector content
 - Initial load/import selects Pen. Hardware Wacom buttons, partial-stroke erasure and adjustable
   eraser size are not implemented. Partial selection is a separate way to edit fragments.
 
+## Paste and edit text
+
+Copy a passage from a book or article and paste with Ctrl+V, Cmd+V, or Actions → Paste
+(«Действия → Вставить»). The board keeps the paragraphs and wraps long lines. Switch to
+Pen or Highlighter to annotate it. Enclose the whole block and your marks in one rectangle
+or lasso to move them together.
+
+In Selection mode, click or tap the block and use Actions → Edit text («Изменить текст»).
+Save applies the change in one undoable step. Copy the whole block to another board or use
+Download PNG for a shareable excerpt. Large selections containing text can still be copied
+between boards when they exceed the PNG limit. A JSON backup retains editable text and strokes.
+
 ## Images
 
 Insert image («Вставить изображение») opens PNG/JPEG. Files can also be dropped onto the board
 or pasted while it has focus. File/clipboard insertion is view-centered; drop uses its location.
-The result is selected. Paste accepts editable penable fragments or images; denied clipboard access
-is explained. Cut preserves the original if clipboard writing fails. Text/HTML/SVG/links create no
-objects; a new external clipboard never silently falls back to an old internal copy. If the browser
+The result is selected. Paste accepts editable penable fragments, images and plain text. Cut preserves
+the original if clipboard writing fails. A new external clipboard never silently falls back to an old internal copy. If the browser
 cannot distinguish editable content from image content, preserve data and explain the refusal.
 
 Images/ink can be jointly selected, moved, resized, rotated, copied and deleted. Crop images
@@ -223,11 +234,12 @@ is a different storage origin. Browser profiles/devices are separate too. Cleari
 can delete notes. Writing requires Web Locks; Chrome is the main target. Offline boot requires the
 prepared production shell; there is no cross-device synchronization.
 
-Current format is `penable-board`, `schemaVersion: 5`: ordered items, deduplicated image assets,
+The `penable-board` format uses schema 6 when a board contains text and schema 5 otherwise: ordered items, deduplicated image assets,
 styled ink/vector templates, viewport, background/tools/background settings and last-writing view.
-Older JSON 1–4 remain readable; transforms do not overwrite raw ink samples. The first write upgrading
+Older JSON 1–5 remain readable; transforms do not overwrite raw ink samples. The first write upgrading
 an older board to 5 atomically retains its exact old record as `before-schema5` if no such copy exists,
-downloadable as `penable-before-schema5.json`. Older library/schema 2/3/4 recovery copies remain
+downloadable as `penable-before-schema5.json`. The first write of a text-bearing board preserves the
+previous record in `penable-before-schema6.json`. Older library/schema 2/3/4 recovery copies remain
 separate. Import replaces only the current board; its JSON includes required image bytes. Older
 applications may reject format 5; use recovery copies when returning to an older version.
 

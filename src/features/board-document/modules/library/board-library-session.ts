@@ -1,7 +1,7 @@
 import type { ImportCandidate } from "../import-candidates";
 import type { MessageTypes } from "~/shared/lib/messages";
 import { Messages } from "~/shared/lib/messages";
-import { DocumentCodec, DocumentSnapshots } from "../codec";
+import { DocumentCodec, DocumentSchema, DocumentSnapshots } from "../codec";
 import { DocumentErrors, SessionUtils } from "../session";
 import type { DocumentSession } from "../session";
 import type {
@@ -137,6 +137,10 @@ export class BoardLibrarySession {
 
   get schema3Record() {
     return this.active?.schema3Record;
+  }
+
+  get schema6Record() {
+    return this.active?.schema6Record ?? { exists: false, value: undefined };
   }
 
   get schema5Record() {
@@ -295,7 +299,10 @@ export class BoardLibrarySession {
           else
             await this.repository.bootstrap(
               this.catalog,
-              { ...document, schemaVersion: 5 },
+              {
+                ...document,
+                schemaVersion: DocumentSchema.current(document.strokes),
+              },
               records.main,
             );
         }

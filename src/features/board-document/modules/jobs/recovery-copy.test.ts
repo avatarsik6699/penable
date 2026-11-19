@@ -198,7 +198,7 @@ describe("raw recovery matrix projection", () => {
   });
 
   it("leaves other schemas and malformed numeric matrices outside the projection", () => {
-    for (const version of [1, 2, 3, 6]) {
+    for (const version of [1, 2, 3, 7]) {
       const value = { ...raw(), schemaVersion: version };
 
       expect(RecoveryCopyProjection.project(value).value).toBe(value);

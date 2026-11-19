@@ -29,6 +29,11 @@ function groupedStrokes(strokes: readonly BoardItem[]): BoardItem[] {
   const ordered = BoardCompositing.orderSensitive(strokes);
 
   for (const stroke of strokes) {
+    if (stroke.kind === "text") {
+      result.push(stroke);
+      continue;
+    }
+
     if (ordered) {
       const previous = result.at(-1);
 

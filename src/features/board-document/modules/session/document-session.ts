@@ -5,7 +5,7 @@ import { DocumentErrors, SessionUtils } from "./document-session.utils";
 import { SessionConfig } from "./document-session.config";
 import { TaskClock } from "~/shared/lib/task-clock";
 import { ImportCandidates, type ImportCandidate } from "../import-candidates";
-import { DocumentSnapshots, DocumentCodec } from "../codec";
+import { DocumentSnapshots, DocumentCodec, DocumentSchema } from "../codec";
 import type {
   BoardDocument,
   DocumentRepository,
@@ -34,6 +34,7 @@ export class DocumentSession {
   private message: MessageTypes.Value = "";
   private rawMain: StoredRecord = { exists: false, value: undefined };
   private upgrade: StoredRecord = { exists: false, value: undefined };
+  private schema6: StoredRecord = { exists: false, value: undefined };
   private schema5: StoredRecord = { exists: false, value: undefined };
   private schema4: StoredRecord = { exists: false, value: undefined };
   private libraryCopy: StoredRecord = { exists: false, value: undefined };
@@ -98,6 +99,7 @@ export class DocumentSession {
       hasSchema3Copy: this.schema3.exists,
       hasSchema4Copy: this.schema4.exists,
       hasSchema5Copy: this.schema5.exists,
+      hasSchema6Copy: this.schema6.exists,
       hasLibraryCopy: this.libraryCopy.exists,
       hasRawCopy: this.rawMain.exists && !this.loaded && this.phase === "error",
       canReconnect:
@@ -120,6 +122,10 @@ export class DocumentSession {
 
   get rawRecord(): StoredRecord {
     return this.rawMain;
+  }
+
+  get schema6Record(): StoredRecord {
+    return this.schema6;
   }
 
   get schema5Record(): StoredRecord {
@@ -212,6 +218,11 @@ export class DocumentSession {
       };
 
       this.schema3 = records.beforeSchema3 ?? {
+        exists: false,
+        value: undefined,
+      };
+
+      this.schema6 = records.beforeSchema6 ?? {
         exists: false,
         value: undefined,
       };
@@ -332,25 +343,19 @@ export class DocumentSession {
         const snapshot = this.options.persistence
           ? {
               ...live,
-              schemaVersion: 5 as const,
               strokes: [...live.strokes],
               viewport: { ...live.viewport },
               tools: { ...live.tools },
             }
-          : {
-              ...DocumentCodec.decodeDocument(
-                DocumentCodec.encodeDocument(live),
-              ),
-              schemaVersion: 5 as const,
-            };
+          : DocumentCodec.decodeDocument(DocumentCodec.encodeDocument(live));
 
         this.writing = true;
         this.phase = "saving";
         this.publish();
 
-        if (this.options.persistence)
-          await this.options.persistence.write(snapshot);
-        else await this.repository.write(snapshot);
+        const schema6Copy = await (
+          this.options.persistence ?? this.repository
+        ).write(snapshot);
 
         this.writing = false;
 
@@ -358,23 +363,7 @@ export class DocumentSession {
 
         this.savedRevision = revision;
 
-        if (
-          !this.schema4.exists &&
-          this.rawMain.exists &&
-          SessionUtils.isPre4(this.rawMain.value)
-        )
-          this.schema4 = this.rawMain;
-
-        if (
-          !this.schema5.exists &&
-          this.rawMain.exists &&
-          this.rawMain.value &&
-          typeof this.rawMain.value === "object" &&
-          "schemaVersion" in this.rawMain.value &&
-          [1, 2, 3, 4].includes(this.rawMain.value.schemaVersion as number)
-        )
-          this.schema5 = this.rawMain;
-
+        this.recordUpgrades(snapshot, schema6Copy);
         this.rawMain = { exists: true, value: snapshot };
         this.phase = this.revision === revision ? "saved" : "dirty";
         this.message = "";
@@ -451,14 +440,13 @@ export class DocumentSession {
         ? Promise.resolve(candidate)
         : this.options.prepare
           ? this.options.prepare(candidate, controller.signal)
-          : Promise.resolve({
-              ...DocumentCodec.decodeDocument(
-                candidate.schemaVersion === 4 || candidate.schemaVersion === 5
+          : Promise.resolve(
+              DocumentCodec.decodeDocument(
+                DocumentSchema.itemDocument(candidate.schemaVersion)
                   ? DocumentCodec.encodeDocument(candidate)
                   : candidate,
               ),
-              schemaVersion: 5,
-            });
+            );
     } catch (error) {
       return Promise.reject(error);
     }
@@ -497,7 +485,12 @@ export class DocumentSession {
           message: this.message,
         };
 
-        const document = { ...(await prepared), schemaVersion: 5 as const };
+        const validated = await prepared;
+
+        const document = {
+          ...validated,
+          schemaVersion: DocumentSchema.current(validated.strokes),
+        };
 
         if (this.disposed || this.fatal || controller.signal.aborted)
           throw Messages.error(
@@ -524,6 +517,11 @@ export class DocumentSession {
         writeAttempted = true;
 
         let recovery: StoredRecord | void = undefined;
+        let schema6Copy: StoredRecord | void = undefined;
+
+        const captureSchema6 = (copy: StoredRecord) => {
+          schema6Copy = copy;
+        };
 
         if (durableReplace)
           recovery = await durableReplace.call(
@@ -532,8 +530,11 @@ export class DocumentSession {
               ? (previous as BoardDocument)
               : { kind: "stored-current" },
             document,
+            ...(document.schemaVersion === 6
+              ? ([captureSchema6] as const)
+              : []),
           );
-        else await this.repository.replace(previous, document);
+        else schema6Copy = await this.repository.replace(previous, document);
 
         if (this.disposed) return;
 
@@ -541,23 +542,7 @@ export class DocumentSession {
 
         if (this.fatal) throw Messages.error(this.message);
 
-        if (
-          !this.schema4.exists &&
-          this.rawMain.exists &&
-          SessionUtils.isPre4(this.rawMain.value)
-        )
-          this.schema4 = this.rawMain;
-
-        if (
-          !this.schema5.exists &&
-          this.rawMain.exists &&
-          this.rawMain.value &&
-          typeof this.rawMain.value === "object" &&
-          "schemaVersion" in this.rawMain.value &&
-          [1, 2, 3, 4].includes(this.rawMain.value.schemaVersion as number)
-        )
-          this.schema5 = this.rawMain;
-
+        this.recordUpgrades(document, schema6Copy);
         this.rawMain = { exists: true, value: document };
         this.loaded = true;
         this.rawLoaded = true;
@@ -608,6 +593,24 @@ export class DocumentSession {
     this.tail = replacement.catch(() => {});
 
     return replacement;
+  }
+
+  private recordUpgrades(
+    candidate: BoardDocument,
+    schema6Copy: StoredRecord | void,
+  ) {
+    const eligible = DocumentSchema.upgradeBackups(
+      candidate.schemaVersion,
+      this.rawMain,
+    );
+
+    if (!this.schema4.exists && eligible.beforeSchema4)
+      this.schema4 = this.rawMain;
+
+    if (!this.schema5.exists && eligible.beforeSchema5)
+      this.schema5 = this.rawMain;
+
+    if (schema6Copy) this.schema6 = schema6Copy;
   }
 
   dispose(): Promise<void> {

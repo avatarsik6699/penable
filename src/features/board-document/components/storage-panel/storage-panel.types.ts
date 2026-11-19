@@ -20,6 +20,7 @@ export namespace StoragePanelTypes {
     onSchema3: () => MessageTypes.Value | Promise<MessageTypes.Value>;
     onSchema4: () => MessageTypes.Value | Promise<MessageTypes.Value>;
     onSchema5?: () => MessageTypes.Value | Promise<MessageTypes.Value>;
+    onSchema6?: () => MessageTypes.Value | Promise<MessageTypes.Value>;
     onLibrary: () => MessageTypes.Value | Promise<MessageTypes.Value>;
     onRaw: () => MessageTypes.Value | Promise<MessageTypes.Value>;
     onRetry: () => void;

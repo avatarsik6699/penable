@@ -1,3 +1,5 @@
+import { DocumentSchema } from "../codec";
+
 function plain(value: unknown): value is object {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
 
@@ -62,7 +64,7 @@ function project(value: unknown): {
     !data(root.format) ||
     root.format.value !== "penable-board" ||
     !data(root.schemaVersion) ||
-    (root.schemaVersion.value !== 4 && root.schemaVersion.value !== 5) ||
+    !DocumentSchema.itemDocument(root.schemaVersion.value) ||
     !data(root.items)
   )
     return unchanged;
@@ -98,7 +100,9 @@ function project(value: unknown): {
 
     if (
       !data(properties.kind) ||
-      !["ink", "image", "template"].includes(properties.kind.value as string) ||
+      !["ink", "image", "template", "text"].includes(
+        properties.kind.value as string,
+      ) ||
       !data(properties.matrix)
     )
       continue;

@@ -13,6 +13,7 @@ export type TouchOptions = {
   cancelEdit: () => void;
   placement: () => boolean;
   place: (event: PointerInput) => void;
+  prepareTap?: (event: PointerInput) => (() => void) | null;
 };
 
 export type TouchBaseline = {

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { BoardTemplates, type TemplateItem } from "~/entities/board";
+import {
+  BoardTemplates,
+  type TemplateItem,
+  type TextItem,
+} from "~/entities/board";
 import { DocumentWorkload } from "./document-workload";
 
 it("routes bounded but dense generated mathematics to the worker before point-free metadata bypasses budgets", () => {
@@ -29,6 +33,25 @@ it("routes bounded but dense generated mathematics to the worker before point-fr
       },
     ]),
   ).toBe(false);
+});
+
+it("routes dense text to workers without requiring ink or images", () => {
+  const item: TextItem = {
+    kind: "text",
+    id: 1,
+    text: "x".repeat(8000),
+    width: 600,
+    lines: [0],
+    matrix: [1, 0, 0, 1, 0, 0],
+  };
+
+  expect(DocumentWorkload.heavyDocument([item])).toBe(false);
+
+  expect(
+    DocumentWorkload.heavyDocument(
+      Array.from({ length: 5 }, (_, id) => ({ ...item, id: id + 1 })),
+    ),
+  ).toBe(true);
 });
 
 describe("small generated math cost", () => {

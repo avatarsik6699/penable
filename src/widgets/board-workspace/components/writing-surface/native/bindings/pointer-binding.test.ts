@@ -25,7 +25,7 @@ function pointer(
 }
 
 function harness() {
-  const guards = { writable: true, blocked: false };
+  const guards = { writable: true, blocked: false, editingText: false };
   let owner: number | null = null;
 
   const input = {
@@ -80,6 +80,7 @@ function harness() {
     getTool: () => "pen",
     canWrite: () => guards.writable,
     interactionsBlocked: () => guards.blocked,
+    preserveBlockedSelection: () => guards.editingText,
     drawingPointerId: () => owner,
     activeInput: () => input,
     observeInput: vi.fn(),
@@ -136,6 +137,20 @@ function harness() {
 }
 
 describe("pen cursor release presentation", () => {
+  it("preserves a pending selection command during blocked dialog pointer events", () => {
+    const h = harness();
+
+    h.guards.blocked = true;
+    h.guards.editingText = true;
+    h.binding.move(pointer(1, "mouse", 0, 42));
+    h.binding.up(pointer(1, "mouse", 0, 42));
+
+    expect(h.options.selection.cancel).not.toHaveBeenCalled();
+
+    h.binding.cancel();
+    expect(h.options.selection.cancel).toHaveBeenCalledOnce();
+  });
+
   it("keeps the accepted pen position at up while passing the original up event to ink", () => {
     const h = harness();
     const down = pointer(7, "pen", 1, 12);

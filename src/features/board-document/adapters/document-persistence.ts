@@ -6,8 +6,8 @@ function create(boardId = "main"): DocumentPersistence {
 
   return {
     write: (document) => jobs.write(document),
-    replace: (previous, candidate) =>
-      jobs.replaceValidated(previous, candidate),
+    replace: (previous, candidate, onSchema6Copy) =>
+      jobs.replaceValidated(previous, candidate, onSchema6Copy),
     close: () => jobs.close(),
   };
 }

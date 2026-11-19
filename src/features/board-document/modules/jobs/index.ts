@@ -16,6 +16,7 @@ export type { OverviewResult } from "./modules/overview";
 export { DocumentReader } from "./document-reader";
 
 export { DocumentStorage } from "./document-storage";
+export { RecoveryCopy } from "./recovery-copy";
 export type {
   OwnedPreparedBoard,
   DocumentRecords,

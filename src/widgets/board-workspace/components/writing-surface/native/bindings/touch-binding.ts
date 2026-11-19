@@ -62,6 +62,11 @@ function create(options: BindingOptions) {
     placement: () =>
       Boolean(options.templatePlacement?.active && options.canWrite()),
 
+    prepareTap: (event) =>
+      options.getTool() === "selection"
+        ? options.selection.prepareTextTap(event)
+        : null,
+
     place: (event) => {
       if (options.canWrite())
         options.templatePlacement?.place(event.clientX, event.clientY);

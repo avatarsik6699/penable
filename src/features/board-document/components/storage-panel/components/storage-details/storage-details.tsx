@@ -68,6 +68,12 @@ export const StorageDetails: React.FC<StorageDetailsTypes.Props> = (props) => {
             {I18n.t("originalRecord")}
           </Button>
         )}
+        {props.state.hasSchema6Copy && props.onSchema6 && (
+          <Button onClick={() => void exported.download(props.onSchema6!)}>
+            <EditorIcon name="history" />
+            {I18n.t("downloadCopyBeforeDocument6")}
+          </Button>
+        )}
         {props.state.hasSchema5Copy && props.onSchema5 && (
           <Button onClick={() => void exported.download(props.onSchema5!)}>
             {I18n.t("beforeTheToolsUpdate")}
@@ -110,6 +116,7 @@ export const StorageDetails: React.FC<StorageDetailsTypes.Props> = (props) => {
         {!props.state.hasPrevious &&
           !props.state.hasSchema4Copy &&
           !props.state.hasSchema5Copy &&
+          !props.state.hasSchema6Copy &&
           !props.state.hasLibraryCopy &&
           !props.state.hasRawCopy &&
           !props.state.hasSchema3Copy &&

@@ -23,6 +23,7 @@ export type GestureContact = {
   points: Position[];
   viewport: Viewport;
   moving: boolean;
+  moved: boolean;
 };
 
 export type GestureUpdate =

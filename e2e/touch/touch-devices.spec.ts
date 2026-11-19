@@ -36,6 +36,12 @@ test("armed templates tolerate pinch and place once on a real single tap", async
   await touch.expectTemplateTouchPlacement();
 });
 
+test("a finger tap selects pasted text while navigation mode is active", async ({
+  touch,
+}) => {
+  await touch.expectTextTapInNavigationMode();
+});
+
 test("phone portrait and landscape controls remain touchable and reachable", async ({
   touchLayout,
 }) => {

@@ -54,6 +54,7 @@ For Windows, [OneNote](https://www.microsoft.com/en-us/microsoft-365/onenote/dig
 - [x] Pen, pressure pen, highlighter, and adjustable stabilization
 - [x] Exact fragment selection, transforms, and undo/redo
 - [x] Mathematical guides, PNG/JPEG insertion, and PNG export
+- [x] Editable plain-text paste with handwritten annotations
 - [x] Light, dark and system themes with adaptive handwriting colors
 - [x] Named boards, local autosave, and editable JSON backups
 - [x] Prepared offline use and automatic English/Russian interface selection

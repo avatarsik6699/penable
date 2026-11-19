@@ -6,7 +6,11 @@ export class BoardTouchGestures {
   private contacts = new Map<number, Position>();
   private baseline: TouchBaseline | null = null;
   private edit: number | null = null;
-  private tap: { id: number; origin: Position } | null = null;
+  private tap: {
+    id: number;
+    origin: Position;
+    complete: (event: PointerInput) => void;
+  } | null = null;
   private quarantined = false;
 
   constructor(private readonly options: TouchOptions) {}
@@ -49,13 +53,23 @@ export class BoardTouchGestures {
     if (this.contacts.size === 2) {
       this.cancelEdit();
       this.tap = null;
-    } else if (this.options.placement()) {
-      this.tap = {
-        id: event.pointerId,
-        origin: { x: event.clientX, y: event.clientY },
-      };
-    } else if (this.options.editing() && this.options.beginEdit(event)) {
-      this.edit = event.pointerId;
+    } else {
+      const editing = this.options.editing();
+
+      const complete = this.options.placement()
+        ? this.options.place
+        : editing
+          ? null
+          : this.options.prepareTap?.(event);
+
+      if (complete)
+        this.tap = {
+          id: event.pointerId,
+          origin: { x: event.clientX, y: event.clientY },
+          complete,
+        };
+      else if (editing && this.options.beginEdit(event))
+        this.edit = event.pointerId;
     }
 
     this.rebase();
@@ -154,7 +168,7 @@ export class BoardTouchGestures {
           event.clientY - this.tap.origin.y,
         ) <= 8
       ) {
-        this.options.place(event);
+        this.tap.complete(event);
       }
     }
 

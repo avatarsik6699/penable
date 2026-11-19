@@ -219,7 +219,9 @@ it("crop preserves partially selected ink membership for following delete and mo
       h.selection.finishNudge();
     }
 
-    const remaining = h.scene.strokes.filter((item) => item.kind !== "image");
+    const remaining = h.scene.strokes.filter(
+      (item) => item.kind !== "image" && item.kind !== "text",
+    );
 
     expect(
       remaining.some((item) =>

@@ -15,7 +15,7 @@
 | Selection geometry | polygon-clipping0.15.7; normalized local vector clips and source lineage |
 | Background jobs | Native module Worker; bounded transferable point chunks for large selection/validation/save |
 | Backend | n/a — browser only |
-| Storage | Native IndexedDB; document5/catalog2/IDB1, named boards, exclusive origin Web Lock, per-board JSON backups |
+| Storage | Native IndexedDB; document5–6/catalog2/IDB1, named boards, exclusive origin Web Lock, per-board JSON backups |
 | Package manager | npm, package-lock.json |
 | Lint / format | Oxlint, TypeScript AST architecture policies/self-tests; Prettier3.9.6 / EditorConfig |
 | Browser regression | Playwright1.62.1 Chromium + bounded mobile WebKit, domain fixtures + Page Objects, isolated contexts |
@@ -645,3 +645,9 @@ The standard gates apply. [Editor-open measurements](performance/46-editor-open.
 two isolated Pages previews and include actual canvas input readiness after switching boards.
 Recovery tests exercise both writer and reader tabs on seeded test data and compare every
 durable record after viewing and exporting healthy boards.
+
+## Change 47 — Editable clipboard text
+
+Text-bearing documents use schema 6. Native paste, rendering and measurement stay in the editor;
+text DTO validation and bounded transport stay in board-document. Verify visible output with
+Playwriter in an isolated Pages preview on port 4247 and use the standard Fast and Full Gates.

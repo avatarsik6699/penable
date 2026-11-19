@@ -56,6 +56,25 @@ test("external clipboard contents replace stale in-tab fragments", async ({
   );
 });
 
+test("plain text stays editable with annotations, clipboard transfer and JSON", async ({
+  clipboard,
+  library,
+}) => {
+  await clipboard.expectEditableTextRoundtrip(library);
+});
+
+test("a tall quotation stays copyable above clipboard PNG limits", async ({
+  clipboard,
+}) => {
+  await clipboard.expectTallTextClipboard();
+});
+
+test("menu text paste wraps long content and narrow edit preserves an invalid draft", async ({
+  clipboard,
+}) => {
+  await clipboard.expectTextMenuAndNarrowEdit();
+});
+
 test("corrupt editable clipboard data never falls back to raster PNG", async ({
   clipboard,
   images,

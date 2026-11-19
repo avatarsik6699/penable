@@ -1,5 +1,5 @@
 import { Messages } from "~/shared/lib/messages";
-import { DocumentCodec } from "../codec";
+import { DocumentCodec, DocumentSchema } from "../codec";
 import { OwnedRecordBuffer } from "./owned-record-buffer";
 import { CreditWindow } from "./credit-window";
 import { SourceUpload } from "./source-upload";
@@ -62,8 +62,7 @@ host.onmessage = ({ data }) => {
           ? DocumentCodec.parseDocumentJSON(await request.blob.text())
           : DocumentCodec.decodeDocument(
               request.type === "runtime" &&
-                (request.value.schemaVersion === 4 ||
-                  request.value.schemaVersion === 5)
+                DocumentSchema.itemDocument(request.value.schemaVersion)
                 ? DocumentCodec.encodeDocument(request.value)
                 : request.value,
             );

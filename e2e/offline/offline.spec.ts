@@ -6,6 +6,12 @@ test("offline reopening preserves notes and supports lazy editor operations", as
   await offlineApp.expectOfflineWriting();
 });
 
+test("offline text paste survives reload and portable export", async ({
+  offlineApp,
+}) => {
+  await offlineApp.expectOfflineText();
+});
+
 test("upgrade waits for all app windows to close before activation", async ({
   offlineApp,
 }) => {

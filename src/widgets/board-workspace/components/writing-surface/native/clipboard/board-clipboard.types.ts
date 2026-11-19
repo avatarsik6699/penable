@@ -1,4 +1,4 @@
-import type { BoardSelection } from "~/entities/board";
+import type { BoardSelection, SelectionCommitResult } from "~/entities/board";
 import type { BitmapCache } from "../images";
 
 export namespace BoardClipboardTypes {
@@ -9,6 +9,10 @@ export namespace BoardClipboardTypes {
     allowed: () => boolean;
     writable: () => boolean;
     insertImage: (blob: Blob) => Promise<void>;
+    insertText: (
+      value: string,
+      signal: AbortSignal,
+    ) => Promise<SelectionCommitResult>;
     activate: () => void;
     changed: () => void;
   };

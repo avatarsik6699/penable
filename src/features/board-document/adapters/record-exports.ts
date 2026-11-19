@@ -1,6 +1,6 @@
 import { RecordCopies } from "../modules/record-copies";
 import { DocumentCodec } from "../modules/codec";
-import { DocumentJobs } from "../modules/jobs";
+import { DocumentJobs, RecoveryCopy } from "../modules/jobs";
 import type { BoardDocument } from "../board-document.types";
 
 async function serialize(
@@ -39,7 +39,7 @@ async function serialize(
   }
 
   // Small catalog records and the independent Worker-blocked startup fallback.
-  return DocumentCodec.serializeRawBackup(value);
+  return RecoveryCopy.stringify(value);
 }
 
 export const DocumentRecordExports = { serialize };

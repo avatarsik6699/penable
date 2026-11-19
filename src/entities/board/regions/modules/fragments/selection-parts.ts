@@ -1,5 +1,6 @@
 import { type BoardItem, type ClipMask } from "../../../board.types";
 import { intersection, difference } from "polygon-clipping";
+import { BoardText } from "../../../board-text";
 import { BoardTransforms } from "../../../transforms";
 import { type SelectedPart } from "../../regions.types";
 import { RegionMask } from "../mask";
@@ -13,10 +14,33 @@ function selectParts(
   region: ClipMask,
   allocate: () => number,
 ): SelectedPart[] {
+  const bounds = RegionMask.maskBounds(region);
+
+  if (!bounds) return [];
+
   const result: SelectedPart[] = [],
     translated = new Map<string, ClipMask>();
 
   for (const stroke of strokes) {
+    if (stroke.kind === "text") {
+      const textBounds = BoardTransforms.bounds(
+        BoardText.localBounds(stroke),
+        stroke.matrix,
+      );
+
+      if (
+        textBounds.left >= bounds.left &&
+        textBounds.right <= bounds.right &&
+        textBounds.top >= bounds.top &&
+        textBounds.bottom <= bounds.bottom &&
+        (InkUtils.maskContainsBounds(region, textBounds) ||
+          !difference(BoardText.mask(stroke), region).length)
+      )
+        result.push({ original: stroke, selected: stroke, remainder: null });
+
+      continue;
+    }
+
     const offset = stroke.translation ?? { x: 0, y: 0 };
 
     const key = stroke.matrix
@@ -54,13 +78,11 @@ function selectParts(
 
     // An enclosing box keeps the original exact painted boundary; polygonized ink is
     // never substituted for the source curve or used as the rendered clipping edge.
-    const bounds = source;
-
     const outer =
       stroke.clip ??
       RegionMask.rectangle(
-        { x: bounds.left - 1, y: bounds.top - 1 },
-        { x: bounds.right + 1, y: bounds.bottom + 1 },
+        { x: source.left - 1, y: source.top - 1 },
+        { x: source.right + 1, y: source.bottom + 1 },
       );
 
     const selectedClip = RegionMask.checkedMask(

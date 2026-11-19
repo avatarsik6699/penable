@@ -18,10 +18,16 @@ export function useSelectionActions(props: SelectionToolbarTypes.Props) {
     panel.focusTrigger();
   };
 
+  const editText = () => {
+    props.onEditText();
+    props.onOpenChange(false);
+    panel.focusTrigger();
+  };
+
   const changeShape = (value: SelectionShape) => {
     props.onShape(value);
     props.onOpenChange(false);
   };
 
-  return { ...panel, busy, command, changeShape };
+  return { ...panel, busy, command, changeShape, editText };
 }

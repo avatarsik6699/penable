@@ -538,17 +538,31 @@ export const RussianMessages = {
     "Не удалось записать фрагмент. Исходные записи сохранены.",
   valuePasteCancelled: "{{p0}} Вставка отменена.",
   waitingForCopyingBeforePaste: "Вставка после завершения копирования…",
+  editBoardText: "Изменить текст",
+  boardTextField: "Текст на доске",
+  saveBoardText: "Сохранить",
+  boardTextEmpty: "Введите текст.",
+  boardTextTooLong:
+    "Текст слишком длинный. Вставьте или введите до 8 000 символов.",
+  boardTextTooManyLines:
+    "В блоке больше 256 строк. Разделите текст на несколько блоков.",
+  tallTextFragmentCopied:
+    "Редактируемый фрагмент скопирован. Выделение слишком велико для копии в PNG.",
+  tallTextFragmentCut:
+    "Редактируемый фрагмент вырезан. Выделение слишком велико для копии в PNG.",
+  boardTextPasted: "Текст вставлен.",
+  downloadCopyBeforeDocument6: "Скачать копию до формата 6",
   readingSystemClipboard: "Чтение системного буфера…",
   editableFragmentReadingIsUnavailableAllowClipboard:
     "Чтение редактируемого фрагмента недоступно. Разрешите системный буфер и повторите вставку.",
   theClipboardContainsNoPenableFragmentPng:
-    "В буфере нет фрагмента Penable, PNG или JPEG.",
+    "В буфере нет фрагмента Penable, PNG, JPEG или обычного текста.",
   clipboardReadingIsUnavailablePasteAPng:
-    "Чтение буфера недоступно. Вставьте PNG или JPEG сочетанием Ctrl+V.",
+    "Чтение буфера недоступно. Попробуйте системную вставку (Ctrl+V или Cmd+V).",
   fragmentPasted: "Фрагмент вставлен.",
   fragmentWasNotPastedTryTheAction: "Фрагмент не вставлен. Повторите действие.",
   systemClipboardAccessDeniedAllowReadingAnd:
-    "Нет доступа к системному буферу. Разрешите чтение и повторите вставку.",
+    "Нет доступа к системному буферу. Попробуйте системную вставку (Ctrl+V или Cmd+V).",
   couldNotReadTheSystemClipboard: "Не удалось прочитать системный буфер.",
   preparingPng: "Подготовка PNG…",
   pngIsReadyToDownload: "PNG подготовлен для скачивания.",

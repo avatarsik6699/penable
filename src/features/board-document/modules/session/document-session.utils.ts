@@ -42,6 +42,7 @@ function sameState(
     previous.hasSchema3Copy === state.hasSchema3Copy &&
     previous.hasSchema4Copy === state.hasSchema4Copy &&
     previous.hasSchema5Copy === state.hasSchema5Copy &&
+    previous.hasSchema6Copy === state.hasSchema6Copy &&
     previous.hasLibraryCopy === state.hasLibraryCopy &&
     previous.hasRawCopy === state.hasRawCopy &&
     previous.hasPrevious === state.hasPrevious &&
@@ -52,13 +53,4 @@ function sameState(
 
 export const DocumentErrors = { messageOf };
 
-function isPre4(value: unknown): boolean {
-  return Boolean(
-    value &&
-    typeof value === "object" &&
-    "schemaVersion" in value &&
-    [1, 2, 3].includes(value.schemaVersion as number),
-  );
-}
-
-export const SessionUtils = { isSchema1, isLegacy, isPre4, sameState };
+export const SessionUtils = { isSchema1, isLegacy, sameState };

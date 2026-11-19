@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { BoardConstants, BoardRegions, type ImageItem } from "~/entities/board";
+import {
+  BoardConstants,
+  BoardRegions,
+  type BoardItem,
+  type ImageItem,
+  type TextItem,
+} from "~/entities/board";
 import { FragmentCodec } from "../modules/fragments";
 import { ImageAssets } from "../modules/image-assets";
 import type { FragmentReaderTypes } from "./fragment-reader.types";
@@ -16,7 +22,7 @@ const image: ImageItem = {
 
 const region = BoardRegions.rectangle({ x: -10, y: -10 }, { x: 10, y: 10 });
 
-async function execute(items: ImageItem[]) {
+async function execute(items: BoardItem[]) {
   vi.resetModules();
 
   const responses: FragmentReaderTypes.Response[] = [];
@@ -166,5 +172,27 @@ describe("editable clipboard native image preflight", () => {
     await result;
     expect(decode).not.toHaveBeenCalled();
     expect(responses.at(-1)?.type).toBe("done");
+  });
+
+  it("passes editable text without point packets or image decoding", async () => {
+    const text: TextItem = {
+      kind: "text",
+      id: 1,
+      text: "quote\n\n💡",
+      width: 180,
+      lines: [0, 6, 7],
+      matrix: [1, 0, 0, 1, 20, 30],
+    };
+
+    const decode = vi.fn();
+
+    vi.stubGlobal("createImageBitmap", decode);
+
+    expect(await execute([text])).toEqual([
+      { type: "item", item: text },
+      { type: "done", region },
+    ]);
+
+    expect(decode).not.toHaveBeenCalled();
   });
 });

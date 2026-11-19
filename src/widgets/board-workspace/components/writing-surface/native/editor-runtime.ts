@@ -1,5 +1,6 @@
 import { Messages } from "~/shared/lib/messages";
 import { TemplatePlacement } from "./templates";
+import { TextPlacement } from "./text-placement";
 import { BoardClipboard } from "./clipboard";
 import { BitmapCache, ImageInput } from "./images";
 import { NativeMinimap } from "./minimap";
@@ -8,6 +9,7 @@ import type { SurfaceElements, EditorHandle } from "./editor-runtime.types";
 import { SurfaceBindings } from "./bindings";
 import { SurfaceResolution } from "./rendering";
 import { SurfacePresenters } from "./rendering";
+import { TextPaint } from "./rendering";
 import { SurfaceDiagnostics } from "./rendering";
 import { BoardSnapshots } from "~/entities/board";
 import type { WritingSurfaceTypes } from "../writing-surface.types";
@@ -16,7 +18,7 @@ import { EraserInput } from "~/entities/board";
 import { PenInput } from "~/entities/board";
 import { BoardSelection } from "~/entities/board";
 import { CanvasRenderer } from "./rendering";
-import type { Scene } from "~/entities/board";
+import type { Scene, TextItem } from "~/entities/board";
 import { BoardViewport } from "~/entities/board";
 import { BoardNavigation } from "~/entities/board";
 import { StrokeHistory } from "~/entities/board";
@@ -78,6 +80,7 @@ function create(
       return;
     }
 
+    const textContext = context;
     const initial = BoardSnapshots.hydrateEditor(initialDocument);
     const scene: Scene = { strokes: initial.strokes, active: null };
 
@@ -245,6 +248,7 @@ function create(
 
     let disposed = false;
     let previousSelectionState = "";
+    let textEditPending = false;
 
     const paintSelection = () =>
       SurfacePresenters.selection(
@@ -269,6 +273,7 @@ function create(
           : imageInput.status,
         selected: selection.hasSelection,
         images: selection.hasImages,
+        text: selection.selectedText() !== null,
         clipboard: true,
         busy: selection.busy || selectionCommands.busy || imageInput.busy,
         message: selection.message,
@@ -389,6 +394,38 @@ function create(
         !selection.busy,
       writable: canWrite,
       insertImage: (blob) => imageInput.insertFile(blob),
+
+      insertText: (text, signal) => {
+        const bounds = canvas.getBoundingClientRect();
+
+        const layout = TextPaint.layout(
+          textContext,
+          text,
+          TextPlacement.width(bounds.width),
+        );
+
+        const dock = document
+          .querySelector("[data-editor-dock]")
+          ?.getBoundingClientRect();
+
+        const item: TextItem = {
+          kind: "text",
+          id: BoardIds.allocateStrokeId(scene.strokes),
+          ...layout,
+          matrix: TextPlacement.matrix(
+            layout,
+            state.viewport,
+            bounds,
+            (dock?.bottom ?? bounds.top) - bounds.top,
+          ),
+        };
+
+        templatePlacement.cancel();
+        onActivateSelection();
+
+        return selection.insertItemsDetailed([item], signal);
+      },
+
       activate: onActivateSelection,
       changed: publishSelection,
     });
@@ -466,6 +503,7 @@ function create(
       interactionsBlocked,
       inputBusy: () => imageInput.busy || nativeClipboard.busy,
       preservePendingInsertion: () => imageInput.busy,
+      preserveBlockedSelection: () => textEditPending,
       drawingPointerId,
       activeInput,
       observeInput: diagnostics.observe,
@@ -542,6 +580,41 @@ function create(
       applyHistory,
       surface,
       touchBusy: () => touchActive(),
+
+      beginTextEdit: () => {
+        const original = selection.selectedText();
+
+        if (!original || !canWrite()) return null;
+
+        return {
+          text: original.text,
+
+          save: async (value, signal) => {
+            if (disposed || !canWrite() || signal.aborted)
+              return { status: "cancelled" };
+
+            const content = TextPaint.layout(
+              textContext,
+              value,
+              original.width,
+            );
+
+            if (
+              original.text === content.text &&
+              original === selection.selectedText()
+            )
+              return { status: "committed" };
+
+            textEditPending = true;
+
+            try {
+              return await selection.replaceText(original, content, signal);
+            } finally {
+              textEditPending = false;
+            }
+          },
+        };
+      },
 
       insertImage: () => {
         templatePlacement.cancel();

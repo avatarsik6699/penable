@@ -95,7 +95,18 @@ export namespace TestBoardTypes {
     clip?: number[][][][];
   };
 
-  export type Item = InkItem | ImageItem | TemplateItem;
+  export type TextItem = {
+    kind: "text";
+    id: number;
+    text: string;
+    width: number;
+    lines: number[];
+    matrix: Matrix;
+    source?: string;
+    clip?: never;
+  };
+
+  export type Item = InkItem | ImageItem | TemplateItem | TextItem;
 
   export type Asset = {
     id: string;
@@ -106,7 +117,7 @@ export namespace TestBoardTypes {
   };
 
   export type StoredDocument = Omit<Document, "schemaVersion" | "strokes"> & {
-    schemaVersion: 4 | 5;
+    schemaVersion: 4 | 5 | 6;
     items: Item[];
     assets: Asset[];
   };
@@ -132,6 +143,7 @@ export namespace TestBoardTypes {
     upgrade3?: Document;
     upgrade4?: Document;
     upgrade5?: Document | StoredDocument;
+    upgrade6?: Document | StoredDocument;
     beforeLibrary?: Document;
     catalog?: Catalog | LegacyCatalog;
     beforeCatalog2?: LegacyCatalog;

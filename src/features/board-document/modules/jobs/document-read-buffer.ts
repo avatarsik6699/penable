@@ -62,7 +62,7 @@ export class DocumentReadBuffer {
       if (entry.kind === "image")
         return { ...entry, asset: this.assets.get(entry.asset.id)! };
 
-      if (entry.kind === "template") return entry;
+      if (entry.kind === "template" || entry.kind === "text") return entry;
 
       const { geometry, kind: _kind, ownKind, ...stroke } = entry;
 

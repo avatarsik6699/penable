@@ -3,6 +3,7 @@ import {
   type BoardItem,
   type Position,
 } from "../../../board.types";
+import { BoardText } from "../../../board-text";
 import { BoardTemplates } from "../../../templates";
 import { BoardPressure } from "../../../writing";
 import { BoardTransforms } from "../../../transforms";
@@ -27,6 +28,8 @@ const roughBoundsCache = new WeakMap<
 >();
 
 function sourceBounds(stroke: BoardItem): InkBounds | null {
+  if (stroke.kind === "text") return BoardText.localBounds(stroke);
+
   if (stroke.kind === "image")
     return {
       left: 0,
@@ -240,6 +243,8 @@ function clippedCapsuleBounds(
 }
 
 function localVisibleBounds(stroke: BoardItem): InkBounds | null {
+  if (stroke.kind === "text") return BoardText.localBounds(stroke);
+
   if (stroke.kind === "image" || stroke.kind === "template") {
     const b = sourceBounds(stroke)!;
     const clip = stroke.clip ? RegionMask.maskBounds(stroke.clip) : null;

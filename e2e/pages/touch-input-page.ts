@@ -68,6 +68,51 @@ export class TouchInputPage {
       .tap();
   }
 
+  async expectTextTapInNavigationMode() {
+    const saved = (await this.board.storage.records()).main;
+    const quotation = "Цитата для планшета.";
+
+    await this.board.storage.importDocument({
+      ...saved,
+      schemaVersion: 6,
+      items: [
+        {
+          id: 1,
+          kind: "text",
+          text: quotation,
+          width: 240,
+          lines: [0],
+          matrix: [1, 0, 0, 1, 140, 360],
+        },
+      ],
+    });
+
+    await this.page
+      .getByRole("button", { name: "Выделение", exact: true })
+      .tap();
+
+    const canvas = (await this.board.surface.boundingBox())!;
+
+    await this.page.touchscreen.tap(canvas.x + 170, canvas.y + 374);
+
+    await this.page
+      .getByRole("button", { name: "Действия", exact: true })
+      .tap();
+
+    await this.page
+      .getByRole("button", { name: "Изменить текст", exact: true })
+      .tap();
+
+    const dialog = this.page.getByRole("dialog", {
+      name: "Изменить текст",
+      exact: true,
+    });
+
+    await expect(dialog.getByRole("textbox")).toHaveValue(quotation);
+    await dialog.getByRole("button", { name: "Отмена", exact: true }).tap();
+    await expect(dialog).toBeHidden();
+  }
+
   async expectNavigationAndRebase() {
     const initial = await this.viewport();
     const box = (await this.board.surface.boundingBox())!;

@@ -31,6 +31,14 @@ function create(options: EditorCommandTypes.ControlsOptions): SurfaceControls {
   };
 
   return {
+    beginTextEdit: () =>
+      !interactionsBlocked() &&
+      drawingPointerId() === null &&
+      navigation.pointerId === null &&
+      !selection.busy
+        ? (options.beginTextEdit?.() ?? null)
+        : null,
+
     insertImage: () => {
       if (!interactionsBlocked()) options.insertImage();
     },

@@ -1,3 +1,4 @@
+import { intersection } from "polygon-clipping";
 import {
   type Position,
   type ClipMask,
@@ -71,6 +72,15 @@ function inkIntersectsMask(stroke: BoardItem, mask: ClipMask): boolean {
   if (!bounds || !source || !InkUtils.overlaps(bounds, source)) return false;
 
   if (stroke.kind === "image") return true;
+
+  if (stroke.kind === "text") {
+    const block = RegionMask.rectangle(
+      { x: source.left, y: source.top },
+      { x: source.right, y: source.bottom },
+    );
+
+    return intersection(block, mask).length > 0;
+  }
 
   if (stroke.kind === "template")
     return TemplateIntersections.intersects(stroke, mask);

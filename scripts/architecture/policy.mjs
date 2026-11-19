@@ -92,6 +92,8 @@ export const platformOwners = {
     ["canvas"],
   "src/widgets/board-workspace/components/writing-surface/native/rendering/paint.ts":
     ["canvas"],
+  "src/widgets/board-workspace/components/writing-surface/native/rendering/text-paint.ts":
+    ["canvas"],
   "src/widgets/board-workspace/components/writing-surface/native/rendering/template-paint.ts":
     ["canvas"],
   "src/widgets/board-workspace/components/pen-toolbar/components/template-panel/components/template-preview/native/preview-input.ts":
@@ -175,6 +177,7 @@ const rasterDependencies = [
   `${rasterBase}/rendering/paint.ts`,
   `${rasterBase}/rendering/pressure-paint.ts`,
   `${rasterBase}/rendering/template-paint.ts`,
+  `${rasterBase}/rendering/text-paint.ts`,
   `${rasterBase}/rendering/path-cache.ts`,
   `${rasterBase}/rendering/png-dimensions.ts`,
   `${rasterBase}/rendering/rendering-context.types.ts`,

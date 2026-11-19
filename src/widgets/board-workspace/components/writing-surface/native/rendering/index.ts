@@ -1,5 +1,6 @@
 export { CanvasRenderer } from "./renderer";
 export type { CanvasLayer, FrameScheduler } from "./renderer.types";
+export { TextPaint } from "./text-paint";
 export { BoardPaint } from "./paint";
 export type { StrokePaintState } from "./paint";
 export { BoardPaths } from "./path-cache";

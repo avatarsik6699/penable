@@ -87,7 +87,9 @@ export class DocumentJobs implements DocumentPersistence {
       .then(() => {});
   }
 
-  write(document: BoardDocument): Promise<void> {
+  write(
+    document: BoardDocument,
+  ): Promise<import("../../board-document.types").StoredRecord | void> {
     if (this.closing)
       return Promise.reject(
         Messages.error(Messages.create("documentProcessingIsClosing")),
@@ -101,7 +103,11 @@ export class DocumentJobs implements DocumentPersistence {
 
     this.tail = operation.catch(() => {});
 
-    return operation.then(() => {});
+    return operation.then((result) =>
+      result.beforeSchema6
+        ? RecordCopies.capture(result.beforeSchema6)
+        : undefined,
+    );
   }
 
   replace(
@@ -115,14 +121,20 @@ export class DocumentJobs implements DocumentPersistence {
   replaceValidated(
     previous: import("../../board-document.types").ReplacementPrevious,
     candidate: BoardDocument,
+    onSchema6Copy?: (
+      record: import("../../board-document.types").StoredRecord,
+    ) => void,
   ): Promise<import("../../board-document.types").StoredRecord | void> {
-    return this.replaceQueued(previous, candidate, true);
+    return this.replaceQueued(previous, candidate, true, onSchema6Copy);
   }
 
   private replaceQueued(
     previous: import("../../board-document.types").ReplacementPrevious,
     candidate: BoardDocument,
     trusted: boolean,
+    onSchema6Copy?: (
+      record: import("../../board-document.types").StoredRecord,
+    ) => void,
   ): Promise<import("../../board-document.types").StoredRecord | void> {
     if (this.closing)
       return Promise.reject(
@@ -148,11 +160,14 @@ export class DocumentJobs implements DocumentPersistence {
 
     this.tail = operation.catch(() => {});
 
-    return operation.then((result) =>
-      result.previousCopy
+    return operation.then((result) => {
+      if (result.beforeSchema6)
+        onSchema6Copy?.(RecordCopies.capture(result.beforeSchema6));
+
+      return result.previousCopy
         ? RecordCopies.capture(result.previousCopy)
-        : undefined,
-    );
+        : undefined;
+    });
   }
 
   overview(

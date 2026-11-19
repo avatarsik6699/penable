@@ -1,9 +1,10 @@
 import type { MessageTypes } from "~/shared/lib/messages";
 import { Messages } from "~/shared/lib/messages";
-import { DocumentCodec } from "../modules/codec";
+import { DocumentCodec, DocumentSchema } from "../modules/codec";
 import type {
   BoardDocument,
   DocumentRepository,
+  StoredRecord,
 } from "../board-document.types";
 
 const DATABASE_NAME = "penable";
@@ -259,78 +260,45 @@ function openRepository(
         };
       }
 
-      function preserveSchema4(
+      function preserveItemSchemas(
         store: IDBObjectStore,
         candidate: BoardDocument,
+        result: (copy: StoredRecord) => void,
       ) {
-        if (candidate.schemaVersion !== 4 && candidate.schemaVersion !== 5)
-          return;
+        if (!DocumentSchema.itemDocument(candidate.schemaVersion)) return;
 
-        const main = store.get(boardKey),
-          existing = store.getKey(backupKeyFor("before-schema4"));
+        const target = DocumentSchema.current(candidate.strokes);
 
-        let loaded = false,
-          checked = false;
+        const versions =
+          target === 6 ? ([4, 5, 6] as const) : ([4, 5] as const);
 
-        const preserve = () => {
-          if (!loaded || !checked || existing.result !== undefined) return;
+        const backups = versions.map((version) => ({
+          version,
+          key: backupKeyFor(`before-schema${version}`),
+          request: store.getKey(backupKeyFor(`before-schema${version}`)),
+        }));
 
-          const raw: unknown = main.result;
+        const currentKey = target === 6 ? store.getKey(boardKey) : null;
+        const current = store.get(boardKey);
 
-          if (
-            raw &&
-            typeof raw === "object" &&
-            "schemaVersion" in raw &&
-            [1, 2, 3].includes(raw.schemaVersion as number)
-          )
-            store.put(raw, backupKeyFor("before-schema4"));
-        };
+        current.onsuccess = () => {
+          const raw = {
+            exists: currentKey ? currentKey.result !== undefined : true,
+            value: current.result as unknown,
+          };
 
-        main.onsuccess = () => {
-          loaded = true;
-          preserve();
-        };
+          const eligible = DocumentSchema.upgradeBackups(target, raw);
 
-        existing.onsuccess = () => {
-          checked = true;
-          preserve();
-        };
-      }
+          for (const backup of backups) {
+            if (
+              backup.request.result === undefined &&
+              eligible[`beforeSchema${backup.version}`]
+            ) {
+              store.put(raw.value, backup.key);
 
-      function preserveSchema5(
-        store: IDBObjectStore,
-        candidate: BoardDocument,
-      ) {
-        if (candidate.schemaVersion !== 5) return;
-
-        const main = store.get(boardKey),
-          existing = store.getKey(backupKeyFor("before-schema5"));
-
-        let loaded = false,
-          checked = false;
-
-        const preserve = () => {
-          if (!loaded || !checked || existing.result !== undefined) return;
-
-          const raw: unknown = main.result;
-
-          if (
-            raw &&
-            typeof raw === "object" &&
-            "schemaVersion" in raw &&
-            [1, 2, 3, 4].includes(raw.schemaVersion as number)
-          )
-            store.put(raw, backupKeyFor("before-schema5"));
-        };
-
-        main.onsuccess = () => {
-          loaded = true;
-          preserve();
-        };
-
-        existing.onsuccess = () => {
-          checked = true;
-          preserve();
+              if (backup.version === 6) result(raw);
+            }
+          }
         };
       }
 
@@ -338,48 +306,52 @@ function openRepository(
         previous: unknown,
         candidate: BoardDocument,
         fromStored = false,
-      ): Promise<void> {
-        return transaction<void>("readwrite", (store, result) => {
-          preserveSchema5(store, candidate);
-          preserveSchema4(store, candidate);
-          preserveSchema1(store, candidate);
-          preserveSchema3(store, candidate);
+      ): Promise<StoredRecord | void> {
+        return transaction<StoredRecord | void>(
+          "readwrite",
+          (store, result) => {
+            preserveItemSchemas(store, candidate, result);
+            preserveSchema1(store, candidate);
+            preserveSchema3(store, candidate);
 
-          const savePrevious = (value: unknown) =>
-            store.put(value, backupKeyFor("before-import"));
+            const savePrevious = (value: unknown) =>
+              store.put(value, backupKeyFor("before-import"));
 
-          if (fromStored) {
-            const current = store.get(boardKey);
+            if (fromStored) {
+              const current = store.get(boardKey);
 
-            current.onsuccess = () => {
-              try {
-                savePrevious(current.result as unknown);
-              } catch {
-                store.transaction.abort();
-              }
-            };
-          } else
-            savePrevious(
-              previous &&
-                typeof previous === "object" &&
-                "strokes" in previous &&
-                "schemaVersion" in previous &&
-                (previous.schemaVersion === 4 || previous.schemaVersion === 5)
-                ? DocumentCodec.encodeDocument(previous as BoardDocument)
-                : previous,
+              current.onsuccess = () => {
+                try {
+                  savePrevious(current.result as unknown);
+                } catch {
+                  store.transaction.abort();
+                }
+              };
+            } else
+              savePrevious(
+                previous &&
+                  typeof previous === "object" &&
+                  "strokes" in previous &&
+                  "schemaVersion" in previous &&
+                  DocumentSchema.itemDocument(previous.schemaVersion)
+                  ? DocumentCodec.encodeDocument(previous as BoardDocument)
+                  : previous,
+              );
+
+            store.put(
+              DocumentSchema.itemDocument(candidate.schemaVersion)
+                ? DocumentCodec.encodeDocument(candidate)
+                : candidate,
+              boardKey,
             );
 
-          store.put(
-            candidate.schemaVersion === 4 || candidate.schemaVersion === 5
-              ? DocumentCodec.encodeDocument(candidate)
-              : candidate,
-            boardKey,
-          );
-
-          result(undefined);
-        }).then(() => {
+            result(undefined);
+          },
+        ).then((copy) => {
           schema2Preserved = candidate.schemaVersion === 2;
           schema3Preserved = candidate.schemaVersion === 3;
+
+          return copy;
         });
       }
 
@@ -392,11 +364,13 @@ function openRepository(
               beforeSchema2: { exists: false, value: undefined as unknown },
               beforeSchema3: { exists: false, value: undefined as unknown },
               beforeSchema5: { exists: false, value: undefined as unknown },
+              beforeSchema6: { exists: false, value: undefined as unknown },
               beforeSchema4: { exists: false, value: undefined as unknown },
               beforeLibrary: { exists: false, value: undefined as unknown },
             };
 
             for (const [name, key] of [
+              ["beforeSchema6", backupKeyFor("before-schema6")],
               ["beforeSchema5", backupKeyFor("before-schema5")],
               ["beforeSchema4", backupKeyFor("before-schema4")],
               ["beforeLibrary", backupKeyFor("before-library")],
@@ -459,23 +433,27 @@ function openRepository(
           }),
 
         write: (document: BoardDocument) => {
-          return transaction<void>("readwrite", (store, result) => {
-            preserveSchema5(store, document);
-            preserveSchema4(store, document);
-            preserveSchema1(store, document);
-            preserveSchema3(store, document);
+          return transaction<StoredRecord | void>(
+            "readwrite",
+            (store, result) => {
+              preserveItemSchemas(store, document, result);
+              preserveSchema1(store, document);
+              preserveSchema3(store, document);
 
-            store.put(
-              document.schemaVersion === 4 || document.schemaVersion === 5
-                ? DocumentCodec.encodeDocument(document)
-                : document,
-              boardKey,
-            );
+              store.put(
+                DocumentSchema.itemDocument(document.schemaVersion)
+                  ? DocumentCodec.encodeDocument(document)
+                  : document,
+                boardKey,
+              );
 
-            result(undefined);
-          }).then(() => {
+              result(undefined);
+            },
+          ).then((copy) => {
             schema2Preserved = document.schemaVersion === 2;
             schema3Preserved = document.schemaVersion === 3;
+
+            return copy;
           });
         },
 
