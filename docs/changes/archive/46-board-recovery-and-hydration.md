@@ -2,7 +2,7 @@
 
 ## Change Metadata
 
-Branch `feature/46-board-recovery-and-hydration`. Status: active.
+Branch `feature/46-board-recovery-and-hydration`. Status: shipped.
 
 ## Goal
 
@@ -23,11 +23,11 @@ Board-document library/session and recovery UI, workspace composition and editor
 
 ## Contracts
 
-See [SPEC](../SPEC.md) §5.16 and [FRONTEND](../FRONTEND.md). Existing wire formats and legacy recovery copies remain compatible.
+See [SPEC](../../SPEC.md) §5.16 and [FRONTEND](../../FRONTEND.md). Existing wire formats and legacy recovery copies remain compatible.
 
 ## Gate Checks
 
-Use [STACK](../STACK.md) and the Change 46 browser scenarios above on isolated origins.
+Use [STACK](../../STACK.md) and the Change 46 browser scenarios above on isolated origins.
 
 ## Architect Review Notes
 
@@ -35,7 +35,7 @@ Use [STACK](../STACK.md) and the Change 46 browser scenarios above on isolated o
 
 ## Implementation Notes
 
-The native smoke and paired hydration measurements used isolated synthetic boards. Full Gate passed with 912 unit and 158 browser tests. Controlled memory measurements and hardware limits are recorded in [the report](../performance/46-editor-open.md).
+The native smoke and paired hydration measurements used isolated synthetic boards. Full Gate passed with 912 unit and 158 browser tests. Controlled memory measurements and hardware limits are recorded in [the report](../../performance/46-editor-open.md).
 
 ## Commit Message
 
