@@ -2,11 +2,11 @@
 
 ## Change Metadata
 
-Branch `feature/47-clipboard-text`. Status: active.
+Branch `feature/47-clipboard-text`. Status: shipped.
 
 ## Goal
 
-Paste a quotation from a book or article, annotate it with the pen or highlighter, and return to the editable text later. See [SPEC](../SPEC.md) §5.29.
+Paste a quotation from a book or article, annotate it with the pen or highlighter, and return to the editable text later. See [SPEC](../../SPEC.md) §5.29.
 
 ## Backlog
 
@@ -22,7 +22,7 @@ Board entities, board-document codec/storage/jobs, board workspace native runtim
 
 ## Gate Checks
 
-Use [STACK](../STACK.md). Smoke uses isolated Windows Chrome with an external article-like source, native clipboard and a fresh production preview.
+Use [STACK](../../STACK.md). Smoke uses isolated Windows Chrome with an external article-like source, native clipboard and a fresh production preview.
 
 ## Architect Review Notes
 
